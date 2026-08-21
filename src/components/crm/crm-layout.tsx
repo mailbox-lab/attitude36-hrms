@@ -24,7 +24,6 @@ import {
   Menu,
   ChevronLeft,
   HeadphonesIcon,
-  ChevronRight,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -34,6 +33,7 @@ import {
 import { CommandPalette } from '@/components/crm/command-palette'
 import { NotificationBell } from '@/components/crm/notification-bell'
 import { ThemeToggle } from '@/components/crm/theme-toggle'
+import { GlobalSearch } from '@/components/crm/global-search'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
@@ -45,7 +45,7 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; ba
   { icon: Video, label: 'Interviews', view: 'interviews' },
   { icon: Award, label: 'Placements', view: 'placements' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
-  { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-blue-500' },
+  { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-violet-500' },
   { icon: Settings, label: 'Settings', view: 'settings' },
 ]
 
@@ -62,15 +62,18 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-card transition-all duration-300',
+          'fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-gradient-to-b from-card to-card/95 transition-all duration-300',
           sidebarOpen ? 'w-64' : 'w-16',
           isMobile && !sidebarOpen && '-translate-x-full',
           isMobile && sidebarOpen && 'translate-x-0',
         )}
       >
         {/* Logo */}
-        <div className="flex h-14 items-center gap-2 border-b px-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+        <div className={cn(
+          'flex h-14 items-center border-b transition-all duration-300',
+          sidebarOpen ? 'gap-2 px-3' : 'justify-center',
+        )}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-sm shadow-sm">
             R
           </div>
           {sidebarOpen && (
@@ -91,13 +94,16 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 (item.view === 'clients' && (currentView === 'client-detail')) ||
                 (item.view === 'jobs' && (currentView === 'job-detail'))
 
+              const needsDivider = item.view === 'attendance' || item.view === 'settings'
+              const dividerLabel = item.view === 'attendance' ? 'HR & Attendance' : 'System'
+
               const btn = (
                 <Button
                   key={item.view}
                   variant={isActive ? 'secondary' : 'ghost'}
                   className={cn(
-                    'w-full justify-start gap-3 h-9 text-sm font-normal',
-                    isActive && 'font-medium bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
+                    'w-full justify-start gap-3 h-9 text-sm font-normal border-l-2 border-l-transparent',
+                    isActive && 'font-medium bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary border-l-primary',
                     !sidebarOpen && 'justify-center px-2',
                   )}
                   onClick={() => navigate(item.view)}
@@ -114,20 +120,33 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
 
               if (!sidebarOpen) {
                 return (
-                  <Tooltip key={item.view} delayDuration={0}>
-                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                    <TooltipContent side="right" className="flex items-center gap-2">
-                      {item.label}
-                      {item.badge && (
-                        <Badge className={cn('text-[10px] px-1.5 py-0 h-4', item.badgeColor)}>
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
+                  <div key={item.view}>
+                    {needsDivider && <Separator className="my-2" />}
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                      <TooltipContent side="right" className="flex items-center gap-2">
+                        {item.label}
+                        {item.badge && (
+                          <Badge className={cn('text-[10px] px-1.5 py-0 h-4', item.badgeColor)}>
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 )
               }
-              return btn
+
+              return (
+                <div key={item.view}>
+                  {needsDivider && (
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 px-3 pt-4 pb-1">
+                      {dividerLabel}
+                    </div>
+                  )}
+                  {btn}
+                </div>
+              )
             })}
           </nav>
         </ScrollArea>
@@ -178,7 +197,8 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
             {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <div className="flex-1">
+          <GlobalSearch />
+          <div className="hidden md:flex flex-1">
             <h2 className="text-sm font-semibold">
               {navItems.find((i) => i.view === currentView)?.label ?? 'Dashboard'}
             </h2>
@@ -201,10 +221,27 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Footer */}
-        <footer className="border-t bg-background px-4 py-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>© 2025 RecruitPro CRM</span>
-            <span>v1.0.0</span>
+        <footer className="bg-background px-4 py-2">
+          <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span>© 2025 RecruitPro</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span>Recruitment CRM</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                </span>
+                <span>System Online</span>
+              </div>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
+                v1.1.0
+              </Badge>
+            </div>
+            <span className="hidden sm:inline">Made with ♥ in India</span>
           </div>
         </footer>
       </main>

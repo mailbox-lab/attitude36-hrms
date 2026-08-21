@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useCRMStore } from '@/stores/crm-store'
@@ -38,11 +38,15 @@ import {
   User,
   Building2,
   Briefcase,
-  Users,
   UserCheck,
   Calendar,
   ExternalLink,
+  IndianRupee,
+  PhoneCall,
+  Factory,
+  Clock,
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 // ===== Types =====
 
@@ -109,7 +113,7 @@ const JOB_STATUS_COLORS: Record<string, string> = {
   Open: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   Closed: 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
   Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  Filled: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  Filled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
   Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
 }
 
@@ -118,6 +122,13 @@ const PLACEMENT_STATUS_COLORS: Record<string, string> = {
   Joined: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   'Offer Declined': 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'On Hold': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+}
+
+const PRIORITY_COLORS: Record<string, string> = {
+  Low: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+  Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  High: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+  Urgent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
 }
 
 // ===== Main Component =====
@@ -165,10 +176,17 @@ export function ClientDetail({
     enabled: !!clientId,
   })
 
-  // Count open jobs
-  const openJobs = jobsData?.data?.filter((j) => j.status === 'Open').length ?? 0
-  const totalCandidates = jobsData?.data?.reduce((sum, j) => sum + j.openings, 0) ?? 0
+  const jobs = jobsData?.data || []
+  const openJobs = jobs.filter((j) => j.status === 'Open').length
+  const totalCandidates = jobs.reduce((sum, j) => sum + j.openings, 0)
   const placements = placementsData?.data || []
+
+  // Calculate total revenue from joined placements
+  const totalRevenue = useMemo(() => {
+    return placements
+      .filter((p) => p.status === 'Joined' && p.offeredCTC != null)
+      .reduce((sum, p) => sum + (p.offeredCTC ?? 0), 0)
+  }, [placements])
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -212,93 +230,185 @@ export function ClientDetail({
 
   const location = [client.address, client.city, client.state, client.country].filter(Boolean).join(', ')
 
+  // Recent jobs: sorted by createdAt desc, take first 4
+  const recentJobs = [...jobs]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4)
+
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-      {/* Header with gradient banner */}
+    <motion.div
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('clients')}
+        className="w-fit"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Clients
+      </Button>
+
+      {/* Header */}
       <div className="rounded-lg bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('clients')}
-              className="shrink-0 rounded-full"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{client.name}</h1>
-                <Badge className={`text-xs ${STATUS_COLORS[client.status] || ''}`}>
-                  {client.status}
-                </Badge>
-              </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{client.name}</h1>
+              <Badge className={`text-xs ${STATUS_COLORS[client.status] || ''}`}>
+                {client.status}
+              </Badge>
               {client.industry && (
-                <p className="mt-1 text-sm text-muted-foreground">{client.industry}</p>
+                <Badge variant="outline" className="text-xs">
+                  <Factory className="mr-1 h-3 w-3" />
+                  {client.industry}
+                </Badge>
               )}
             </div>
+            {client.industry && (
+              <p className="text-sm text-muted-foreground">{client.industry}</p>
+            )}
           </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
-            <Pencil className="mr-2 h-3.5 w-3.5" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="mr-2 h-3.5 w-3.5" />
-            Delete
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast.info('Feature coming soon')}
+            >
+              <PhoneCall className="mr-2 h-3.5 w-3.5" />
+              Contact
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
+              <Pencil className="mr-2 h-3.5 w-3.5" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
-      </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border-l-4 border-l-emerald-500">
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
               <Briefcase className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{openJobs}</p>
-              <p className="text-xs text-muted-foreground">Open Jobs</p>
+              <p className="text-2xl font-bold">{jobs.length}</p>
+              <p className="text-xs text-muted-foreground">Total Jobs</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-violet-500">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
-              <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{totalCandidates}</p>
-              <p className="text-xs text-muted-foreground">Total Candidates Needed</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-amber-500">
+        <Card className="border-l-4 border-l-amber-500 transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
-              <UserCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{openJobs}</p>
+              <p className="text-xs text-muted-foreground">Active Jobs</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-violet-500 transition-shadow hover:shadow-md">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
+              <UserCheck className="h-5 w-5 text-violet-600 dark:text-violet-400" />
             </div>
             <div>
               <p className="text-2xl font-bold">{placements.length}</p>
-              <p className="text-xs text-muted-foreground">Placements</p>
+              <p className="text-xs text-muted-foreground">Total Placements</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-rose-500 transition-shadow hover:shadow-md">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-950">
+              <IndianRupee className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{totalRevenue > 0 ? `₹${totalRevenue}L` : '—'}</p>
+              <p className="text-xs text-muted-foreground">Total Revenue</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Jobs Section */}
+      {recentJobs.length > 0 && (
+        <Card className="transition-shadow hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Briefcase className="h-4 w-4" />
+              Recent Jobs
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => navigate('jobs')}
+            >
+              View All →
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {recentJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="group cursor-pointer rounded-lg border p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+                  onClick={() => navigate('job-detail', job.id)}
+                >
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <h4 className="text-sm font-medium leading-tight group-hover:text-primary transition-colors">
+                      {job.title}
+                    </h4>
+                    <Badge className={`shrink-0 text-[9px] ${PRIORITY_COLORS[job.priority] || ''}`}>
+                      {job.priority}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {job.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {job.location}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <Badge className={`text-[9px] ${JOB_STATUS_COLORS[job.status] || ''}`}>
+                      {job.status}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground">
+                      {job.openings} opening{job.openings !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column: Company Info */}
         <div className="flex flex-col gap-6 lg:col-span-1">
           {/* Company Info Card */}
-          <Card className="border-l-4 border-l-primary">
+          <Card className="border-l-4 border-l-amber-500 transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Building2 className="h-4 w-4" />
@@ -355,7 +465,7 @@ export function ClientDetail({
           </Card>
 
           {/* Contact Person Card */}
-          <Card className="border-l-4 border-l-sky-500">
+          <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <User className="h-4 w-4" />
@@ -403,7 +513,7 @@ export function ClientDetail({
 
           {/* Description Card */}
           {client.description && (
-            <Card className="border-l-4 border-l-amber-500">
+            <Card className="border-l-4 border-l-violet-500 transition-shadow hover:shadow-md">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">About</CardTitle>
               </CardHeader>
@@ -438,18 +548,18 @@ export function ClientDetail({
         {/* Right Column: Jobs & Placements */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Related Jobs Card */}
-          <Card className="border-l-4 border-l-emerald-500">
+          <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Briefcase className="h-4 w-4" />
-                Related Jobs
+                All Job Openings
               </CardTitle>
               <span className="text-xs text-muted-foreground">
-                {jobsData?.data?.length ?? 0} job{(jobsData?.data?.length ?? 0) !== 1 ? 's' : ''}
+                {jobs.length} job{jobs.length !== 1 ? 's' : ''}
               </span>
             </CardHeader>
             <CardContent>
-              {jobsData?.data && jobsData.data.length > 0 ? (
+              {jobs.length > 0 ? (
                 <div className="max-h-96 overflow-y-auto rounded-md border">
                   <Table>
                     <TableHeader>
@@ -462,8 +572,12 @@ export function ClientDetail({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {jobsData.data.map((job) => (
-                        <TableRow key={job.id}>
+                      {jobs.map((job) => (
+                        <TableRow
+                          key={job.id}
+                          className="cursor-pointer transition-colors hover:bg-muted/50"
+                          onClick={() => navigate('job-detail', job.id)}
+                        >
                           <TableCell className="text-xs font-medium">{job.title}</TableCell>
                           <TableCell className="hidden text-xs sm:table-cell">
                             {job.location || '—'}
@@ -494,7 +608,7 @@ export function ClientDetail({
           </Card>
 
           {/* Related Placements Card */}
-          <Card className="border-l-4 border-l-violet-500">
+          <Card className="border-l-4 border-l-violet-500 transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <UserCheck className="h-4 w-4" />
@@ -519,7 +633,7 @@ export function ClientDetail({
                     </TableHeader>
                     <TableBody>
                       {placements.map((placement) => (
-                        <TableRow key={placement.id}>
+                        <TableRow key={placement.id} className="transition-colors hover:bg-muted/50">
                           <TableCell className="text-xs font-medium">
                             {placement.candidate
                               ? `${placement.candidate.firstName} ${placement.candidate.lastName}`
@@ -593,6 +707,6 @@ export function ClientDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   )
 }

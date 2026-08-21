@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useCRMStore } from '@/stores/crm-store'
@@ -8,7 +8,6 @@ import { AddJobDialog } from './add-job-dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   Table,
   TableBody,
@@ -42,8 +41,11 @@ import {
   DollarSign,
   User,
   Video,
-  MessageSquare,
+  CheckCircle2,
+  UserPlus,
+  BarChart3,
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 // ===== Types =====
 
@@ -109,25 +111,44 @@ const STATUS_COLORS: Record<string, string> = {
 
 const PRIORITY_COLORS: Record<string, string> = {
   Low: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-  Medium: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-  High: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  High: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
   Urgent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
 }
 
+const EMPLOYMENT_TYPE_COLORS: Record<string, string> = {
+ 'Full-Time': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+ 'Part-Time': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+ 'Contract': 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+ 'Internship': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+ 'Freelance': 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+}
+
 const CANDIDATE_STATUS_COLORS: Record<string, string> = {
-  New: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  New: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   Screening: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
   Interview: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
-  Offered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  Offered: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
   Hired: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   Rejected: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'On Hold': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
 }
 
+const CANDIDATE_PIPELINE_COLORS: Record<string, string> = {
+  New: 'bg-emerald-500',
+  Screening: 'bg-amber-500',
+  Interview: 'bg-violet-500',
+  Offered: 'bg-cyan-500',
+  Hired: 'bg-green-500',
+  Rejected: 'bg-red-500',
+  'On Hold': 'bg-gray-400',
+}
+
 const INTERVIEW_STATUS_COLORS: Record<string, string> = {
-  Scheduled: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  Scheduled: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
   Completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+  Rescheduled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
   'No Show': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
 }
 
@@ -177,6 +198,28 @@ export function JobDetail({ jobId }: { jobId: string }) {
   const scheduledInterviews = interviews.filter((i) => i.status === 'Scheduled').length
   const placementsCount = job?._count?.placements ?? 0
 
+  // Candidate pipeline distribution
+  const pipelineData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    candidates.forEach((c) => {
+      counts[c.status] = (counts[c.status] || 0) + 1
+    })
+    return Object.entries(counts).sort(([, a], [, b]) => b - a)
+  }, [candidates])
+
+  const totalCandidatesCount = candidates.length
+
+  // Parse requirements into list items
+  const requirementsList = useMemo(() => {
+    if (!job?.requirements) return []
+    return job.requirements
+      .split(/\n|\r\n/)
+      .map((r) => r.trim())
+      .filter(Boolean)
+      .map((r) => r.replace(/^[-•*\d.)\s]+/, '').trim())
+      .filter(Boolean)
+  }, [job])
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -223,36 +266,55 @@ export function JobDetail({ jobId }: { jobId: string }) {
       ? `${currencySymbol}${(job.salaryMin ?? 0).toLocaleString('en-IN')} - ${currencySymbol}${(job.salaryMax ?? 0).toLocaleString('en-IN')}`
       : 'Not specified'
 
+  const handleApplyCandidates = () => {
+    navigate('candidates')
+    toast.info('Select candidates to assign to this job')
+  }
+
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <motion.div
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('jobs')}
+        className="w-fit"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Jobs
+      </Button>
+
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('jobs')}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{job.title}</h1>
-              <Badge className={`text-xs ${STATUS_COLORS[job.status] || ''}`}>
-                {job.status}
-              </Badge>
-              <Badge className={`text-xs ${PRIORITY_COLORS[job.priority] || ''}`}>
-                {job.priority}
-              </Badge>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {job.client.name}
-              {job.department && ` · ${job.department}`}
-            </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{job.title}</h1>
+            <Badge className={`text-xs ${STATUS_COLORS[job.status] || ''}`}>
+              {job.status}
+            </Badge>
+            <Badge className={`text-xs ${PRIORITY_COLORS[job.priority] || ''}`}>
+              {job.priority}
+            </Badge>
+            <Badge className={`text-xs ${EMPLOYMENT_TYPE_COLORS[job.employmentType] || ''}`}>
+              {job.employmentType}
+            </Badge>
           </div>
+          <p className="text-sm text-muted-foreground">
+            {job.client.name}
+            {job.department && ` · ${job.department}`}
+            {job.location && ` · ${job.location}`}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={handleApplyCandidates}>
+            <UserPlus className="mr-2 h-3.5 w-3.5" />
+            Apply Candidates
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="mr-2 h-3.5 w-3.5" />
             Edit
@@ -271,7 +333,7 @@ export function JobDetail({ jobId }: { jobId: string }) {
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="border-l-4 border-l-violet-500 transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
               <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
@@ -282,10 +344,10 @@ export function JobDetail({ jobId }: { jobId: string }) {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-amber-500 transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-950">
-              <Calendar className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
+              <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <p className="text-2xl font-bold">{scheduledInterviews}</p>
@@ -293,7 +355,7 @@ export function JobDetail({ jobId }: { jobId: string }) {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
               <UserCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -306,50 +368,88 @@ export function JobDetail({ jobId }: { jobId: string }) {
         </Card>
       </div>
 
+      {/* Candidates Pipeline Mini Section */}
+      {candidates.length > 0 && (
+        <Card className="transition-shadow hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <BarChart3 className="h-4 w-4" />
+              Candidates Pipeline
+            </CardTitle>
+            <span className="text-xs text-muted-foreground">
+              {totalCandidatesCount} candidate{totalCandidatesCount !== 1 ? 's' : ''} total
+            </span>
+          </CardHeader>
+          <CardContent>
+            {/* Stacked Progress Bar */}
+            <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-muted">
+              {pipelineData.map(([status, count]) => {
+                const percentage = (count / totalCandidatesCount) * 100
+                return (
+                  <motion.div
+                    key={status}
+                    className={`${CANDIDATE_PIPELINE_COLORS[status] || 'bg-gray-400'} first:rounded-l-full last:rounded-r-full`}
+                    style={{ width: `${percentage}%` }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    title={`${status}: ${count}`}
+                  />
+                )
+              })}
+            </div>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {pipelineData.map(([status, count]) => (
+                <div key={status} className="flex items-center gap-1.5 text-xs">
+                  <div className={`h-2.5 w-2.5 rounded-sm ${CANDIDATE_PIPELINE_COLORS[status] || 'bg-gray-400'}`} />
+                  <span className="text-muted-foreground">{status}</span>
+                  <span className="font-medium">{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column: Job Info */}
         <div className="flex flex-col gap-6 lg:col-span-1">
-          {/* Job Info Card */}
-          <Card>
+          {/* Job Info Card - 2 column grid on desktop */}
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Briefcase className="h-4 w-4" />
                 Job Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <InfoRow icon={<Building2 className="h-3.5 w-3.5" />} label="Client" value={job.client.name} />
-              <Separator />
+            <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div className="col-span-2">
+                <InfoRow icon={<Building2 className="h-3.5 w-3.5" />} label="Client" value={job.client.name} />
+              </div>
               {job.recruiter && (
-                <>
+                <div className="col-span-2">
                   <InfoRow icon={<User className="h-3.5 w-3.5" />} label="Recruiter" value={job.recruiter.name} />
-                  <Separator />
-                </>
+                </div>
               )}
               {job.department && (
-                <>
-                  <InfoRow icon={<FileText className="h-3.5 w-3.5" />} label="Department" value={job.department} />
-                  <Separator />
-                </>
+                <InfoRow icon={<FileText className="h-3.5 w-3.5" />} label="Department" value={job.department} />
               )}
               {job.location && (
-                <>
-                  <InfoRow icon={<MapPin className="h-3.5 w-3.5" />} label="Location" value={job.location} />
-                  <Separator />
-                </>
+                <InfoRow icon={<MapPin className="h-3.5 w-3.5" />} label="Location" value={job.location} />
               )}
               <InfoRow icon={<Briefcase className="h-3.5 w-3.5" />} label="Type" value={job.employmentType} />
-              <Separator />
-              <InfoRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Salary" value={salaryRange} />
-              <Separator />
               <InfoRow icon={<Users className="h-3.5 w-3.5" />} label="Openings" value={String(job.openings)} />
+              <div className="col-span-2">
+                <InfoRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Salary" value={salaryRange} />
+              </div>
             </CardContent>
           </Card>
 
           {/* Description Card */}
           {job.description && (
-            <Card>
+            <Card className="transition-shadow hover:shadow-md">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <FileText className="h-4 w-4" />
@@ -364,19 +464,24 @@ export function JobDetail({ jobId }: { jobId: string }) {
             </Card>
           )}
 
-          {/* Requirements Card */}
-          {job.requirements && (
-            <Card>
+          {/* Requirements Card - Checkmark List */}
+          {requirementsList.length > 0 && (
+            <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <MessageSquare className="h-4 w-4" />
+                  <CheckCircle2 className="h-4 w-4" />
                   Requirements
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {job.requirements}
-                </p>
+                <ul className="space-y-2.5">
+                  {requirementsList.map((req, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <span className="text-muted-foreground">{req}</span>
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           )}
@@ -404,7 +509,7 @@ export function JobDetail({ jobId }: { jobId: string }) {
         {/* Right Column: Candidates & Interviews */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Candidates Table */}
-          <Card>
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Users className="h-4 w-4" />
@@ -428,7 +533,11 @@ export function JobDetail({ jobId }: { jobId: string }) {
                     </TableHeader>
                     <TableBody>
                       {candidates.map((c) => (
-                        <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate('candidate-detail', c.id)}>
+                        <TableRow
+                          key={c.id}
+                          className="cursor-pointer transition-colors hover:bg-muted/50"
+                          onClick={() => navigate('candidate-detail', c.id)}
+                        >
                           <TableCell className="text-xs font-medium">
                             {c.firstName} {c.lastName}
                           </TableCell>
@@ -458,7 +567,7 @@ export function JobDetail({ jobId }: { jobId: string }) {
           </Card>
 
           {/* Interviews List */}
-          <Card>
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Video className="h-4 w-4" />
@@ -483,7 +592,7 @@ export function JobDetail({ jobId }: { jobId: string }) {
                     </TableHeader>
                     <TableBody>
                       {interviews.map((interview) => (
-                        <TableRow key={interview.id}>
+                        <TableRow key={interview.id} className="transition-colors hover:bg-muted/50">
                           <TableCell className="text-xs font-medium">
                             {interview.candidate.firstName} {interview.candidate.lastName}
                           </TableCell>
@@ -568,7 +677,7 @@ export function JobDetail({ jobId }: { jobId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   )
 }
 

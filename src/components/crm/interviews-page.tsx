@@ -63,7 +63,9 @@ import {
   Clock,
   User,
   CalendarDays,
+  List,
 } from 'lucide-react'
+import { InterviewCalendar } from '@/components/crm/interviews/interview-calendar'
 
 // ===== Types =====
 
@@ -551,6 +553,7 @@ export function InterviewsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [typeFilter, setTypeFilter] = useState('All')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [feedbackInterview, setFeedbackInterview] = useState<Interview | null>(null)
 
@@ -609,8 +612,43 @@ export function InterviewsPage() {
         </Button>
       </div>
 
+      {/* View Toggle */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            className={`h-8 gap-1.5 px-3 text-xs ${
+              viewMode === 'list'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'hover:bg-muted text-muted-foreground'
+            }`}
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-3.5 w-3.5" />
+            List View
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+            size="sm"
+            className={`h-8 gap-1.5 px-3 text-xs ${
+              viewMode === 'calendar'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'hover:bg-muted text-muted-foreground'
+            }`}
+            onClick={() => setViewMode('calendar')}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Calendar View
+          </Button>
+        </div>
+      </div>
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && <InterviewCalendar />}
+
       {/* Filters */}
-      <div className="rounded-lg bg-muted/50 p-2">
+      {viewMode === 'list' && <div className="rounded-lg bg-muted/50 p-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -646,10 +684,10 @@ export function InterviewsPage() {
           </SelectContent>
         </Select>
         </div>
-      </div>
+      </div>}
 
       {/* Today's Interviews Highlight */}
-      {interviews.length > 0 && (() => {
+      {viewMode === 'list' && interviews.length > 0 && (() => {
         const today = new Date().toDateString()
         const todayInterviews = interviews.filter(
           (i) => new Date(i.date).toDateString() === today
@@ -676,7 +714,7 @@ export function InterviewsPage() {
       })()}
 
       {/* Table */}
-      {isLoading ? (
+      {viewMode === 'list' && (isLoading ? (
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-center gap-3">
@@ -835,7 +873,7 @@ export function InterviewsPage() {
             </Table>
           </div>
         </Card>
-      )}
+      ))}
 
       {/* Dialogs */}
       <ScheduleInterviewDialog

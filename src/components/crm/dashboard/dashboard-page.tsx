@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCRMStore } from '@/stores/crm-store'
+import type { CRMView } from '@/stores/crm-store'
 import { motion } from 'framer-motion'
 import {
   BarChart,
@@ -122,6 +123,36 @@ const ENTITY_TYPE_COLORS: Record<string, string> = {
   Attendance: 'border-l-teal-400',
 }
 
+const ENTITY_TYPE_ICONS: Record<string, React.ElementType> = {
+  Candidate: Users,
+  Client: Building2,
+  Job: Briefcase,
+  Placement: Award,
+  Interview: Video,
+  Employee: Users,
+  Leave: CalendarOff,
+  Attendance: UserCheck,
+}
+
+const ENTITY_ICON_COLORS: Record<string, string> = {
+  Candidate: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+  Client: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
+  Job: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
+  Placement: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
+  Interview: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400',
+  Employee: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+  Leave: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
+  Attendance: 'bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400',
+}
+
+const INTERVIEW_TYPE_COLORS: Record<string, string> = {
+  Phone: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  Technical: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  HR: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  Managerial: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+  Final: 'bg-primary/10 text-primary',
+}
+
 // ===== Stat Card Config =====
 
 type StatCardConfig = {
@@ -136,6 +167,8 @@ type StatCardConfig = {
   sparklineColor: string
   format?: (value: number) => string
   changeKey: keyof DashboardStats
+  viewKey: string
+  hoverAccentColor: string
 }
 
 const STAT_CARDS: StatCardConfig[] = [
@@ -150,6 +183,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-emerald-400',
     sparklineColor: '#10b981',
     changeKey: 'totalCandidatesChange',
+    viewKey: 'candidates',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-emerald-400',
   },
   {
     key: 'openPositions',
@@ -162,6 +197,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-amber-400',
     sparklineColor: '#f59e0b',
     changeKey: 'openPositionsChange',
+    viewKey: 'jobs',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-amber-400',
   },
   {
     key: 'activeClients',
@@ -174,6 +211,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-violet-400',
     sparklineColor: '#8b5cf6',
     changeKey: 'activeClientsChange',
+    viewKey: 'clients',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-violet-400',
   },
   {
     key: 'interviewsThisWeek',
@@ -186,6 +225,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-cyan-400',
     sparklineColor: '#06b6d4',
     changeKey: 'interviewsThisWeekChange',
+    viewKey: 'interviews',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-cyan-400',
   },
   {
     key: 'placementsThisMonth',
@@ -198,6 +239,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-rose-400',
     sparklineColor: '#f43f5e',
     changeKey: 'placementsThisMonthChange',
+    viewKey: 'placements',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-rose-400',
   },
   {
     key: 'todaysAttendance',
@@ -210,6 +253,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-blue-400',
     sparklineColor: '#3b82f6',
     changeKey: 'todaysAttendanceChange',
+    viewKey: 'attendance',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-teal-400',
   },
   {
     key: 'pendingLeaves',
@@ -222,6 +267,8 @@ const STAT_CARDS: StatCardConfig[] = [
     accentColor: 'border-l-orange-400',
     sparklineColor: '#f97316',
     changeKey: 'pendingLeavesChange',
+    viewKey: 'leave',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-orange-400',
   },
   {
     key: 'monthlyRevenue',
@@ -235,6 +282,8 @@ const STAT_CARDS: StatCardConfig[] = [
     sparklineColor: '#22c55e',
     format: (v) => `\u20b9${(v / 100000).toFixed(1)}L`,
     changeKey: 'monthlyRevenueChange',
+    viewKey: 'analytics',
+    hoverAccentColor: 'hover:border-b-2 hover:border-b-green-400',
   },
 ]
 
@@ -264,13 +313,36 @@ function Sparkline({ color }: { color: string }) {
   )
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good Morning'
+  if (hour < 17) return 'Good Afternoon'
+  return 'Good Evening'
+}
+
+function formatInterviewTimeIndicator(dateStr: string, timeStr: string): { text: string; colorClass: string } {
+  const now = new Date()
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  const interviewDate = new Date(dateStr)
+  interviewDate.setHours(hours, minutes, 0, 0)
+  const diffMs = interviewDate.getTime() - now.getTime()
+  const diffHours = diffMs / 3600000
+  if (diffMs < 0) return { text: 'Started', colorClass: 'text-red-500' }
+  if (diffHours < 2) return { text: `Starts in ${Math.ceil(diffHours)}h`, colorClass: 'text-amber-500' }
+  const isToday = interviewDate.toDateString() === now.toDateString()
+  if (isToday) return { text: `Today at ${timeStr}`, colorClass: 'text-emerald-500' }
+  return { text: `Starts in ${Math.ceil(diffHours)}h`, colorClass: 'text-emerald-500' }
+}
+
 function ChangeIndicator({ value }: { value: number }) {
   if (value === 0) return null
   const isPositive = value > 0
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-        isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
+      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium ${
+        isPositive
+          ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+          : 'bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400'
       }`}
     >
       {isPositive ? (
@@ -295,6 +367,8 @@ function StatCard({
   index: number
 }) {
   const Icon = config.icon
+  const { navigate } = useCRMStore((s) => s.navigate)
+
   if (isLoading || !stats) {
     return (
       <Card className="rounded-xl shadow-sm">
@@ -321,20 +395,30 @@ function StatCard({
       transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
     >
       <Card
-        className={`relative overflow-hidden rounded-xl border-l-2 ${config.accentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+        className={`relative overflow-hidden rounded-xl border-l-2 border-b-0 ${config.accentColor} ${config.hoverAccentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
       >
-        <CardContent className="relative flex items-center gap-4 p-4">
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+        <CardContent className="relative flex flex-col gap-1 p-4">
+          <div className="flex items-center gap-4">
+            <div
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+            >
+              <Icon className={`h-6 w-6 ${config.iconColor}`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm text-muted-foreground">{config.label}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
+              </div>
+              <ChangeIndicator value={change} />
+            </div>
+            <Sparkline color={config.sparklineColor} />
+          </div>
+          <button
+            onClick={() => navigate(config.viewKey as CRMView)}
+            className="mt-1 self-start text-xs text-primary hover:underline cursor-pointer"
           >
-            <Icon className={`h-6 w-6 ${config.iconColor}`} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm text-muted-foreground">{config.label}</p>
-            <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
-            <ChangeIndicator value={change} />
-          </div>
-          <Sparkline color={config.sparklineColor} />
+            View Details →
+          </button>
         </CardContent>
       </Card>
     </motion.div>
@@ -370,11 +454,16 @@ function CandidatePipelineChart({
   data: PipelineData
   isLoading: boolean
 }) {
+  const navigate = useCRMStore((s) => s.navigate)
+
   if (isLoading) {
     return (
       <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[300px] w-full" />
@@ -383,10 +472,52 @@ function CandidatePipelineChart({
     )
   }
 
+  if (data.every((d) => d.count === 0)) {
+    return (
+      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+          </div>
+          <button
+            onClick={() => navigate('candidates')}
+            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+          >
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </CardHeader>
+        <CardContent>
+          <div className="flex h-[300px] items-center justify-center">
+            <div className="text-center">
+              <BarChart3 className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No pipeline data yet</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
     <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-emerald-500" />
+          <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+        </div>
+        <button
+          onClick={() => navigate('candidates')}
+          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+        >
+          View All <ArrowRight className="h-3.5 w-3.5" />
+        </button>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -423,6 +554,7 @@ function CandidatePipelineChart({
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   )
 }
 
@@ -433,11 +565,16 @@ function JobPriorityChart({
   data: PriorityData
   isLoading: boolean
 }) {
+  const navigate = useCRMStore((s) => s.navigate)
+
   if (isLoading) {
     return (
       <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[300px] w-full" />
@@ -446,10 +583,52 @@ function JobPriorityChart({
     )
   }
 
+  if (data.every((d) => d.count === 0)) {
+    return (
+      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+          </div>
+          <button
+            onClick={() => navigate('jobs')}
+            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+          >
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </CardHeader>
+        <CardContent>
+          <div className="flex h-[300px] items-center justify-center">
+            <div className="text-center">
+              <Activity className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No priority data yet</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+    >
     <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-amber-500" />
+          <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+        </div>
+        <button
+          onClick={() => navigate('jobs')}
+          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+        >
+          View All <ArrowRight className="h-3.5 w-3.5" />
+        </button>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center gap-4 lg:flex-row">
@@ -493,6 +672,7 @@ function JobPriorityChart({
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   )
 }
 
@@ -574,36 +754,38 @@ function RecentActivities({
         <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="custom-scrollbar max-h-[360px] space-y-1 overflow-y-auto pr-1">
-          {activities.map((activity) => (
-            <div
-              key={activity.id}
-              className={`flex items-start gap-3 rounded-lg border-l-2 ${
-                ENTITY_TYPE_COLORS[activity.entityType] || 'border-l-gray-300'
-              } bg-muted/20 px-3 py-3 transition-colors duration-200 hover:bg-muted/50`}
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                {activity.employeeName?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm leading-snug">
-                  <span className="font-medium">{activity.employeeName}</span>{' '}
-                  <span className="text-muted-foreground">{activity.action.toLowerCase()}</span>{' '}
-                  <Badge variant="secondary" className="mx-0.5 text-xs font-normal">
-                    {activity.entityType}
-                  </Badge>
-                </p>
-                {activity.details && (
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {activity.details}
+        <div className="custom-scrollbar max-h-96 space-y-1 overflow-y-auto pr-1">
+          {activities.map((activity) => {
+            const EntityIcon = ENTITY_TYPE_ICONS[activity.entityType] || Activity
+            const iconColorClass = ENTITY_ICON_COLORS[activity.entityType] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+            return (
+              <div
+                key={activity.id}
+                className="flex items-start gap-3 rounded-lg bg-muted/20 px-3 py-3 transition-colors duration-200 hover:bg-muted/50"
+              >
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconColorClass}`}>
+                  <EntityIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-snug">
+                    <span className="font-medium">{activity.employeeName}</span>{' '}
+                    <span className="text-muted-foreground">{activity.action.toLowerCase()}</span>{' '}
+                    <Badge variant="secondary" className="mx-0.5 text-xs font-normal">
+                      {activity.entityType}
+                    </Badge>
                   </p>
-                )}
-                <p className="mt-1 text-xs text-muted-foreground/70">
-                  {formatRelativeTime(activity.createdAt)}
-                </p>
+                  {activity.details && (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {activity.details}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    {formatRelativeTime(activity.createdAt)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </CardContent>
     </Card>
@@ -622,7 +804,7 @@ function UpcomingInterviewsList({
   if (isLoading) {
     return (
       <Card className="rounded-xl shadow-sm">
-        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
         </CardHeader>
@@ -646,7 +828,7 @@ function UpcomingInterviewsList({
   if (interviews.length === 0) {
     return (
       <Card className="rounded-xl shadow-sm">
-        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
         </CardHeader>
@@ -674,7 +856,7 @@ function UpcomingInterviewsList({
 
   return (
     <Card className="rounded-xl shadow-sm">
-      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
         <button
@@ -686,9 +868,13 @@ function UpcomingInterviewsList({
         </button>
       </CardHeader>
       <CardContent>
-        <div className="custom-scrollbar max-h-[360px] space-y-2 overflow-y-auto pr-1">
+        <div className="custom-scrollbar max-h-96 space-y-2 overflow-y-auto pr-1">
           {interviews.map((interview) => {
             const dateInfo = interview.date ? formatInterviewDate(interview.date) : null
+            const timeIndicator = interview.date && interview.time
+              ? formatInterviewTimeIndicator(interview.date, interview.time)
+              : null
+            const typeColorClass = INTERVIEW_TYPE_COLORS[interview.type] || 'bg-muted text-muted-foreground'
             return (
               <div
                 key={interview.id}
@@ -708,10 +894,15 @@ function UpcomingInterviewsList({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{interview.candidateName}</p>
                   <p className="truncate text-xs text-muted-foreground">{interview.jobTitle}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {interview.time} · {interview.type}
-                    </span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className={`text-[10px] font-normal ${typeColorClass}`}>
+                      {interview.type}
+                    </Badge>
+                    {timeIndicator && (
+                      <span className={`text-[11px] font-medium ${timeIndicator.colorClass}`}>
+                        {timeIndicator.text}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <Badge variant={statusVariant(interview.status)} className="shrink-0 text-xs">
@@ -731,12 +922,14 @@ function UpcomingInterviewsList({
 function QuickActionButton({
   icon: Icon,
   label,
+  description,
   colorClass,
   bgClass,
   onClick,
 }: {
   icon: React.ElementType
   label: string
+  description: string
   colorClass: string
   bgClass: string
   onClick: () => void
@@ -744,16 +937,21 @@ function QuickActionButton({
   return (
     <button
       onClick={onClick}
-      className={`group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}
+      className={`group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-border/50`}
     >
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${colorClass}`}
+        className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-200 group-hover:scale-110 group-hover:shadow-md ${colorClass}`}
       >
         <Icon className="h-5 w-5" />
       </div>
-      <span className="text-xs font-medium text-muted-foreground transition-colors duration-200 group-hover:text-foreground">
-        {label}
-      </span>
+      <div className="text-center">
+        <span className="block text-xs font-medium text-muted-foreground transition-colors duration-200 group-hover:text-foreground">
+          {label}
+        </span>
+        <span className="mt-0.5 block text-[10px] text-muted-foreground/60">
+          {description}
+        </span>
+      </div>
     </button>
   )
 }
@@ -822,16 +1020,35 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: hsl(var(--border)); border-radius: 9999px; }
+      ` }} />
       {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-cyan-950/40">
+        <div className="relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-cyan-950/40">
+          {/* Floating decorative circles */}
+          <div className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-400/20 animate-bounce [animation-delay:0s] [animation-duration:3s]" />
+          <div className="pointer-events-none absolute right-1/4 top-2 h-16 w-16 rounded-full bg-teal-400/15 animate-bounce [animation-delay:1s] [animation-duration:4s]" />
+          <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/20 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
           <div className="relative z-10">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-              Welcome back, Admin
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl bg-clip-text bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.12)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.08)_50%,transparent_75%)]">
+              {getGreeting()}, Admin
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
           </div>
@@ -864,6 +1081,7 @@ export function DashboardPage() {
           <QuickActionButton
             icon={Users}
             label="Add Candidate"
+            description="Add new candidate to pipeline"
             colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
             bgClass="from-emerald-50/60 to-transparent dark:from-emerald-950/20"
             onClick={() => navigate('candidates')}
@@ -871,6 +1089,7 @@ export function DashboardPage() {
           <QuickActionButton
             icon={Briefcase}
             label="Post Job"
+            description="Create a new job opening"
             colorClass="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
             bgClass="from-amber-50/60 to-transparent dark:from-amber-950/20"
             onClick={() => navigate('jobs')}
@@ -878,6 +1097,7 @@ export function DashboardPage() {
           <QuickActionButton
             icon={Video}
             label="Schedule Interview"
+            description="Set up an interview slot"
             colorClass="bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
             bgClass="from-violet-50/60 to-transparent dark:from-violet-950/20"
             onClick={() => navigate('interviews')}
@@ -885,9 +1105,10 @@ export function DashboardPage() {
           <QuickActionButton
             icon={BarChart3}
             label="View Reports"
+            description="View analytics dashboard"
             colorClass="bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400"
             bgClass="from-rose-50/60 to-transparent dark:from-rose-950/20"
-            onClick={() => navigate('dashboard')}
+            onClick={() => navigate('analytics')}
           />
         </div>
       </motion.div>

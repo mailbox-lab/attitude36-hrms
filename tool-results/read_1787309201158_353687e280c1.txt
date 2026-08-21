@@ -1,0 +1,707 @@
+     1→'use client'
+     2→
+     3→import { useState, useMemo } from 'react'
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     5→import { toast } from 'sonner'
+     6→import { useCRMStore } from '@/stores/crm-store'
+     7→import { AddJobDialog } from './add-job-dialog'
+     8→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+     9→import { Button } from '@/components/ui/button'
+    10→import { Badge } from '@/components/ui/badge'
+    11→import { Separator } from '@/components/ui/separator'
+    12→import { Progress } from '@/components/ui/progress'
+    13→import {
+    14→  Table,
+    15→  TableBody,
+    16→  TableCell,
+    17→  TableHead,
+    18→  TableHeader,
+    19→  TableRow,
+    20→} from '@/components/ui/table'
+    21→import {
+    22→  AlertDialog,
+    23→  AlertDialogAction,
+    24→  AlertDialogCancel,
+    25→  AlertDialogContent,
+    26→  AlertDialogDescription,
+    27→  AlertDialogFooter,
+    28→  AlertDialogHeader,
+    29→  AlertDialogTitle,
+    30→} from '@/components/ui/alert-dialog'
+    31→import {
+    32→  ArrowLeft,
+    33→  Pencil,
+    34→  Trash2,
+    35→  MapPin,
+    36→  Briefcase,
+    37→  Building2,
+    38→  Users,
+    39→  Calendar,
+    40→  Clock,
+    41→  UserCheck,
+    42→  FileText,
+    43→  DollarSign,
+    44→  User,
+    45→  Video,
+    46→  CheckCircle2,
+    47→  UserPlus,
+    48→  BarChart3,
+    49→} from 'lucide-react'
+    50→import { motion } from 'framer-motion'
+    51→
+    52→// ===== Types =====
+    53→
+    54→type JobDetailData = {
+    55→  id: string
+    56→  title: string
+    57→  clientId: string
+    58→  client: { id: string; name: string; industry: string | null; city: string | null }
+    59→  recruiterId: string | null
+    60→  recruiter: { id: string; name: string; email: string } | null
+    61→  department: string | null
+    62→  location: string | null
+    63→  employmentType: string
+    64→  salaryMin: number | null
+    65→  salaryMax: number | null
+    66→  currency: string
+    67→  description: string | null
+    68→  requirements: string | null
+    69→  status: string
+    70→  priority: string
+    71→  openings: number
+    72→  createdAt: string
+    73→  updatedAt: string
+    74→  _count: {
+    75→    candidates: number
+    76→    interviews: number
+    77→    placements: number
+    78→  }
+    79→}
+    80→
+    81→type CandidateRow = {
+    82→  id: string
+    83→  firstName: string
+    84→  lastName: string
+    85→  email: string | null
+    86→  phone: string | null
+    87→  title: string | null
+    88→  experience: number | null
+    89→  status: string
+    90→  rating: number
+    91→  createdAt: string
+    92→}
+    93→
+    94→type InterviewRow = {
+    95→  id: string
+    96→  type: string
+    97→  interviewer: string | null
+    98→  date: string
+    99→  duration: number
+   100→  status: string
+   101→  candidate: { id: string; firstName: string; lastName: string }
+   102→}
+   103→
+   104→// ===== Constants =====
+   105→
+   106→const STATUS_COLORS: Record<string, string> = {
+   107→  Open: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   108→  Closed: 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+   109→  Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   110→  Filled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   111→  Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   112→}
+   113→
+   114→const PRIORITY_COLORS: Record<string, string> = {
+   115→  Low: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   116→  Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   117→  High: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+   118→  Urgent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   119→}
+   120→
+   121→const EMPLOYMENT_TYPE_COLORS: Record<string, string> = {
+   122→ 'Full-Time': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   123→ 'Part-Time': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   124→ 'Contract': 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   125→ 'Internship': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+   126→ 'Freelance': 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+   127→}
+   128→
+   129→const CANDIDATE_STATUS_COLORS: Record<string, string> = {
+   130→  New: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   131→  Screening: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   132→  Interview: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   133→  Offered: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+   134→  Hired: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   135→  Rejected: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   136→  'On Hold': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+   137→}
+   138→
+   139→const CANDIDATE_PIPELINE_COLORS: Record<string, string> = {
+   140→  New: 'bg-emerald-500',
+   141→  Screening: 'bg-amber-500',
+   142→  Interview: 'bg-violet-500',
+   143→  Offered: 'bg-cyan-500',
+   144→  Hired: 'bg-green-500',
+   145→  Rejected: 'bg-red-500',
+   146→  'On Hold': 'bg-gray-400',
+   147→}
+   148→
+   149→const INTERVIEW_STATUS_COLORS: Record<string, string> = {
+   150→  Scheduled: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   151→  Completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   152→  Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   153→  Rescheduled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   154→  'No Show': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+   155→}
+   156→
+   157→const CURRENCY_SYMBOLS: Record<string, string> = {
+   158→  INR: '₹',
+   159→  USD: '$',
+   160→  EUR: '€',
+   161→  GBP: '£',
+   162→  SGD: 'S$',
+   163→  AED: 'AED',
+   164→}
+   165→
+   166→// ===== Main Component =====
+   167→
+   168→export function JobDetail({ jobId }: { jobId: string }) {
+   169→  const navigate = useCRMStore((s) => s.navigate)
+   170→  const queryClient = useQueryClient()
+   171→  const [editDialogOpen, setEditDialogOpen] = useState(false)
+   172→  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+   173→
+   174→  // Fetch job detail
+   175→  const { data: job, isLoading, error } = useQuery<JobDetailData>({
+   176→    queryKey: ['job', jobId],
+   177→    queryFn: async () => {
+   178→      const res = await fetch(`/api/jobs/${jobId}`)
+   179→      if (!res.ok) throw new Error('Failed to fetch job')
+   180→      return res.json()
+   181→    },
+   182→    enabled: !!jobId,
+   183→  })
+   184→
+   185→  // Fetch candidates for this job
+   186→  const { data: candidatesData } = useQuery<{ data: CandidateRow[] }>({
+   187→    queryKey: ['job-candidates', jobId],
+   188→    queryFn: async () => {
+   189→      const res = await fetch(`/api/candidates?jobId=${jobId}`)
+   190→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   191→      return res.json()
+   192→    },
+   193→    enabled: !!jobId,
+   194→  })
+   195→
+   196→  const candidates = candidatesData?.data || []
+   197→
+   198→  // Get interviews from the job detail (already included)
+   199→  const interviews: InterviewRow[] = (job?.interviews as unknown as InterviewRow[]) || []
+   200→  const scheduledInterviews = interviews.filter((i) => i.status === 'Scheduled').length
+   201→  const placementsCount = job?._count?.placements ?? 0
+   202→
+   203→  // Candidate pipeline distribution
+   204→  const pipelineData = useMemo(() => {
+   205→    const counts: Record<string, number> = {}
+   206→    candidates.forEach((c) => {
+   207→      counts[c.status] = (counts[c.status] || 0) + 1
+   208→    })
+   209→    return Object.entries(counts).sort(([, a], [, b]) => b - a)
+   210→  }, [candidates])
+   211→
+   212→  const totalCandidatesCount = candidates.length
+   213→
+   214→  // Parse requirements into list items
+   215→  const requirementsList = useMemo(() => {
+   216→    if (!job?.requirements) return []
+   217→    return job.requirements
+   218→      .split(/\n|\r\n/)
+   219→      .map((r) => r.trim())
+   220→      .filter(Boolean)
+   221→      .map((r) => r.replace(/^[-•*\d.)\s]+/, '').trim())
+   222→      .filter(Boolean)
+   223→  }, [job])
+   224→
+   225→  // Delete mutation
+   226→  const deleteMutation = useMutation({
+   227→    mutationFn: async () => {
+   228→      const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' })
+   229→      if (!res.ok) throw new Error('Failed to delete job')
+   230→      return res.json()
+   231→    },
+   232→    onSuccess: () => {
+   233→      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+   234→      toast.success('Job deleted successfully')
+   235→      navigate('jobs')
+   236→    },
+   237→    onError: () => {
+   238→      toast.error('Failed to delete job')
+   239→    },
+   240→  })
+   241→
+   242→  if (isLoading) {
+   243→    return (
+   244→      <div className="flex flex-1 items-center justify-center p-8">
+   245→        <div className="text-center">
+   246→          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   247→          <p className="text-sm text-muted-foreground">Loading job details...</p>
+   248→        </div>
+   249→      </div>
+   250→    )
+   251→  }
+   252→
+   253→  if (error || !job) {
+   254→    return (
+   255→      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+   256→        <p className="text-lg font-medium text-destructive">Job not found</p>
+   257→        <Button variant="outline" onClick={() => navigate('jobs')}>
+   258→          <ArrowLeft className="mr-2 h-4 w-4" />
+   259→          Back to Jobs
+   260→        </Button>
+   261→      </div>
+   262→    )
+   263→  }
+   264→
+   265→  const currencySymbol = CURRENCY_SYMBOLS[job.currency] || job.currency
+   266→  const salaryRange =
+   267→    job.salaryMin || job.salaryMax
+   268→      ? `${currencySymbol}${(job.salaryMin ?? 0).toLocaleString('en-IN')} - ${currencySymbol}${(job.salaryMax ?? 0).toLocaleString('en-IN')}`
+   269→      : 'Not specified'
+   270→
+   271→  const handleApplyCandidates = () => {
+   272→    navigate('candidates')
+   273→    toast.info('Select candidates to assign to this job')
+   274→  }
+   275→
+   276→  return (
+   277→    <motion.div
+   278→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   279→      initial={{ opacity: 0, y: 10 }}
+   280→      animate={{ opacity: 1, y: 0 }}
+   281→      transition={{ duration: 0.3 }}
+   282→    >
+   283→      {/* Back Button */}
+   284→      <Button
+   285→        variant="ghost"
+   286→        size="sm"
+   287→        onClick={() => navigate('jobs')}
+   288→        className="w-fit"
+   289→      >
+   290→        <ArrowLeft className="mr-2 h-4 w-4" />
+   291→        Back to Jobs
+   292→      </Button>
+   293→
+   294→      {/* Header */}
+   295→      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+   296→        <div className="flex flex-col gap-2">
+   297→          <div className="flex flex-wrap items-center gap-2">
+   298→            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{job.title}</h1>
+   299→            <Badge className={`text-xs ${STATUS_COLORS[job.status] || ''}`}>
+   300→              {job.status}
+   301→            </Badge>
+   302→            <Badge className={`text-xs ${PRIORITY_COLORS[job.priority] || ''}`}>
+   303→              {job.priority}
+   304→            </Badge>
+   305→            <Badge className={`text-xs ${EMPLOYMENT_TYPE_COLORS[job.employmentType] || ''}`}>
+   306→              {job.employmentType}
+   307→            </Badge>
+   308→          </div>
+   309→          <p className="text-sm text-muted-foreground">
+   310→            {job.client.name}
+   311→            {job.department && ` · ${job.department}`}
+   312→            {job.location && ` · ${job.location}`}
+   313→          </p>
+   314→        </div>
+   315→        <div className="flex flex-wrap items-center gap-2">
+   316→          <Button size="sm" onClick={handleApplyCandidates}>
+   317→            <UserPlus className="mr-2 h-3.5 w-3.5" />
+   318→            Apply Candidates
+   319→          </Button>
+   320→          <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
+   321→            <Pencil className="mr-2 h-3.5 w-3.5" />
+   322→            Edit
+   323→          </Button>
+   324→          <Button
+   325→            variant="outline"
+   326→            size="sm"
+   327→            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+   328→            onClick={() => setDeleteDialogOpen(true)}
+   329→          >
+   330→            <Trash2 className="mr-2 h-3.5 w-3.5" />
+   331→            Delete
+   332→          </Button>
+   333→        </div>
+   334→      </div>
+   335→
+   336→      {/* Stats Row */}
+   337→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+   338→        <Card className="border-l-4 border-l-violet-500 transition-shadow hover:shadow-md">
+   339→          <CardContent className="flex items-center gap-4 p-4">
+   340→            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
+   341→              <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+   342→            </div>
+   343→            <div>
+   344→              <p className="text-2xl font-bold">{job._count.candidates}</p>
+   345→              <p className="text-xs text-muted-foreground">Total Candidates</p>
+   346→            </div>
+   347→          </CardContent>
+   348→        </Card>
+   349→        <Card className="border-l-4 border-l-amber-500 transition-shadow hover:shadow-md">
+   350→          <CardContent className="flex items-center gap-4 p-4">
+   351→            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
+   352→              <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+   353→            </div>
+   354→            <div>
+   355→              <p className="text-2xl font-bold">{scheduledInterviews}</p>
+   356→              <p className="text-xs text-muted-foreground">Interviews Scheduled</p>
+   357→            </div>
+   358→          </CardContent>
+   359→        </Card>
+   360→        <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
+   361→          <CardContent className="flex items-center gap-4 p-4">
+   362→            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
+   363→              <UserCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+   364→            </div>
+   365→            <div>
+   366→              <p className="text-2xl font-bold">{placementsCount}</p>
+   367→              <p className="text-xs text-muted-foreground">Placements</p>
+   368→            </div>
+   369→          </CardContent>
+   370→        </Card>
+   371→      </div>
+   372→
+   373→      {/* Candidates Pipeline Mini Section */}
+   374→      {candidates.length > 0 && (
+   375→        <Card className="transition-shadow hover:shadow-md">
+   376→          <CardHeader className="flex flex-row items-center justify-between pb-3">
+   377→            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   378→              <BarChart3 className="h-4 w-4" />
+   379→              Candidates Pipeline
+   380→            </CardTitle>
+   381→            <span className="text-xs text-muted-foreground">
+   382→              {totalCandidatesCount} candidate{totalCandidatesCount !== 1 ? 's' : ''} total
+   383→            </span>
+   384→          </CardHeader>
+   385→          <CardContent>
+   386→            {/* Stacked Progress Bar */}
+   387→            <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-muted">
+   388→              {pipelineData.map(([status, count]) => {
+   389→                const percentage = (count / totalCandidatesCount) * 100
+   390→                return (
+   391→                  <motion.div
+   392→                    key={status}
+   393→                    className={`${CANDIDATE_PIPELINE_COLORS[status] || 'bg-gray-400'} first:rounded-l-full last:rounded-r-full`}
+   394→                    style={{ width: `${percentage}%` }}
+   395→                    initial={{ width: 0 }}
+   396→                    animate={{ width: `${percentage}%` }}
+   397→                    transition={{ duration: 0.6, ease: 'easeOut' }}
+   398→                    title={`${status}: ${count}`}
+   399→                  />
+   400→                )
+   401→              })}
+   402→            </div>
+   403→            {/* Legend */}
+   404→            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+   405→              {pipelineData.map(([status, count]) => (
+   406→                <div key={status} className="flex items-center gap-1.5 text-xs">
+   407→                  <div className={`h-2.5 w-2.5 rounded-sm ${CANDIDATE_PIPELINE_COLORS[status] || 'bg-gray-400'}`} />
+   408→                  <span className="text-muted-foreground">{status}</span>
+   409→                  <span className="font-medium">{count}</span>
+   410→                </div>
+   411→              ))}
+   412→            </div>
+   413→          </CardContent>
+   414→        </Card>
+   415→      )}
+   416→
+   417→      {/* Main Content Grid */}
+   418→      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+   419→        {/* Left Column: Job Info */}
+   420→        <div className="flex flex-col gap-6 lg:col-span-1">
+   421→          {/* Job Info Card - 2 column grid on desktop */}
+   422→          <Card className="transition-shadow hover:shadow-md">
+   423→            <CardHeader className="pb-3">
+   424→              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   425→                <Briefcase className="h-4 w-4" />
+   426→                Job Information
+   427→              </CardTitle>
+   428→            </CardHeader>
+   429→            <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3">
+   430→              <div className="col-span-2">
+   431→                <InfoRow icon={<Building2 className="h-3.5 w-3.5" />} label="Client" value={job.client.name} />
+   432→              </div>
+   433→              {job.recruiter && (
+   434→                <div className="col-span-2">
+   435→                  <InfoRow icon={<User className="h-3.5 w-3.5" />} label="Recruiter" value={job.recruiter.name} />
+   436→                </div>
+   437→              )}
+   438→              {job.department && (
+   439→                <InfoRow icon={<FileText className="h-3.5 w-3.5" />} label="Department" value={job.department} />
+   440→              )}
+   441→              {job.location && (
+   442→                <InfoRow icon={<MapPin className="h-3.5 w-3.5" />} label="Location" value={job.location} />
+   443→              )}
+   444→              <InfoRow icon={<Briefcase className="h-3.5 w-3.5" />} label="Type" value={job.employmentType} />
+   445→              <InfoRow icon={<Users className="h-3.5 w-3.5" />} label="Openings" value={String(job.openings)} />
+   446→              <div className="col-span-2">
+   447→                <InfoRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Salary" value={salaryRange} />
+   448→              </div>
+   449→            </CardContent>
+   450→          </Card>
+   451→
+   452→          {/* Description Card */}
+   453→          {job.description && (
+   454→            <Card className="transition-shadow hover:shadow-md">
+   455→              <CardHeader className="pb-3">
+   456→                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   457→                  <FileText className="h-4 w-4" />
+   458→                  Description
+   459→                </CardTitle>
+   460→              </CardHeader>
+   461→              <CardContent>
+   462→                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+   463→                  {job.description}
+   464→                </p>
+   465→              </CardContent>
+   466→            </Card>
+   467→          )}
+   468→
+   469→          {/* Requirements Card - Checkmark List */}
+   470→          {requirementsList.length > 0 && (
+   471→            <Card className="border-l-4 border-l-emerald-500 transition-shadow hover:shadow-md">
+   472→              <CardHeader className="pb-3">
+   473→                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   474→                  <CheckCircle2 className="h-4 w-4" />
+   475→                  Requirements
+   476→                </CardTitle>
+   477→              </CardHeader>
+   478→              <CardContent>
+   479→                <ul className="space-y-2.5">
+   480→                  {requirementsList.map((req, idx) => (
+   481→                    <li key={idx} className="flex items-start gap-2.5 text-sm">
+   482→                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+   483→                      <span className="text-muted-foreground">{req}</span>
+   484→                    </li>
+   485→                  ))}
+   486→                </ul>
+   487→              </CardContent>
+   488→            </Card>
+   489→          )}
+   490→
+   491→          {/* Metadata */}
+   492→          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+   493→            <span className="flex items-center gap-1">
+   494→              <Calendar className="h-3 w-3" />
+   495→              Created: {new Date(job.createdAt).toLocaleDateString('en-IN', {
+   496→                day: 'numeric',
+   497→                month: 'short',
+   498→                year: 'numeric',
+   499→              })}
+   500→            </span>
+   501→            <span>
+   502→              Updated: {new Date(job.updatedAt).toLocaleDateString('en-IN', {
+   503→                day: 'numeric',
+   504→                month: 'short',
+   505→                year: 'numeric',
+   506→              })}
+   507→            </span>
+   508→          </div>
+   509→        </div>
+   510→
+   511→        {/* Right Column: Candidates & Interviews */}
+   512→        <div className="flex flex-col gap-6 lg:col-span-2">
+   513→          {/* Candidates Table */}
+   514→          <Card className="transition-shadow hover:shadow-md">
+   515→            <CardHeader className="flex flex-row items-center justify-between pb-3">
+   516→              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   517→                <Users className="h-4 w-4" />
+   518→                Candidates
+   519→              </CardTitle>
+   520→              <span className="text-xs text-muted-foreground">
+   521→                {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}
+   522→              </span>
+   523→            </CardHeader>
+   524→            <CardContent>
+   525→              {candidates.length > 0 ? (
+   526→                <div className="max-h-96 overflow-y-auto rounded-md border">
+   527→                  <Table>
+   528→                    <TableHeader>
+   529→                      <TableRow className="hover:bg-transparent">
+   530→                        <TableHead className="text-xs">Name</TableHead>
+   531→                        <TableHead className="hidden text-xs sm:table-cell">Email</TableHead>
+   532→                        <TableHead className="hidden text-xs md:table-cell">Experience</TableHead>
+   533→                        <TableHead className="text-xs">Status</TableHead>
+   534→                      </TableRow>
+   535→                    </TableHeader>
+   536→                    <TableBody>
+   537→                      {candidates.map((c) => (
+   538→                        <TableRow
+   539→                          key={c.id}
+   540→                          className="cursor-pointer transition-colors hover:bg-muted/50"
+   541→                          onClick={() => navigate('candidate-detail', c.id)}
+   542→                        >
+   543→                          <TableCell className="text-xs font-medium">
+   544→                            {c.firstName} {c.lastName}
+   545→                          </TableCell>
+   546→                          <TableCell className="hidden text-xs sm:table-cell">
+   547→                            {c.email || '—'}
+   548→                          </TableCell>
+   549→                          <TableCell className="hidden text-xs md:table-cell">
+   550→                            {c.experience ? `${c.experience} yrs` : '—'}
+   551→                          </TableCell>
+   552→                          <TableCell>
+   553→                            <Badge className={`text-[10px] ${CANDIDATE_STATUS_COLORS[c.status] || ''}`}>
+   554→                              {c.status}
+   555→                            </Badge>
+   556→                          </TableCell>
+   557→                        </TableRow>
+   558→                      ))}
+   559→                    </TableBody>
+   560→                  </Table>
+   561→                </div>
+   562→              ) : (
+   563→                <div className="flex flex-col items-center gap-2 py-8">
+   564→                  <Users className="h-8 w-8 text-muted-foreground/40" />
+   565→                  <p className="text-sm text-muted-foreground">No candidates assigned yet</p>
+   566→                </div>
+   567→              )}
+   568→            </CardContent>
+   569→          </Card>
+   570→
+   571→          {/* Interviews List */}
+   572→          <Card className="transition-shadow hover:shadow-md">
+   573→            <CardHeader className="flex flex-row items-center justify-between pb-3">
+   574→              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   575→                <Video className="h-4 w-4" />
+   576→                Interviews
+   577→              </CardTitle>
+   578→              <span className="text-xs text-muted-foreground">
+   579→                {interviews.length} interview{interviews.length !== 1 ? 's' : ''}
+   580→              </span>
+   581→            </CardHeader>
+   582→            <CardContent>
+   583→              {interviews.length > 0 ? (
+   584→                <div className="max-h-96 overflow-y-auto rounded-md border">
+   585→                  <Table>
+   586→                    <TableHeader>
+   587→                      <TableRow className="hover:bg-transparent">
+   588→                        <TableHead className="text-xs">Candidate</TableHead>
+   589→                        <TableHead className="hidden text-xs sm:table-cell">Type</TableHead>
+   590→                        <TableHead className="hidden text-xs md:table-cell">Interviewer</TableHead>
+   591→                        <TableHead className="hidden text-xs md:table-cell">Date & Time</TableHead>
+   592→                        <TableHead className="text-xs">Status</TableHead>
+   593→                      </TableRow>
+   594→                    </TableHeader>
+   595→                    <TableBody>
+   596→                      {interviews.map((interview) => (
+   597→                        <TableRow key={interview.id} className="transition-colors hover:bg-muted/50">
+   598→                          <TableCell className="text-xs font-medium">
+   599→                            {interview.candidate.firstName} {interview.candidate.lastName}
+   600→                          </TableCell>
+   601→                          <TableCell className="hidden text-xs sm:table-cell">
+   602→                            <Badge variant="outline" className="text-[10px]">
+   603→                              {interview.type}
+   604→                            </Badge>
+   605→                          </TableCell>
+   606→                          <TableCell className="hidden text-xs md:table-cell">
+   607→                            {interview.interviewer || '—'}
+   608→                          </TableCell>
+   609→                          <TableCell className="hidden text-xs md:table-cell">
+   610→                            <div className="flex items-center gap-1.5">
+   611→                              <Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />
+   612→                              <span>
+   613→                                {new Date(interview.date).toLocaleDateString('en-IN', {
+   614→                                  day: 'numeric',
+   615→                                  month: 'short',
+   616→                                  year: 'numeric',
+   617→                                })}
+   618→                              </span>
+   619→                            </div>
+   620→                            <div className="flex items-center gap-1.5">
+   621→                              <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
+   622→                              <span>
+   623→                                {new Date(interview.date).toLocaleTimeString('en-IN', {
+   624→                                  hour: '2-digit',
+   625→                                  minute: '2-digit',
+   626→                                })}
+   627→                              </span>
+   628→                              <span className="text-muted-foreground">({interview.duration}m)</span>
+   629→                            </div>
+   630→                          </TableCell>
+   631→                          <TableCell>
+   632→                            <Badge className={`text-[10px] ${INTERVIEW_STATUS_COLORS[interview.status] || ''}`}>
+   633→                              {interview.status}
+   634→                            </Badge>
+   635→                          </TableCell>
+   636→                        </TableRow>
+   637→                      ))}
+   638→                    </TableBody>
+   639→                  </Table>
+   640→                </div>
+   641→              ) : (
+   642→                <div className="flex flex-col items-center gap-2 py-8">
+   643→                  <Video className="h-8 w-8 text-muted-foreground/40" />
+   644→                  <p className="text-sm text-muted-foreground">No interviews scheduled yet</p>
+   645→                </div>
+   646→              )}
+   647→            </CardContent>
+   648→          </Card>
+   649→        </div>
+   650→      </div>
+   651→
+   652→      {/* Edit Dialog */}
+   653→      <AddJobDialog
+   654→        open={editDialogOpen}
+   655→        onOpenChange={setEditDialogOpen}
+   656→        editJob={job}
+   657→      />
+   658→
+   659→      {/* Delete Dialog */}
+   660→      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+   661→        <AlertDialogContent>
+   662→          <AlertDialogHeader>
+   663→            <AlertDialogTitle>Delete Job</AlertDialogTitle>
+   664→            <AlertDialogDescription>
+   665→              Are you sure you want to delete <strong>{job.title}</strong>? This action
+   666→              cannot be undone and will remove all associated candidate and interview
+   667→              records for this job.
+   668→            </AlertDialogDescription>
+   669→          </AlertDialogHeader>
+   670→          <AlertDialogFooter>
+   671→            <AlertDialogCancel>Cancel</AlertDialogCancel>
+   672→            <AlertDialogAction
+   673→              onClick={() => deleteMutation.mutate()}
+   674→              className="bg-destructive text-white hover:bg-destructive/90"
+   675→              disabled={deleteMutation.isPending}
+   676→            >
+   677→              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+   678→            </AlertDialogAction>
+   679→          </AlertDialogFooter>
+   680→        </AlertDialogContent>
+   681→      </AlertDialog>
+   682→    </motion.div>
+   683→  )
+   684→}
+   685→
+   686→// ===== Helper Component =====
+   687→
+   688→function InfoRow({
+   689→  icon,
+   690→  label,
+   691→  value,
+   692→}: {
+   693→  icon: React.ReactNode
+   694→  label: string
+   695→  value: string
+   696→}) {
+   697→  return (
+   698→    <div className="flex items-center justify-between gap-2 text-sm">
+   699→      <span className="flex items-center gap-1.5 text-muted-foreground shrink-0">
+   700→        {icon}
+   701→        {label}
+   702→      </span>
+   703→      <span className="text-right font-medium">{value}</span>
+   704→    </div>
+   705→  )
+   706→}
+   707→

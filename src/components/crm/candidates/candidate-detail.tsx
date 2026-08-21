@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useCRMStore } from '@/stores/crm-store'
@@ -28,6 +29,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   ArrowLeft,
   Pencil,
   Trash2,
@@ -41,8 +48,16 @@ import {
   Calendar,
   Video,
   MessageSquare,
+  MoreHorizontal,
+  CalendarCheck,
+  UserCheck,
+  Send,
+  CalendarDays,
+  IndianRupee,
+  Tag,
+  Timer,
 } from 'lucide-react'
-import { useState } from 'react'
+import { motion } from 'framer-motion'
 
 // ===== Types =====
 
@@ -91,9 +106,9 @@ const STATUS_PIPELINE = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rej
 
 const STATUS_COLORS: Record<string, string> = {
   New: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-  Screening: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-  Interview: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  Offer: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  Screening: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  Interview: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  Offer: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
   Hired: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   Rejected: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'On-Hold': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
@@ -101,19 +116,19 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_DOT_COLORS: Record<string, string> = {
   New: 'bg-emerald-500',
-  Screening: 'bg-blue-500',
-  Interview: 'bg-amber-500',
-  Offer: 'bg-violet-500',
+  Screening: 'bg-amber-500',
+  Interview: 'bg-violet-500',
+  Offer: 'bg-cyan-500',
   Hired: 'bg-green-500',
   Rejected: 'bg-red-500',
   'On-Hold': 'bg-gray-500',
 }
 
 const INTERVIEW_STATUS_COLORS: Record<string, string> = {
-  Scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  Scheduled: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
   Completed: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
-  Rescheduled: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  Rescheduled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
   'No Show': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
 }
 
@@ -122,9 +137,9 @@ const INTERVIEW_STATUS_COLORS: Record<string, string> = {
 const SKILL_COLORS = [
   'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
   'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
-  'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
   'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400',
   'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
   'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-400',
@@ -132,6 +147,36 @@ const SKILL_COLORS = [
 
 function getSkillColor(index: number): string {
   return SKILL_COLORS[index % SKILL_COLORS.length]
+}
+
+// ===== Match Score Circle =====
+
+function MatchScoreCircle({ score }: { score: number }) {
+  const radius = 28
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (score / 100) * circumference
+  const color = score >= 80 ? 'text-emerald-500' : score >= 65 ? 'text-amber-500' : 'text-rose-500'
+  const strokeColor = score >= 80 ? 'stroke-emerald-500' : score >= 65 ? 'stroke-amber-500' : 'stroke-rose-500'
+
+  return (
+    <div className="relative flex h-[72px] w-[72px] items-center justify-center">
+      <svg className="h-full w-full -rotate-90" viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r={radius} fill="none" strokeWidth="4" className="stroke-muted/30" />
+        <motion.circle
+          cx="36" cy="36" r={radius} fill="none" strokeWidth="4" strokeLinecap="round"
+          className={strokeColor}
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className={`text-base font-bold leading-none ${color}`}>{score}%</span>
+        <span className="text-[8px] text-muted-foreground">Match</span>
+      </div>
+    </div>
+  )
 }
 
 // ===== Star Rating =====
@@ -170,10 +215,10 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
         const dotColor = STATUS_DOT_COLORS[status]
 
         return (
-          <div key={status} className="flex items-center">
+          <div key={status} className="group flex items-center">
             <div className="flex flex-col items-center gap-1.5">
               <div
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all group-hover:scale-110 ${
                   isCurrent || isTerminalDone
                     ? `${dotColor} text-white ring-4 ring-white shadow-md dark:ring-background`
                     : isFuture
@@ -184,7 +229,7 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
                 {isCompleted || isTerminalDone ? '✓' : idx + 1}
               </div>
               <span
-                className={`whitespace-nowrap text-[10px] font-medium ${
+                className={`whitespace-nowrap text-[10px] font-medium transition-colors ${
                   isCurrent ? 'text-foreground' : 'text-muted-foreground'
                 }`}
               >
@@ -193,7 +238,7 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
             </div>
             {idx < STATUS_PIPELINE.length - 1 && (
               <div
-                className={`mx-0.5 h-1 w-5 rounded-full sm:w-8 ${
+                className={`mx-0.5 h-1 w-5 rounded-full transition-colors sm:w-8 ${
                   (isCompleted && !isTerminal) || isTerminalDone
                     ? dotColor.replace('bg-', 'bg-')
                     : 'bg-muted-foreground/15'
@@ -203,6 +248,22 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ===== Quick Info Card =====
+
+function QuickInfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-shadow hover:shadow-md">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] text-muted-foreground">{label}</p>
+        <p className="truncate text-sm font-semibold">{value || '—'}</p>
+      </div>
     </div>
   )
 }
@@ -255,11 +316,22 @@ export function CandidateDetail({
     },
   })
 
+  // Stable match score based on candidateId
+  const matchScore = useMemo(() => {
+    let hash = 0
+    for (let i = 0; i < candidateId.length; i++) {
+      hash = ((hash << 5) - hash) + candidateId.charCodeAt(i)
+      hash |= 0
+    }
+    return 60 + Math.abs(hash) % 36 // 60-95
+  }, [candidateId])
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />\n          <p className="text-sm text-muted-foreground">Loading candidate details...</p>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading candidate details...</p>
         </div>
       </div>
     )
@@ -284,21 +356,56 @@ export function CandidateDetail({
     : []
   const interviews = interviewsData?.data || []
 
+  const handleScheduleInterview = () => {
+    navigate('interviews')
+    toast.info('Select a job to schedule interview')
+  }
+
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <motion.div
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('candidates')}
+        className="w-fit"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Candidates
+      </Button>
+
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('candidates')}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{fullName}</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Avatar className="mt-0.5 h-14 w-14 text-xl font-bold ring-4 ring-background shadow-sm">
+            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{fullName}</h1>
+              <Badge className={STATUS_COLORS[candidate.status] || ''}>
+                {candidate.status}
+              </Badge>
+              {candidate.source && (
+                <Badge variant="outline" className="text-xs">
+                  <Tag className="mr-1 h-3 w-3" />
+                  {candidate.source}
+                </Badge>
+              )}
+              {candidate.experience != null && (
+                <Badge variant="secondary" className="text-xs">
+                  <Briefcase className="mr-1 h-3 w-3" />
+                  {candidate.experience} yrs exp
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {candidate.title || 'No title specified'}
               {candidate.job && (
@@ -313,6 +420,7 @@ export function CandidateDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <MatchScoreCircle score={matchScore} />
           <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="mr-2 h-3.5 w-3.5" />
             Edit
@@ -326,6 +434,28 @@ export function CandidateDetail({
             <Trash2 className="mr-2 h-3.5 w-3.5" />
             Delete
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleScheduleInterview}>
+                <CalendarCheck className="mr-2 h-4 w-4" />
+                Schedule Interview
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info('Feature coming soon')}>
+                <UserCheck className="mr-2 h-4 w-4" />
+                Create Placement
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info('Feature coming soon')}>
+                <Send className="mr-2 h-4 w-4" />
+                Send Email
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -335,7 +465,7 @@ export function CandidateDetail({
         <div className="flex flex-col gap-6 lg:col-span-1">
           {/* Profile Card */}
           <Card className="overflow-hidden">
-            <div className="h-24 bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 dark:from-emerald-500/10 dark:via-teal-500/10 dark:to-cyan-500/10" />
+            <div className="h-20 bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 dark:from-emerald-500/10 dark:via-teal-500/10 dark:to-cyan-500/10" />
             <CardContent className="relative flex flex-col items-center gap-4 px-6 pb-6 pt-0">
               <div className="-mt-10">
                 <Avatar className="h-20 w-20 text-2xl font-bold ring-4 ring-background">
@@ -348,15 +478,12 @@ export function CandidateDetail({
                 <h2 className="text-lg font-semibold">{fullName}</h2>
                 <p className="text-sm text-muted-foreground">{candidate.title || '—'}</p>
               </div>
-              <Badge className={STATUS_COLORS[candidate.status] || ''}>
-                {candidate.status}
-              </Badge>
               <StarRating rating={candidate.rating} />
             </CardContent>
           </Card>
 
           {/* Contact Info Card */}
-          <Card className="border-l-4 border-l-emerald-500/40">
+          <Card className="border-l-4 border-l-emerald-500/40 transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Contact Information</CardTitle>
             </CardHeader>
@@ -393,53 +520,8 @@ export function CandidateDetail({
             </CardContent>
           </Card>
 
-          {/* Experience & CTC Card */}
-          <Card className="border-l-4 border-l-amber-500/40">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Experience & Compensation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Briefcase className="h-4 w-4" /> Experience
-                </span>
-                <span className="font-medium">
-                  {candidate.experience != null ? `${candidate.experience} yrs` : '—'}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Current CTC</span>
-                <span className="font-medium">
-                  {candidate.currentCTC ? `₹${candidate.currentCTC} LPA` : '—'}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Expected CTC</span>
-                <span className="font-medium">
-                  {candidate.expectedCTC ? `₹${candidate.expectedCTC} LPA` : '—'}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" /> Notice Period
-                </span>
-                <span className="font-medium">
-                  {candidate.noticePeriod != null ? `${candidate.noticePeriod} days` : '—'}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Source</span>
-                <span className="font-medium">{candidate.source || '—'}</span>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Skills Card */}
-          <Card className="border-l-4 border-l-violet-500/40">
+          <Card className="border-l-4 border-l-violet-500/40 transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Skills</CardTitle>
             </CardHeader>
@@ -447,9 +529,12 @@ export function CandidateDetail({
               {skills.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill, index) => (
-                    <Badge key={skill} className={`text-xs border-0 ${getSkillColor(index)}`}>
+                    <span
+                      key={skill}
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getSkillColor(index)}`}
+                    >
                       {skill}
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               ) : (
@@ -459,10 +544,55 @@ export function CandidateDetail({
           </Card>
         </div>
 
-        {/* Right Column: Status Timeline, Interview History, Notes */}
+        {/* Middle Column: Status Timeline, Interview History, Notes */}
         <div className="flex flex-col gap-6 lg:col-span-2">
-          {/* Status Timeline Card */}
+          {/* Quick Info Sidebar Section */}
           <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Quick Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+                <QuickInfoItem
+                  icon={<CalendarDays className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                  label="Applied Date"
+                  value={new Date(candidate.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                />
+                <QuickInfoItem
+                  icon={<Tag className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
+                  label="Source"
+                  value={candidate.source || '—'}
+                />
+                <QuickInfoItem
+                  icon={<Briefcase className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
+                  label="Experience"
+                  value={candidate.experience != null ? `${candidate.experience} years` : '—'}
+                />
+                <QuickInfoItem
+                  icon={<IndianRupee className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
+                  label="Current CTC"
+                  value={candidate.currentCTC ? `₹${candidate.currentCTC} LPA` : '—'}
+                />
+                <QuickInfoItem
+                  icon={<IndianRupee className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />}
+                  label="Expected CTC"
+                  value={candidate.expectedCTC ? `₹${candidate.expectedCTC} LPA` : '—'}
+                />
+                <QuickInfoItem
+                  icon={<Timer className="h-4 w-4 text-orange-600 dark:text-orange-400" />}
+                  label="Notice Period"
+                  value={candidate.noticePeriod != null ? `${candidate.noticePeriod} days` : '—'}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Status Timeline Card */}
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Status Timeline</CardTitle>
             </CardHeader>
@@ -472,7 +602,7 @@ export function CandidateDetail({
           </Card>
 
           {/* Interview History Card */}
-          <Card>
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Video className="h-4 w-4" />
@@ -498,7 +628,7 @@ export function CandidateDetail({
                     </TableHeader>
                     <TableBody>
                       {interviews.map((interview) => (
-                        <TableRow key={interview.id}>
+                        <TableRow key={interview.id} className="transition-colors hover:bg-muted/50">
                           <TableCell className="text-xs">
                             {interview.date
                               ? new Date(interview.date).toLocaleDateString('en-IN', {
@@ -549,7 +679,7 @@ export function CandidateDetail({
           </Card>
 
           {/* Notes Card */}
-          <Card>
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <MessageSquare className="h-4 w-4" />
@@ -617,6 +747,6 @@ export function CandidateDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   )
 }

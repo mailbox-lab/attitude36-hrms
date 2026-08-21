@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCRMStore } from '@/stores/crm-store'
 import { CandidateDetail } from './candidate-detail'
 import { AddCandidateDialog } from './add-candidate-dialog'
+import { BulkActionsBar } from './bulk-actions-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -133,20 +135,35 @@ function KanbanCard({
   candidate,
   onView,
   onEdit,
+  isSelected,
+  onToggleSelect,
 }: {
   candidate: Candidate
   onView: () => void
   onEdit: () => void
+  isSelected: boolean
+  onToggleSelect: () => void
 }) {
   const skills = parseSkills(candidate.skills)
   const initials = getInitials(candidate.firstName, candidate.lastName)
 
   return (
     <div
-      className={`group rounded-lg border border-l-4 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+      className={`group relative rounded-lg border border-l-4 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
         STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-500'
-      }`}
+      } ${isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}
     >
+      <div className={`absolute right-2 top-2 z-10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(e) => {
+            e.stopPropagation()
+            onToggleSelect()
+          }}
+          aria-label={`Select ${candidate.firstName} ${candidate.lastName}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="h-7 w-7 shrink-0 text-xs">
@@ -221,11 +238,15 @@ function KanbanColumn({
   candidates,
   onViewCandidate,
   onEditCandidate,
+  selectedIds,
+  onToggleSelect,
 }: {
   status: string
   candidates: Candidate[]
   onViewCandidate: (id: string) => void
   onEditCandidate: (candidate: Candidate) => void
+  selectedIds: Set<string>
+  onToggleSelect: (id: string) => void
 }) {
   return (
     <div className="flex w-72 shrink-0 flex-col">
@@ -287,6 +308,8 @@ function KanbanColumn({
               candidate={c}
               onView={() => onViewCandidate(c.id)}
               onEdit={() => onEditCandidate(c)}
+              isSelected={selectedIds.has(c.id)}
+              onToggleSelect={() => onToggleSelect(c.id)}
             />
           ))
         )}
@@ -307,6 +330,30 @@ export function CandidatesPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editCandidate, setEditCandidate] = useState<Candidate | null>(null)
   const [activeTab, setActiveTab] = useState('list')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }, [])
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  function handleBulkSuccess() {
+    setSelectedIds(new Set())
+    queryClient.invalidateQueries({ queryKey: ['candidates'] })
+  }
 
   // Fetch candidates with filters
   const { data, isLoading, error } = useQuery<{
@@ -328,6 +375,13 @@ export function CandidatesPage() {
   })
 
   const candidates = data?.data || []
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(candidates.map((c) => c.id)))
+  }, [candidates])
+
+  const isAllSelected = candidates.length > 0 && candidates.every((c) => selectedIds.has(c.id))
+  const isSomeSelected = !isAllSelected && candidates.some((c) => selectedIds.has(c.id))
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -424,8 +478,26 @@ export function CandidatesPage() {
           </Button>
           <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-to-r from-primary to-primary/80 shadow-md hover:shadow-lg">
             <Plus className="mr-2 h-4 w-4" />
-            Add Candidate
+            {selectedIds.size > 0 ? `Add Candidate (${selectedIds.size} selected)` : 'Add Candidate'}
           </Button>
+          {candidates.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={isAllSelected}
+                ref={(el) => {
+                  if (el) {
+                    (el as unknown as { indeterminate: boolean }).indeterminate = isSomeSelected
+                  }
+                }}
+                onCheckedChange={(checked) => {
+                  if (checked) selectAll()
+                  else deselectAll()
+                }}
+                aria-label="Select all candidates"
+              />
+              <span className="hidden text-xs text-muted-foreground sm:inline">Select All</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -473,6 +545,13 @@ export function CandidatesPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedIds={selectedIdsArray}
+        onClearSelection={deselectAll}
+        onSuccess={handleBulkSuccess}
+      />
 
       {/* Tabs: List / Pipeline */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -526,6 +605,21 @@ export function CandidatesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-10 text-xs">
+                        <Checkbox
+                          checked={isAllSelected}
+                          ref={(el) => {
+                            if (el) {
+                              (el as unknown as { indeterminate: boolean }).indeterminate = isSomeSelected
+                            }
+                          }}
+                          onCheckedChange={(checked) => {
+                            if (checked) selectAll()
+                            else deselectAll()
+                          }}
+                          aria-label="Select all candidates"
+                        />
+                      </TableHead>
                       <TableHead className="text-xs">Name</TableHead>
                       <TableHead className="hidden text-xs sm:table-cell">Email</TableHead>
                       <TableHead className="hidden text-xs md:table-cell">Phone</TableHead>
@@ -546,9 +640,16 @@ export function CandidatesPage() {
                           key={candidate.id}
                           className={`cursor-pointer border-l-4 transition-colors hover:bg-muted/50 ${
                             STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-400'
-                          } ${index % 2 === 1 ? 'bg-muted/30' : ''}`}
+                          } ${index % 2 === 1 ? 'bg-muted/30' : ''} ${selectedIds.has(candidate.id) ? 'bg-primary/5' : ''}`}
                           onClick={() => handleViewCandidate(candidate.id)}
                         >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.has(candidate.id)}
+                              onCheckedChange={() => toggleSelect(candidate.id)}
+                              aria-label={`Select ${candidate.firstName} ${candidate.lastName}`}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9 shrink-0 text-xs">
@@ -661,6 +762,8 @@ export function CandidatesPage() {
                   candidates={kanbanData[status] || []}
                   onViewCandidate={handleViewCandidate}
                   onEditCandidate={handleEditCandidate}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
                 />
               ))}
             </div>

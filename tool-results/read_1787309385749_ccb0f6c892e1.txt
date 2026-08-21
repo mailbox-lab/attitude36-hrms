@@ -1,0 +1,720 @@
+     1→'use client'
+     2→
+     3→import { useState } from 'react'
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     5→import { useForm } from 'react-hook-form'
+     6→import { z } from 'zod'
+     7→import { zodResolver } from '@hookform/resolvers/zod'
+     8→import { toast } from 'sonner'
+     9→import { Card, CardContent } from '@/components/ui/card'
+    10→import { Button } from '@/components/ui/button'
+    11→import { Badge } from '@/components/ui/badge'
+    12→import { Input } from '@/components/ui/input'
+    13→import {
+    14→  Select,
+    15→  SelectContent,
+    16→  SelectItem,
+    17→  SelectTrigger,
+    18→  SelectValue,
+    19→} from '@/components/ui/select'
+    20→import {
+    21→  Table,
+    22→  TableBody,
+    23→  TableCell,
+    24→  TableHead,
+    25→  TableHeader,
+    26→  TableRow,
+    27→} from '@/components/ui/table'
+    28→import {
+    29→  Dialog,
+    30→  DialogContent,
+    31→  DialogHeader,
+    32→  DialogTitle,
+    33→  DialogDescription,
+    34→  DialogFooter,
+    35→} from '@/components/ui/dialog'
+    36→import {
+    37→  Form,
+    38→  FormField,
+    39→  FormItem,
+    40→  FormLabel,
+    41→  FormControl,
+    42→  FormMessage,
+    43→} from '@/components/ui/form'
+    44→import {
+    45→  Plus,
+    46→  Trophy,
+    47→  MoreHorizontal,
+    48→  Pencil,
+    49→  Trash2,
+    50→  Loader2,
+    51→  IndianRupee,
+    52→  Users,
+    53→} from 'lucide-react'
+    54→import {
+    55→  DropdownMenu,
+    56→  DropdownMenuContent,
+    57→  DropdownMenuItem,
+    58→  DropdownMenuTrigger,
+    59→} from '@/components/ui/dropdown-menu'
+    60→
+    61→// ===== Types =====
+    62→
+    63→type Placement = {
+    64→  id: string
+    65→  candidateId: string
+    66→  candidate: { id: string; firstName: string; lastName: string }
+    67→  jobId: string | null
+    68→  job: { id: string; title: string } | null
+    69→  clientId: string | null
+    70→  client: { id: string; name: string } | null
+    71→  recruiterId: string | null
+    72→  recruiter: { id: string; name: string } | null
+    73→  offeredCTC: number | null
+    74→  joinedDate: string | null
+    75→  status: string
+    76→  commission: number | null
+    77→  createdAt: string
+    78→  updatedAt: string
+    79→}
+    80→
+    81→type CandidateOption = {
+    82→  id: string
+    83→  firstName: string
+    84→  lastName: string
+    85→}
+    86→
+    87→type JobOption = {
+    88→  id: string
+    89→  title: string
+    90→}
+    91→
+    92→type ClientOption = {
+    93→  id: string
+    94→  name: string
+    95→}
+    96→
+    97→type EmployeeOption = {
+    98→  id: string
+    99→  name: string
+   100→}
+   101→
+   102→// ===== Constants =====
+   103→
+   104→const STATUS_OPTIONS = ['All', 'Offered', 'Accepted', 'Joined', 'Backed-Out']
+   105→const PLACEMENT_STATUSES = ['Offered', 'Accepted', 'Joined', 'Backed-Out']
+   106→
+   107→const STATUS_COLORS: Record<string, string> = {
+   108→  Offered: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+   109→  Accepted: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   110→  Joined: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   111→  'Backed-Out': 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   112→}
+   113→
+   114→const STATUS_BORDER_COLORS: Record<string, string> = {
+   115→  Offered: 'border-l-blue-500',
+   116→  Accepted: 'border-l-amber-500',
+   117→  Joined: 'border-l-green-500',
+   118→  'Backed-Out': 'border-l-red-500',
+   119→}
+   120→
+   121→// ===== Schema =====
+   122→
+   123→const placementSchema = z.object({
+   124→  candidateId: z.string().min(1, 'Candidate is required'),
+   125→  jobId: z.string().optional(),
+   126→  clientId: z.string().optional(),
+   127→  recruiterId: z.string().optional(),
+   128→  offeredCTC: z.coerce.number().min(0, 'CTC must be positive').optional(),
+   129→  joinedDate: z.string().optional(),
+   130→  status: z.string().min(1, 'Status is required'),
+   131→  commission: z.coerce.number().min(0, 'Commission must be positive').optional(),
+   132→})
+   133→
+   134→type PlacementFormData = z.infer<typeof placementSchema>
+   135→
+   136→// ===== Helpers =====
+   137→
+   138→function formatCurrency(amount: number | null | undefined) {
+   139→  if (amount == null) return '—'
+   140→  if (amount >= 100000) {
+   141→    return `₹${(amount / 100000).toFixed(2)} LPA`
+   142→  }
+   143→  return `₹${amount.toLocaleString('en-IN')}`
+   144→}
+   145→
+   146→function formatDate(dateStr: string | null) {
+   147→  if (!dateStr) return '—'
+   148→  const date = new Date(dateStr)
+   149→  return date.toLocaleDateString('en-IN', {
+   150→    day: '2-digit',
+   151→    month: 'short',
+   152→    year: 'numeric',
+   153→  })
+   154→}
+   155→
+   156→// ===== Add Placement Dialog =====
+   157→
+   158→function AddPlacementDialog({
+   159→  open,
+   160→  onOpenChange,
+   161→}: {
+   162→  open: boolean
+   163→  onOpenChange: (open: boolean) => void
+   164→}) {
+   165→  const queryClient = useQueryClient()
+   166→
+   167→  const form = useForm<PlacementFormData>({
+   168→    resolver: zodResolver(placementSchema),
+   169→    defaultValues: {
+   170→      candidateId: '',
+   171→      jobId: '',
+   172→      clientId: '',
+   173→      recruiterId: '',
+   174→      offeredCTC: undefined,
+   175→      joinedDate: '',
+   176→      status: 'Offered',
+   177→      commission: undefined,
+   178→    },
+   179→  })
+   180→
+   181→  const { data: candidates } = useQuery<{ data: CandidateOption[] }>({
+   182→    queryKey: ['candidates-hired'],
+   183→    queryFn: async () => {
+   184→      const res = await fetch('/api/candidates?status=Hired')
+   185→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   186→      return res.json()
+   187→    },
+   188→    enabled: open,
+   189→  })
+   190→
+   191→  const { data: jobs } = useQuery<{ data: JobOption[] }>({
+   192→    queryKey: ['jobs-list'],
+   193→    queryFn: async () => {
+   194→      const res = await fetch('/api/jobs')
+   195→      if (!res.ok) throw new Error('Failed to fetch jobs')
+   196→      return res.json()
+   197→    },
+   198→    enabled: open,
+   199→  })
+   200→
+   201→  const { data: clients } = useQuery<{ data: ClientOption[] }>({
+   202→    queryKey: ['clients-list'],
+   203→    queryFn: async () => {
+   204→      const res = await fetch('/api/clients')
+   205→      if (!res.ok) throw new Error('Failed to fetch clients')
+   206→      return res.json()
+   207→    },
+   208→    enabled: open,
+   209→  })
+   210→
+   211→  const { data: employees } = useQuery<{ data: EmployeeOption[] }>({
+   212→    queryKey: ['employees-list'],
+   213→    queryFn: async () => {
+   214→      const res = await fetch('/api/employees')
+   215→      if (!res.ok) throw new Error('Failed to fetch employees')
+   216→      return res.json()
+   217→    },
+   218→    enabled: open,
+   219→  })
+   220→
+   221→  const mutation = useMutation({
+   222→    mutationFn: async (data: PlacementFormData) => {
+   223→      const res = await fetch('/api/placements', {
+   224→        method: 'POST',
+   225→        headers: { 'Content-Type': 'application/json' },
+   226→        body: JSON.stringify(data),
+   227→      })
+   228→      if (!res.ok) throw new Error('Failed to add placement')
+   229→      return res.json()
+   230→    },
+   231→    onSuccess: () => {
+   232→      queryClient.invalidateQueries({ queryKey: ['placements'] })
+   233→      toast.success('Placement added successfully')
+   234→      onOpenChange(false)
+   235→      form.reset()
+   236→    },
+   237→    onError: () => {
+   238→      toast.error('Failed to add placement')
+   239→    },
+   240→  })
+   241→
+   242→  function onSubmit(data: PlacementFormData) {
+   243→    mutation.mutate(data)
+   244→  }
+   245→
+   246→  return (
+   247→    <Dialog open={open} onOpenChange={onOpenChange}>
+   248→      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+   249→        <DialogHeader>
+   250→          <DialogTitle>Add Placement</DialogTitle>
+   251→          <DialogDescription>
+   252→            Record a new placement for a hired candidate.
+   253→          </DialogDescription>
+   254→        </DialogHeader>
+   255→        <Form {...form}>
+   256→          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+   257→            <FormField
+   258→              control={form.control}
+   259→              name="candidateId"
+   260→              render={({ field }) => (
+   261→                <FormItem>
+   262→                  <FormLabel>Candidate *</FormLabel>
+   263→                  <Select onValueChange={field.onChange} value={field.value}>
+   264→                    <FormControl>
+   265→                      <SelectTrigger>
+   266→                        <SelectValue placeholder="Select hired candidate" />
+   267→                      </SelectTrigger>
+   268→                    </FormControl>
+   269→                    <SelectContent>
+   270→                      {(candidates?.data || []).map((c) => (
+   271→                        <SelectItem key={c.id} value={c.id}>
+   272→                          {c.firstName} {c.lastName}
+   273→                        </SelectItem>
+   274→                      ))}
+   275→                    </SelectContent>
+   276→                  </Select>
+   277→                  <FormMessage />
+   278→                </FormItem>
+   279→              )}
+   280→            />
+   281→
+   282→            <div className="grid grid-cols-2 gap-4">
+   283→              <FormField
+   284→                control={form.control}
+   285→                name="jobId"
+   286→                render={({ field }) => (
+   287→                  <FormItem>
+   288→                    <FormLabel>Job Opening</FormLabel>
+   289→                    <Select onValueChange={field.onChange} value={field.value || ''}>
+   290→                      <FormControl>
+   291→                        <SelectTrigger>
+   292→                          <SelectValue placeholder="Select job" />
+   293→                        </SelectTrigger>
+   294→                      </FormControl>
+   295→                      <SelectContent>
+   296→                        {(jobs?.data || []).map((j) => (
+   297→                          <SelectItem key={j.id} value={j.id}>
+   298→                            {j.title}
+   299→                          </SelectItem>
+   300→                        ))}
+   301→                      </SelectContent>
+   302→                    </Select>
+   303→                    <FormMessage />
+   304→                  </FormItem>
+   305→                )}
+   306→              />
+   307→
+   308→              <FormField
+   309→                control={form.control}
+   310→                name="clientId"
+   311→                render={({ field }) => (
+   312→                  <FormItem>
+   313→                    <FormLabel>Client</FormLabel>
+   314→                    <Select onValueChange={field.onChange} value={field.value || ''}>
+   315→                      <FormControl>
+   316→                        <SelectTrigger>
+   317→                          <SelectValue placeholder="Select client" />
+   318→                        </SelectTrigger>
+   319→                      </FormControl>
+   320→                      <SelectContent>
+   321→                        {(clients?.data || []).map((c) => (
+   322→                          <SelectItem key={c.id} value={c.id}>
+   323→                            {c.name}
+   324→                          </SelectItem>
+   325→                        ))}
+   326→                      </SelectContent>
+   327→                    </Select>
+   328→                    <FormMessage />
+   329→                  </FormItem>
+   330→                )}
+   331→              />
+   332→            </div>
+   333→
+   334→            <FormField
+   335→              control={form.control}
+   336→              name="recruiterId"
+   337→              render={({ field }) => (
+   338→                <FormItem>
+   339→                  <FormLabel>Recruiter</FormLabel>
+   340→                  <Select onValueChange={field.onChange} value={field.value || ''}>
+   341→                    <FormControl>
+   342→                      <SelectTrigger>
+   343→                        <SelectValue placeholder="Select recruiter" />
+   344→                      </SelectTrigger>
+   345→                    </FormControl>
+   346→                    <SelectContent>
+   347→                      {(employees?.data || []).map((e) => (
+   348→                        <SelectItem key={e.id} value={e.id}>
+   349→                          {e.name}
+   350→                        </SelectItem>
+   351→                      ))}
+   352→                    </SelectContent>
+   353→                  </Select>
+   354→                  <FormMessage />
+   355→                </FormItem>
+   356→              )}
+   357→            />
+   358→
+   359→            <FormField
+   360→              control={form.control}
+   361→              name="status"
+   362→              render={({ field }) => (
+   363→                <FormItem>
+   364→                  <FormLabel>Status *</FormLabel>
+   365→                  <Select onValueChange={field.onChange} value={field.value}>
+   366→                    <FormControl>
+   367→                      <SelectTrigger>
+   368→                        <SelectValue placeholder="Select status" />
+   369→                      </SelectTrigger>
+   370→                    </FormControl>
+   371→                    <SelectContent>
+   372→                      {PLACEMENT_STATUSES.map((s) => (
+   373→                        <SelectItem key={s} value={s}>
+   374→                          {s}
+   375→                        </SelectItem>
+   376→                      ))}
+   377→                    </SelectContent>
+   378→                  </Select>
+   379→                  <FormMessage />
+   380→                </FormItem>
+   381→              )}
+   382→            />
+   383→
+   384→            <div className="grid grid-cols-2 gap-4">
+   385→              <FormField
+   386→                control={form.control}
+   387→                name="offeredCTC"
+   388→                render={({ field }) => (
+   389→                  <FormItem>
+   390→                    <FormLabel>Offered CTC (₹)</FormLabel>
+   391→                    <FormControl>
+   392→                      <Input
+   393→                        type="number"
+   394→                        min={0}
+   395→                        placeholder="e.g. 1200000"
+   396→                        {...field}
+   397→                        value={field.value ?? ''}
+   398→                      />
+   399→                    </FormControl>
+   400→                    <FormMessage />
+   401→                  </FormItem>
+   402→                )}
+   403→              />
+   404→
+   405→              <FormField
+   406→                control={form.control}
+   407→                name="joinedDate"
+   408→                render={({ field }) => (
+   409→                  <FormItem>
+   410→                    <FormLabel>Joined Date</FormLabel>
+   411→                    <FormControl>
+   412→                      <Input type="date" {...field} value={field.value || ''} />
+   413→                    </FormControl>
+   414→                    <FormMessage />
+   415→                  </FormItem>
+   416→                )}
+   417→              />
+   418→            </div>
+   419→
+   420→            <FormField
+   421→              control={form.control}
+   422→              name="commission"
+   423→              render={({ field }) => (
+   424→                <FormItem>
+   425→                  <FormLabel>Commission (₹)</FormLabel>
+   426→                  <FormControl>
+   427→                    <Input
+   428→                      type="number"
+   429→                      min={0}
+   430→                      placeholder="e.g. 50000"
+   431→                      {...field}
+   432→                      value={field.value ?? ''}
+   433→                    />
+   434→                  </FormControl>
+   435→                  <FormMessage />
+   436→                </FormItem>
+   437→              )}
+   438→            />
+   439→
+   440→            <DialogFooter className="pt-2">
+   441→              <Button
+   442→                type="button"
+   443→                variant="outline"
+   444→                onClick={() => onOpenChange(false)}
+   445→              >
+   446→                Cancel
+   447→              </Button>
+   448→              <Button type="submit" disabled={mutation.isPending}>
+   449→                {mutation.isPending && (
+   450→                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   451→                )}
+   452→                Add Placement
+   453→              </Button>
+   454→            </DialogFooter>
+   455→          </form>
+   456→        </Form>
+   457→      </DialogContent>
+   458→    </Dialog>
+   459→  )
+   460→}
+   461→
+   462→// ===== Main Component =====
+   463→
+   464→export function PlacementsPage() {
+   465→  const queryClient = useQueryClient()
+   466→  const [statusFilter, setStatusFilter] = useState('All')
+   467→  const [addDialogOpen, setAddDialogOpen] = useState(false)
+   468→
+   469→  const { data, isLoading, error } = useQuery<{ data: Placement[] }>({
+   470→    queryKey: ['placements', statusFilter],
+   471→    queryFn: async () => {
+   472→      const params = new URLSearchParams()
+   473→      if (statusFilter !== 'All') params.set('status', statusFilter)
+   474→      const res = await fetch(`/api/placements?${params.toString()}`)
+   475→      if (!res.ok) throw new Error('Failed to fetch placements')
+   476→      return res.json()
+   477→    },
+   478→  })
+   479→
+   480→  const placements = data?.data || []
+   481→
+   482→  const deleteMutation = useMutation({
+   483→    mutationFn: async (id: string) => {
+   484→      const res = await fetch(`/api/placements/${id}`, { method: 'DELETE' })
+   485→      if (!res.ok) throw new Error('Failed to delete placement')
+   486→      return res.json()
+   487→    },
+   488→    onSuccess: () => {
+   489→      queryClient.invalidateQueries({ queryKey: ['placements'] })
+   490→      toast.success('Placement deleted successfully')
+   491→    },
+   492→    onError: () => {
+   493→      toast.error('Failed to delete placement')
+   494→    },
+   495→  })
+   496→
+   497→  // Summary stats
+   498→  const totalCommission = placements.reduce((sum, p) => sum + (p.commission || 0), 0)
+   499→  const joinedCount = placements.filter((p) => p.status === 'Joined').length
+   500→
+   501→  return (
+   502→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+   503→      {/* Header */}
+   504→      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   505→        <div>
+   506→          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Placements</h1>
+   507→          <p className="mt-1 text-sm text-muted-foreground">
+   508→            Track candidate placements and commissions
+   509→            {data && (
+   510→              <span className="ml-1 font-medium text-foreground">
+   511→                ({placements.length} total)
+   512→              </span>
+   513→            )}
+   514→          </p>
+   515→        </div>
+   516→        <Button onClick={() => setAddDialogOpen(true)}>
+   517→          <Plus className="mr-2 h-4 w-4" />
+   518→          Add Placement
+   519→        </Button>
+   520→      </div>
+   521→
+   522→      {/* Summary Cards */}
+   523→      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+   524→        <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 dark:from-blue-950/40 dark:to-blue-900/20 dark:border-blue-900">
+   525→          <CardContent className="p-4">
+   526→            <div className="flex items-center gap-3">
+   527→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-200 dark:bg-blue-800">
+   528→                <Trophy className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+   529→              </div>
+   530→              <div>
+   531→                <p className="text-2xl font-bold">{placements.length}</p>
+   532→                <p className="text-xs text-blue-600 dark:text-blue-400">Total Placements</p>
+   533→              </div>
+   534→            </div>
+   535→          </CardContent>
+   536→        </Card>
+   537→        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 dark:from-green-950/40 dark:to-green-900/20 dark:border-green-900">
+   538→          <CardContent className="p-4">
+   539→            <div className="flex items-center gap-3">
+   540→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-200 dark:bg-green-800">
+   541→                <Users className="h-5 w-5 text-green-700 dark:text-green-300" />
+   542→              </div>
+   543→              <div>
+   544→                <p className="text-2xl font-bold">{joinedCount}</p>
+   545→                <p className="text-xs text-green-600 dark:text-green-400">Joined</p>
+   546→              </div>
+   547→            </div>
+   548→          </CardContent>
+   549→        </Card>
+   550→        <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 dark:from-amber-950/40 dark:to-amber-900/20 dark:border-amber-900">
+   551→          <CardContent className="p-4">
+   552→            <div className="flex items-center gap-3">
+   553→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800">
+   554→                <IndianRupee className="h-5 w-5 text-amber-700 dark:text-amber-300" />
+   555→              </div>
+   556→              <div>
+   557→                <p className="text-2xl font-bold">
+   558→                  {totalCommission > 0
+   559→                    ? `₹${(totalCommission / 1000).toFixed(1)}K`
+   560→                    : '₹0'}
+   561→                </p>
+   562→                <p className="text-xs text-amber-600 dark:text-amber-400">Total Commission</p>
+   563→              </div>
+   564→            </div>
+   565→          </CardContent>
+   566→        </Card>
+   567→        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200 dark:from-emerald-950/40 dark:to-emerald-900/20 dark:border-emerald-900">
+   568→          <CardContent className="p-4">
+   569→            <div className="flex items-center gap-3">
+   570→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-200 dark:bg-emerald-800">
+   571→                <Trophy className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+   572→              </div>
+   573→              <div>
+   574→                <p className="text-2xl font-bold">
+   575→                  {placements.length > 0
+   576→                    ? `${((joinedCount / placements.length) * 100).toFixed(0)}%`
+   577→                    : '0%'}
+   578→                </p>
+   579→                <p className="text-xs text-emerald-600 dark:text-emerald-400">Success Rate</p>
+   580→              </div>
+   581→            </div>
+   582→          </CardContent>
+   583→        </Card>
+   584→      </div>
+   585→
+   586→      {/* Filters */}
+   587→      <div className="rounded-lg bg-muted/50 p-2">
+   588→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   589→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+   590→          <SelectTrigger className="w-full sm:w-[180px]">
+   591→            <SelectValue placeholder="Status" />
+   592→          </SelectTrigger>
+   593→          <SelectContent>
+   594→            {STATUS_OPTIONS.map((status) => (
+   595→              <SelectItem key={status} value={status}>
+   596→                {status}
+   597→              </SelectItem>
+   598→            ))}
+   599→          </SelectContent>
+   600→        </Select>
+   601→        </div>
+   602→      </div>
+   603→
+   604→      {/* Table */}
+   605→      {isLoading ? (
+   606→        <Card>
+   607→          <CardContent className="p-6">
+   608→            <div className="flex items-center justify-center gap-3">
+   609→              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   610→              <p className="text-sm text-muted-foreground">Loading placements...</p>
+   611→            </div>
+   612→          </CardContent>
+   613→        </Card>
+   614→      ) : error ? (
+   615→        <Card>
+   616→          <CardContent className="p-6">
+   617→            <p className="text-center text-sm text-destructive">
+   618→              Failed to load placements. Please try again.
+   619→            </p>
+   620→          </CardContent>
+   621→        </Card>
+   622→      ) : placements.length === 0 ? (
+   623→        <Card>
+   624→          <CardContent className="flex flex-col items-center gap-3 py-12">
+   625→            <Trophy className="h-10 w-10 text-muted-foreground/40" />
+   626→            <p className="text-sm font-medium text-muted-foreground">No placements found</p>
+   627→            <p className="text-xs text-muted-foreground/70">
+   628→              {statusFilter !== 'All'
+   629→                ? 'Try adjusting your filters'
+   630→                : 'Click "Add Placement" to get started'}
+   631→            </p>
+   632→          </CardContent>
+   633→        </Card>
+   634→      ) : (
+   635→        <Card>
+   636→          <div className="max-h-96 overflow-y-auto">
+   637→            <Table>
+   638→              <TableHeader>
+   639→                <TableRow className="hover:bg-transparent">
+   640→                  <TableHead className="text-xs">Candidate</TableHead>
+   641→                  <TableHead className="hidden text-xs sm:table-cell">Client</TableHead>
+   642→                  <TableHead className="hidden text-xs md:table-cell">Job Title</TableHead>
+   643→                  <TableHead className="hidden text-xs lg:table-cell">Recruiter</TableHead>
+   644→                  <TableHead className="text-xs">Offered CTC</TableHead>
+   645→                  <TableHead className="hidden text-xs md:table-cell">Joined Date</TableHead>
+   646→                  <TableHead className="text-xs">Status</TableHead>
+   647→                  <TableHead className="hidden text-xs sm:table-cell">Commission</TableHead>
+   648→                  <TableHead className="w-12 text-xs">Actions</TableHead>
+   649→                </TableRow>
+   650→              </TableHeader>
+   651→              <TableBody>
+   652→                {placements.map((placement, idx) => (
+   653→                  <TableRow key={placement.id} className={`border-l-4 ${STATUS_BORDER_COLORS[placement.status] || 'border-l-gray-300'} ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}>
+   654→                    <TableCell>
+   655→                      <span className="truncate text-sm font-medium">
+   656→                        {placement.candidate.firstName} {placement.candidate.lastName}
+   657→                      </span>
+   658→                    </TableCell>
+   659→                    <TableCell className="hidden max-w-[150px] truncate text-xs sm:table-cell">
+   660→                      {placement.client?.name || '—'}
+   661→                    </TableCell>
+   662→                    <TableCell className="hidden max-w-[150px] truncate text-xs md:table-cell">
+   663→                      {placement.job?.title || '—'}
+   664→                    </TableCell>
+   665→                    <TableCell className="hidden text-xs lg:table-cell">
+   666→                      {placement.recruiter?.name || '—'}
+   667→                    </TableCell>
+   668→                    <TableCell className="text-xs font-medium">
+   669→                      {formatCurrency(placement.offeredCTC)}
+   670→                    </TableCell>
+   671→                    <TableCell className="hidden text-xs md:table-cell">
+   672→                      {formatDate(placement.joinedDate)}
+   673→                    </TableCell>
+   674→                    <TableCell>
+   675→                      <Badge
+   676→                        className={`text-[10px] ${
+   677→                          STATUS_COLORS[placement.status] || ''
+   678→                        }`}
+   679→                      >
+   680→                        {placement.status}
+   681→                      </Badge>
+   682→                    </TableCell>
+   683→                    <TableCell className="hidden text-xs font-medium text-emerald-600 dark:text-emerald-400 sm:table-cell">
+   684→                      {formatCurrency(placement.commission)}
+   685→                    </TableCell>
+   686→                    <TableCell>
+   687→                      <DropdownMenu>
+   688→                        <DropdownMenuTrigger asChild>
+   689→                          <Button variant="ghost" size="icon" className="h-8 w-8">
+   690→                            <MoreHorizontal className="h-4 w-4" />
+   691→                          </Button>
+   692→                        </DropdownMenuTrigger>
+   693→                        <DropdownMenuContent align="end">
+   694→                          <DropdownMenuItem
+   695→                            className="text-destructive focus:text-destructive"
+   696→                            onClick={() => deleteMutation.mutate(placement.id)}
+   697→                          >
+   698→                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+   699→                            Delete
+   700→                          </DropdownMenuItem>
+   701→                        </DropdownMenuContent>
+   702→                      </DropdownMenu>
+   703→                    </TableCell>
+   704→                  </TableRow>
+   705→                ))}
+   706→              </TableBody>
+   707→            </Table>
+   708→          </div>
+   709→        </Card>
+   710→      )}
+   711→
+   712→      {/* Add Dialog */}
+   713→      <AddPlacementDialog
+   714→        open={addDialogOpen}
+   715→        onOpenChange={setAddDialogOpen}
+   716→      />
+   717→    </div>
+   718→  )
+   719→}
+   720→
