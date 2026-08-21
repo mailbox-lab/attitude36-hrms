@@ -36,6 +36,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   Form,
   FormField,
   FormItem,
@@ -65,8 +70,10 @@ import {
   User,
   CalendarDays,
   List,
+  Star,
 } from 'lucide-react'
 import { InterviewCalendar } from '@/components/crm/interviews/interview-calendar'
+import { InterviewFeedbackDialog } from '@/components/crm/interviews/interview-feedback-dialog'
 
 // ===== Types =====
 
@@ -151,13 +158,6 @@ const interviewSchema = z.object({
 })
 
 type InterviewFormData = z.infer<typeof interviewSchema>
-
-const feedbackSchema = z.object({
-  feedback: z.string().min(1, 'Feedback is required'),
-  rating: z.coerce.number().min(1).max(5),
-})
-
-type FeedbackFormData = z.infer<typeof feedbackSchema>
 
 // ===== Helpers =====
 
@@ -436,116 +436,7 @@ function ScheduleInterviewDialog({
   )
 }
 
-// ===== Feedback Dialog =====
 
-function FeedbackDialog({
-  open,
-  onOpenChange,
-  interview,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  interview: Interview | null
-}) {
-  const queryClient = useQueryClient()
-
-  const form = useForm<FeedbackFormData>({
-    resolver: zodResolver(feedbackSchema),
-    defaultValues: {
-      feedback: '',
-      rating: 3,
-    },
-  })
-
-  const mutation = useMutation({
-    mutationFn: async (data: FeedbackFormData) => {
-      const res = await fetch(`/api/interviews/${interview?.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedback: data.feedback, rating: data.rating }),
-      })
-      if (!res.ok) throw new Error('Failed to save feedback')
-      return res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviews'] })
-      toast.success('Feedback saved successfully')
-      onOpenChange(false)
-      form.reset()
-    },
-    onError: () => {
-      toast.error('Failed to save feedback')
-    },
-  })
-
-  function onSubmit(data: FeedbackFormData) {
-    mutation.mutate(data)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Feedback</DialogTitle>
-          <DialogDescription>
-            {interview
-              ? `Feedback for ${interview.candidate.firstName} ${interview.candidate.lastName} — ${interview.type} interview`
-              : ''}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="feedback"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Feedback *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter interview feedback..."
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="rating"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rating (1-5) *</FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={5} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Save Feedback
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 // ===== Main Component =====
 
@@ -745,14 +636,18 @@ export function InterviewsPage() {
         </Card>
       ) : interviews.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
-            <CalendarClock className="h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-muted-foreground">No interviews found</p>
-            <p className="text-xs text-muted-foreground/70">
-              {search || statusFilter !== 'All' || typeFilter !== 'All'
-                ? 'Try adjusting your filters'
-                : 'Click "Schedule Interview" to get started'}
-            </p>
+          <CardContent className="flex flex-col items-center gap-4 py-12">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-50 dark:bg-violet-950/50">
+              <CalendarClock className="h-6 w-6 text-violet-400" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">No interviews found</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">
+                {search || statusFilter !== 'All' || typeFilter !== 'All'
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'Schedule your first interview to start tracking candidate evaluations'}
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -817,13 +712,34 @@ export function InterviewsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={`text-[10px] ${
-                          STATUS_COLORS[interview.status] || ''
-                        }`}
-                      >
-                        {interview.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge
+                          className={`text-[10px] ${
+                            STATUS_COLORS[interview.status] || ''
+                          }`}
+                        >
+                          {interview.status}
+                        </Badge>
+                        {interview.rating && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-amber-500">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                {interview.rating}
+                              </span>
+                            </TooltipTrigger>
+                            {interview.feedback && (
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="text-xs">
+                                  {interview.feedback.length > 100
+                                    ? interview.feedback.substring(0, 100) + '...'
+                                    : interview.feedback}
+                                </p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -852,12 +768,14 @@ export function InterviewsPage() {
                             </DropdownMenuItem>
                           ))}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setFeedbackInterview(interview)}
-                          >
-                            <MessageSquare className="mr-2 h-3.5 w-3.5" />
-                            Add Feedback
-                          </DropdownMenuItem>
+                          {(interview.status === 'Completed' || interview.status === 'Scheduled') && (
+                            <DropdownMenuItem
+                              onClick={() => setFeedbackInterview(interview)}
+                            >
+                              <MessageSquare className="mr-2 h-3.5 w-3.5" />
+                              {interview.feedback ? 'Edit Feedback' : 'Add Feedback'}
+                            </DropdownMenuItem>
+                          )}
                           {interview.meetingLink && (
                             <DropdownMenuItem asChild>
                               <a
@@ -892,7 +810,7 @@ export function InterviewsPage() {
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
       />
-      <FeedbackDialog
+      <InterviewFeedbackDialog
         open={!!feedbackInterview}
         onOpenChange={(open) => {
           if (!open) setFeedbackInterview(null)

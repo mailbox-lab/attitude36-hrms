@@ -64,7 +64,7 @@ type AnalyticsData = {
 // ===== Color Constants =====
 
 const SOURCE_COLORS = [
-  '#0ea5e9', // sky-500
+  '#14b8a6', // teal-500
   '#10b981', // emerald-500
   '#f59e0b', // amber-500
   '#8b5cf6', // violet-500
@@ -408,7 +408,7 @@ export function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
           >
-            <Card className="rounded-xl border-l-4 border-l-sky-400 shadow-sm">
+            <Card className="rounded-xl border-l-4 border-l-teal-400 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Candidate Sources</CardTitle>
               </CardHeader>

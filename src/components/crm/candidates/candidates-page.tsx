@@ -93,7 +93,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_BORDER_COLORS: Record<string, string> = {
   New: 'border-l-emerald-500',
-  Screening: 'border-l-blue-500',
+  Screening: 'border-l-cyan-500',
   Interview: 'border-l-amber-500',
   Offer: 'border-l-violet-500',
   Hired: 'border-l-green-500',
@@ -437,18 +437,24 @@ export function CandidatesPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Candidates</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage and track your candidate pipeline
-            {data && (
-              <span className="ml-1 font-medium text-foreground">
-                ({data.pagination.total} total)
-              </span>
-            )}
-          </p>
-        </div>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+              <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Candidates</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Manage and track your candidate pipeline
+                {data && (
+                  <span className="ml-1 font-medium text-foreground">
+                    ({data.pagination.total} total)
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -499,6 +505,8 @@ export function CandidatesPage() {
             </div>
           )}
         </div>
+      </div>
+      <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
       </div>
 
       {/* Filters */}

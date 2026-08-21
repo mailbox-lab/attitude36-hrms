@@ -118,7 +118,7 @@ const ENTITY_TYPE_COLORS: Record<string, string> = {
   Client: 'border-l-violet-400',
   Interview: 'border-l-cyan-400',
   Placement: 'border-l-rose-400',
-  Employee: 'border-l-blue-400',
+  Employee: 'border-l-teal-400',
   Leave: 'border-l-orange-400',
   Attendance: 'border-l-teal-400',
 }
@@ -739,9 +739,15 @@ function RecentActivities({
           <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No recent activities to show.
-          </p>
+          <div className="flex flex-col items-center gap-3 py-8">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-50 dark:bg-cyan-950/50">
+              <Activity className="h-6 w-6 text-cyan-400" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">No recent activities</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">Actions like adding candidates and scheduling interviews will appear here</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     )

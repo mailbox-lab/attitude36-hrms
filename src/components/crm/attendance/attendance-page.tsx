@@ -65,21 +65,21 @@ const STATUS_COLORS: Record<string, string> = {
   Present: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   Absent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'Half-Day': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  'Work-From-Home': 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  'Work-From-Home': 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400',
 }
 
 const STATUS_BORDER_COLORS: Record<string, string> = {
   Present: 'border-l-emerald-500',
   Absent: 'border-l-red-500',
   'Half-Day': 'border-l-amber-500',
-  'Work-From-Home': 'border-l-sky-500',
+  'Work-From-Home': 'border-l-teal-500',
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
   Present: 'bg-emerald-500',
   Absent: 'bg-red-500',
   'Half-Day': 'bg-amber-500',
-  'Work-From-Home': 'bg-sky-500',
+  'Work-From-Home': 'bg-teal-500',
 }
 
 // ===== Helpers =====

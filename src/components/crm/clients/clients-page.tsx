@@ -82,7 +82,7 @@ const INDUSTRY_ICONS: Record<string, { icon: typeof Cpu; color: string }> = {
   'Information Technology': { icon: Cpu, color: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400' },
   'Healthcare': { icon: Heart, color: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
   'Finance & Banking': { icon: Landmark, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
-  'Education': { icon: GraduationCap, color: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
+  'Education': { icon: GraduationCap, color: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400' },
   'Manufacturing': { icon: Factory, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400' },
   'Retail & E-commerce': { icon: ShoppingBag, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
   'Real Estate': { icon: Building2, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
@@ -249,22 +249,30 @@ export function ClientsPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Clients</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage hiring companies and client relationships
-            {data && (
-              <span className="ml-1 font-medium text-foreground">
-                ({total} total)
-              </span>
-            )}
-          </p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+              <Building2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Clients</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Manage hiring companies and client relationships
+                {data && (
+                  <span className="ml-1 font-medium text-foreground">
+                    ({total} total)
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Client
+          </Button>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Client
-        </Button>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-400" />
       </div>
 
       {/* Filters */}
@@ -326,14 +334,18 @@ export function ClientsPage() {
         </Card>
       ) : clients.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
-            <Building2 className="h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-muted-foreground">No clients found</p>
-            <p className="text-xs text-muted-foreground/70">
-              {search || statusFilter !== 'All' || industryFilter !== 'All'
-                ? 'Try adjusting your filters'
-                : 'Click "Add Client" to get started'}
-            </p>
+          <CardContent className="flex flex-col items-center gap-4 py-12">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/50">
+              <Building2 className="h-6 w-6 text-amber-400" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">No clients found</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">
+                {search || statusFilter !== 'All' || industryFilter !== 'All'
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'Add your first client company to begin managing hiring relationships'}
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (

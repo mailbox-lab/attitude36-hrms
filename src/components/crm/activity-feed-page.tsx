@@ -126,10 +126,10 @@ const ENTITY_CONFIG: Record<string, {
   attendance: {
     icon: Clock,
     label: 'Attendance',
-    color: 'text-sky-600 dark:text-sky-400',
-    bgClass: 'bg-sky-50 dark:bg-sky-500/10',
-    badgeClass: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
-    borderClass: 'border-sky-200 dark:border-sky-500/30',
+    color: 'text-teal-600 dark:text-teal-400',
+    bgClass: 'bg-teal-50 dark:bg-teal-500/10',
+    badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400',
+    borderClass: 'border-teal-200 dark:border-teal-500/30',
   },
 }
 

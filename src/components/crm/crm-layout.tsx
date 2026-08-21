@@ -241,7 +241,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v1.2.0
+                v1.3.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with ♥ in India</span>
