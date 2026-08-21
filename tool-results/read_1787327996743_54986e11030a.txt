@@ -1,0 +1,1030 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+     4→     4→import { motion, AnimatePresence } from 'framer-motion'
+     5→     5→import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+     6→     6→import { useCRMStore, type CRMView } from '@/stores/crm-store'
+     7→     7→import { Card, CardContent } from '@/components/ui/card'
+     8→     8→import { Button } from '@/components/ui/button'
+     9→     9→import { Badge } from '@/components/ui/badge'
+    10→    10→import { Skeleton } from '@/components/ui/skeleton'
+    11→    11→import { Checkbox } from '@/components/ui/checkbox'
+    12→    12→import {
+    13→    13→  Select,
+    14→    14→  SelectContent,
+    15→    15→  SelectItem,
+    16→    16→  SelectTrigger,
+    17→    17→  SelectValue,
+    18→    18→} from '@/components/ui/select'
+    19→    19→import { Input } from '@/components/ui/input'
+    20→    20→import { Label } from '@/components/ui/label'
+    21→    21→import {
+    22→    22→  Bell,
+    23→    23→  Activity,
+    24→    24→  BellDot,
+    25→    25→  Clock,
+    26→    26→  CheckCheck,
+    27→    27→  Filter,
+    28→    28→  X,
+    29→    29→  Loader2,
+    30→    30→  ChevronDown,
+    31→    31→  Eye,
+    32→    32→  EyeOff,
+    33→    33→  ExternalLink,
+    34→    34→  Users,
+    35→    35→  Building2,
+    36→    36→  Briefcase,
+    37→    37→  Video,
+    38→    38→  Award,
+    39→    39→  UserCog,
+    40→    40→  CalendarOff,
+    41→    41→} from 'lucide-react'
+    42→    42→import { cn } from '@/lib/utils'
+    43→    43→import { toast } from 'sonner'
+    44→    44→
+    45→    45→// ===== Types =====
+    46→    46→
+    47→    47→interface ActivityItem {
+    48→    48→  id: string
+    49→    49→  entityType: string
+    50→    50→  entityId: string | null
+    51→    51→  action: string
+    52→    52→  details: string | null
+    53→    53→  employeeId: string | null
+    54→    54→  employee: { id: string; name: string } | null
+    55→    55→  createdAt: string
+    56→    56→}
+    57→    57→
+    58→    58→interface ActivityResponse {
+    59→    59→  data: ActivityItem[]
+    60→    60→  pagination: {
+    61→    61→    page: number
+    62→    62→    limit: number
+    63→    63→    total: number
+    64→    64→    totalPages: number
+    65→    65→  }
+    66→    66→}
+    67→    67→
+    68→    68→// ===== Constants =====
+    69→    69→
+    70→    70→const ENTITY_CONFIG: Record<string, {
+    71→    71→  icon: typeof Users
+    72→    72→  label: string
+    73→    73→  color: string
+    74→    74→  bgClass: string
+    75→    75→  badgeClass: string
+    76→    76→  view: CRMView
+    77→    77→}> = {
+    78→    78→  candidate: {
+    79→    79→    icon: Users,
+    80→    80→    label: 'Candidate',
+    81→    81→    color: 'text-emerald-600 dark:text-emerald-400',
+    82→    82→    bgClass: 'bg-emerald-100 dark:bg-emerald-950/50',
+    83→    83→    badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+    84→    84→    view: 'candidates',
+    85→    85→  },
+    86→    86→  client: {
+    87→    87→    icon: Building2,
+    88→    88→    label: 'Client',
+    89→    89→    color: 'text-amber-600 dark:text-amber-400',
+    90→    90→    bgClass: 'bg-amber-100 dark:bg-amber-950/50',
+    91→    91→    badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+    92→    92→    view: 'clients',
+    93→    93→  },
+    94→    94→  job: {
+    95→    95→    icon: Briefcase,
+    96→    96→    label: 'Job',
+    97→    97→    color: 'text-violet-600 dark:text-violet-400',
+    98→    98→    bgClass: 'bg-violet-100 dark:bg-violet-950/50',
+    99→    99→    badgeClass: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400',
+   100→   100→    view: 'jobs',
+   101→   101→  },
+   102→   102→  interview: {
+   103→   103→    icon: Video,
+   104→   104→    label: 'Interview',
+   105→   105→    color: 'text-cyan-600 dark:text-cyan-400',
+   106→   106→    bgClass: 'bg-cyan-100 dark:bg-cyan-950/50',
+   107→   107→    badgeClass: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-400',
+   108→   108→    view: 'interviews',
+   109→   109→  },
+   110→   110→  placement: {
+   111→   111→    icon: Award,
+   112→   112→    label: 'Placement',
+   113→   113→    color: 'text-rose-600 dark:text-rose-400',
+   114→   114→    bgClass: 'bg-rose-100 dark:bg-rose-950/50',
+   115→   115→    badgeClass: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400',
+   116→   116→    view: 'placements',
+   117→   117→  },
+   118→   118→  employee: {
+   119→   119→    icon: UserCog,
+   120→   120→    label: 'Employee',
+   121→   121→    color: 'text-teal-600 dark:text-teal-400',
+   122→   122→    bgClass: 'bg-teal-100 dark:bg-teal-950/50',
+   123→   123→    badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400',
+   124→   124→    view: 'employees',
+   125→   125→  },
+   126→   126→  leave: {
+   127→   127→    icon: CalendarOff,
+   128→   128→    label: 'Leave',
+   129→   129→    color: 'text-orange-600 dark:text-orange-400',
+   130→   130→    bgClass: 'bg-orange-100 dark:bg-orange-950/50',
+   131→   131→    badgeClass: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400',
+   132→   132→    view: 'leave',
+   133→   133→  },
+   134→   134→  attendance: {
+   135→   135→    icon: Clock,
+   136→   136→    label: 'Attendance',
+   137→   137→    color: 'text-teal-600 dark:text-teal-400',
+   138→   138→    bgClass: 'bg-teal-100 dark:bg-teal-950/50',
+   139→   139→    badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400',
+   140→   140→    view: 'attendance',
+   141→   141→  },
+   142→   142→}
+   143→   143→
+   144→   144→const ACTION_LABELS: Record<string, string> = {
+   145→   145→  created: 'Created',
+   146→   146→  status_updated: 'Status Updated',
+   147→   147→  interview_scheduled: 'Interview Scheduled',
+   148→   148→  skills_updated: 'Skills Updated',
+   149→   149→  moved_to_pipeline: 'Moved to Pipeline',
+   150→   150→  note_added: 'Note Added',
+   151→   151→  resume_updated: 'Resume Updated',
+   152→   152→  rating_updated: 'Rating Updated',
+   153→   153→  contact_updated: 'Contact Updated',
+   154→   154→  status_changed: 'Status Changed',
+   155→   155→  job_posted: 'Job Posted',
+   156→   156→  meeting_scheduled: 'Meeting Scheduled',
+   157→   157→  priority_changed: 'Priority Changed',
+   158→   158→  requirement_updated: 'Requirements Updated',
+   159→   159→  salary_updated: 'Salary Updated',
+   160→   160→  candidate_assigned: 'Candidates Assigned',
+   161→   161→  closed: 'Closed',
+   162→   162→  scheduled: 'Scheduled',
+   163→   163→  completed: 'Completed',
+   164→   164→  rescheduled: 'Rescheduled',
+   165→   165→  feedback_added: 'Feedback Added',
+   166→   166→  cancelled: 'Cancelled',
+   167→   167→  reminder_sent: 'Reminder Sent',
+   168→   168→  offered: 'Offered',
+   169→   169→  accepted: 'Accepted',
+   170→   170→  joined: 'Joined',
+   171→   171→  backed_out: 'Backed Out',
+   172→   172→  commission_generated: 'Commission Generated',
+   173→   173→  profile_updated: 'Profile Updated',
+   174→   174→  role_changed: 'Role Changed',
+   175→   175→  department_changed: 'Department Changed',
+   176→   176→  deactivated: 'Deactivated',
+   177→   177→  requested: 'Requested',
+   178→   178→  approved: 'Approved',
+   179→   179→  rejected: 'Rejected',
+   180→   180→  balance_updated: 'Balance Updated',
+   181→   181→  clocked_in: 'Clocked In',
+   182→   182→  clocked_out: 'Clocked Out',
+   183→   183→  late_marked: 'Late Marked',
+   184→   184→  half_day: 'Half Day',
+   185→   185→  absent_marked: 'Absent Marked',
+   186→   186→}
+   187→   187→
+   188→   188→const ENTITY_ACTIONS: Record<string, string[]> = {
+   189→   189→  candidate: ['created', 'status_updated', 'interview_scheduled', 'skills_updated', 'moved_to_pipeline', 'note_added', 'resume_updated', 'rating_updated'],
+   190→   190→  client: ['created', 'contact_updated', 'status_changed', 'job_posted', 'meeting_scheduled'],
+   191→   191→  job: ['created', 'priority_changed', 'status_updated', 'requirement_updated', 'salary_updated', 'candidate_assigned', 'closed'],
+   192→   192→  interview: ['scheduled', 'completed', 'rescheduled', 'feedback_added', 'cancelled', 'reminder_sent'],
+   193→   193→  placement: ['offered', 'accepted', 'joined', 'backed_out', 'commission_generated'],
+   194→   194→  employee: ['created', 'profile_updated', 'role_changed', 'department_changed', 'deactivated'],
+   195→   195→  leave: ['requested', 'approved', 'rejected', 'cancelled', 'balance_updated'],
+   196→   196→  attendance: ['clocked_in', 'clocked_out', 'late_marked', 'half_day', 'absent_marked'],
+   197→   197→}
+   198→   198→
+   199→   199→// ===== Helpers =====
+   200→   200→
+   201→   201→function getRelativeTime(dateStr: string): string {
+   202→   202→  const now = Date.now()
+   203→   203→  const then = new Date(dateStr).getTime()
+   204→   204→  const diffMs = now - then
+   205→   205→  const diffSeconds = Math.floor(diffMs / 1000)
+   206→   206→  const diffMinutes = Math.floor(diffSeconds / 60)
+   207→   207→  const diffHours = Math.floor(diffMinutes / 60)
+   208→   208→  const diffDays = Math.floor(diffHours / 24)
+   209→   209→  const diffWeeks = Math.floor(diffDays / 7)
+   210→   210→
+   211→   211→  if (diffSeconds < 60) return 'Just now'
+   212→   212→  if (diffMinutes === 1) return '1 min ago'
+   213→   213→  if (diffMinutes < 60) return `${diffMinutes} min ago`
+   214→   214→  if (diffHours === 1) return '1 hour ago'
+   215→   215→  if (diffHours < 24) return `${diffHours} hours ago`
+   216→   216→  if (diffDays === 1) return 'Yesterday'
+   217→   217→  if (diffDays < 7) return `${diffDays} days ago`
+   218→   218→  if (diffWeeks === 1) return '1 week ago'
+   219→   219→  return `${diffWeeks} weeks ago`
+   220→   220→}
+   221→   221→
+   222→   222→function isToday(dateStr: string): boolean {
+   223→   223→  const d = new Date(dateStr)
+   224→   224→  const now = new Date()
+   225→   225→  return d.getDate() === now.getDate() &&
+   226→   226→    d.getMonth() === now.getMonth() &&
+   227→   227→    d.getFullYear() === now.getFullYear()
+   228→   228→}
+   229→   229→
+   230→   230→function isThisWeek(dateStr: string): boolean {
+   231→   231→  const d = new Date(dateStr)
+   232→   232→  const now = new Date()
+   233→   233→  const startOfWeek = new Date(now)
+   234→   234→  startOfWeek.setDate(now.getDate() - now.getDay())
+   235→   235→  startOfWeek.setHours(0, 0, 0, 0)
+   236→   236→  return d >= startOfWeek
+   237→   237→}
+   238→   238→
+   239→   239→function isThisMonth(dateStr: string): boolean {
+   240→   240→  const d = new Date(dateStr)
+   241→   241→  const now = new Date()
+   242→   242→  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+   243→   243→}
+   244→   244→
+   245→   245→function getDateRangeFilter(dateRange: string, customFrom?: string, customTo?: string): { from?: string; to?: string } {
+   246→   246→  if (dateRange === 'today') {
+   247→   247→    const today = new Date().toISOString().split('T')[0]
+   248→   248→    return { from: today, to: today }
+   249→   249→  }
+   250→   250→  if (dateRange === 'week') {
+   251→   251→    const now = new Date()
+   252→   252→    const start = new Date(now)
+   253→   253→    start.setDate(now.getDate() - now.getDay())
+   254→   254→    start.setHours(0, 0, 0, 0)
+   255→   255→    return { from: start.toISOString().split('T')[0], to: now.toISOString().split('T')[0] }
+   256→   256→  }
+   257→   257→  if (dateRange === 'month' && !customFrom && !customTo) {
+   258→   258→    const now = new Date()
+   259→   259→    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+   260→   260→    return { from: start.toISOString().split('T')[0], to: now.toISOString().split('T')[0] }
+   261→   261→  }
+   262→   262→  if (dateRange === 'custom' && customFrom && customTo) {
+   263→   263→    return { from: customFrom, to: customTo }
+   264→   264→  }
+   265→   265→  return {}
+   266→   266→}
+   267→   267→
+   268→   268→// ===== Animation Variants =====
+   269→   269→
+   270→   270→const containerVariants = {
+   271→   271→  hidden: { opacity: 0 },
+   272→   272→  visible: {
+   273→   273→    opacity: 1,
+   274→   274→    transition: { staggerChildren: 0.04 },
+   275→   275→  },
+   276→   276→}
+   277→   277→
+   278→   278→const itemVariants = {
+   279→   279→  hidden: { opacity: 0, y: 12 },
+   280→   280→  visible: {
+   281→   281→    opacity: 1,
+   282→   282→    y: 0,
+   283→   283→    transition: { type: 'spring', stiffness: 300, damping: 24 },
+   284→   284→  },
+   285→   285→}
+   286→   286→
+   287→   287→const statCardVariants = {
+   288→   288→  hidden: { opacity: 0, y: 20, scale: 0.95 },
+   289→   289→  visible: (i: number) => ({
+   290→   290→    opacity: 1,
+   291→   291→    y: 0,
+   292→   292→    scale: 1,
+   293→   293→    transition: { delay: i * 0.1, type: 'spring', stiffness: 300, damping: 24 },
+   294→   294→  }),
+   295→   295→}
+   296→   296→
+   297→   297→// ===== Sub-components =====
+   298→   298→
+   299→   299→function NotificationSkeleton() {
+   300→   300→  return (
+   301→   301→    <div className="flex items-start gap-3 rounded-xl border bg-card p-4">
+   302→   302→      <Skeleton className="h-5 w-5 shrink-0 rounded" />
+   303→   303→      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+   304→   304→      <div className="flex-1 space-y-2">
+   305→   305→        <Skeleton className="h-4 w-3/4" />
+   306→   306→        <Skeleton className="h-3 w-1/2" />
+   307→   307→      </div>
+   308→   308→    </div>
+   309→   309→  )
+   310→   310→}
+   311→   311→
+   312→   312→function EmptyState() {
+   313→   313→  return (
+   314→   314→    <motion.div
+   315→   315→      initial={{ opacity: 0, y: 20 }}
+   316→   316→      animate={{ opacity: 1, y: 0 }}
+   317→   317→      transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
+   318→   318→      className="flex flex-col items-center justify-center py-20 text-center"
+   319→   319→    >
+   320→   320→      <div className="relative mb-6">
+   321→   321→        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/20 to-rose-500/20 blur-2xl scale-150" />
+   322→   322→        <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-100 to-rose-100 dark:from-amber-500/20 dark:to-rose-500/20">
+   323→   323→          <Bell className="h-9 w-9 text-amber-600 dark:text-amber-400" />
+   324→   324→        </div>
+   325→   325→      </div>
+   326→   326→      <h3 className="text-lg font-semibold mb-2">No Notifications</h3>
+   327→   327→      <p className="text-sm text-muted-foreground max-w-sm">
+   328→   328→        Notifications will appear here as you interact with the recruitment pipeline. Start by adding candidates, scheduling interviews, or managing placements.
+   329→   329→      </p>
+   330→   330→    </motion.div>
+   331→   331→  )
+   332→   332→}
+   333→   333→
+   334→   334→// ===== Main Component =====
+   335→   335→
+   336→   336→export function NotificationCenter() {
+   337→   337→  const { navigate } = useCRMStore()
+   338→   338→
+   339→   339→  // Filters
+   340→   340→  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all')
+   341→   341→  const [actionFilter, setActionFilter] = useState<string>('all')
+   342→   342→  const [readFilter, setReadFilter] = useState<'all' | 'unread' | 'read'>('all')
+   343→   343→  const [dateRange, setDateRange] = useState<string>('all')
+   344→   344→  const [customFrom, setCustomFrom] = useState<string>('')
+   345→   345→  const [customTo, setCustomTo] = useState<string>('')
+   346→   346→
+   347→   347→  // Client-side read tracking
+   348→   348→  const [readIds, setReadIds] = useState<Set<string>>(new Set())
+   349→   349→
+   350→   350→  // Selection for batch actions
+   351→   351→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+   352→   352→
+   353→   353→  // Refs
+   354→   354→  const observerRef = useRef<IntersectionObserver | null>(null)
+   355→   355→  const loadMoreRef = useRef<HTMLDivElement>(null)
+   356→   356→
+   357→   357→  // Build filter key for query invalidation
+   358→   358→  const filterKey = useMemo(
+   359→   359→    () => `${entityTypeFilter}-${actionFilter}-${dateRange}-${customFrom}-${customTo}`,
+   360→   360→    [entityTypeFilter, actionFilter, dateRange, customFrom, customTo]
+   361→   361→  )
+   362→   362→
+   363→   363→  // Fetch notifications with infinite query
+   364→   364→  const fetchPage = useCallback(async ({ pageParam = 1 }: { pageParam?: number }): Promise<ActivityResponse> => {
+   365→   365→    const params = new URLSearchParams()
+   366→   366→    params.set('page', String(pageParam))
+   367→   367→    params.set('limit', '25')
+   368→   368→    if (entityTypeFilter !== 'all') params.set('entityType', entityTypeFilter)
+   369→   369→    if (actionFilter !== 'all') params.set('action', actionFilter)
+   370→   370→    const res = await fetch(`/api/activity?${params.toString()}`)
+   371→   371→    if (!res.ok) throw new Error('Failed to fetch activities')
+   372→   372→    return res.json()
+   373→   373→  }, [entityTypeFilter, actionFilter])
+   374→   374→
+   375→   375→  const {
+   376→   376→    data,
+   377→   377→    isLoading,
+   378→   378→    isFetchingNextPage,
+   379→   379→    isError,
+   380→   380→    hasNextPage,
+   381→   381→    fetchNextPage,
+   382→   382→  } = useInfiniteQuery({
+   383→   383→    queryKey: ['notifications', filterKey],
+   384→   384→    queryFn: fetchPage,
+   385→   385→    initialPageParam: 1,
+   386→   386→    getNextPageParam: (lastPage) => {
+   387→   387→      return lastPage.pagination.page < lastPage.pagination.totalPages
+   388→   388→        ? lastPage.pagination.page + 1
+   389→   389→        : undefined
+   390→   390→    },
+   391→   391→    staleTime: 30_000,
+   392→   392→  })
+   393→   393→
+   394→   394→  // Flatten pages
+   395→   395→  const allActivities = useMemo(() => {
+   396→   396→    return data?.pages.flatMap(p => p.data) ?? []
+   397→   397→  }, [data])
+   398→   398→
+   399→   399→  const totalRecords = data?.pages[0]?.pagination.total ?? 0
+   400→   400→
+   401→   401→  // Stats query (unfiltered)
+   402→   402→  const { data: statsData } = useQuery({
+   403→   403→    queryKey: ['notifications-stats'],
+   404→   404→    queryFn: async () => {
+   405→   405→      const res = await fetch('/api/activity?page=1&limit=1000')
+   406→   406→      if (!res.ok) throw new Error('Failed')
+   407→   407→      const json = await res.json()
+   408→   408→      return json.data as ActivityItem[]
+   409→   409→    },
+   410→   410→    staleTime: 60_000,
+   411→   411→  })
+   412→   412→
+   413→   413→  const stats = useMemo(() => {
+   414→   414→    const items = statsData ?? []
+   415→   415→    const totalCount = items.length
+   416→   416→    const unreadCount = items.filter(a => !readIds.has(a.id)).length
+   417→   417→    const todayCount = items.filter(a => isToday(a.createdAt)).length
+   418→   418→    return { totalCount, unreadCount, todayCount }
+   419→   419→  }, [statsData, readIds])
+   420→   420→
+   421→   421→  // Available actions based on entity type
+   422→   422→  const availableActions = useMemo(() => {
+   423→   423→    if (entityTypeFilter === 'all') return Object.keys(ACTION_LABELS)
+   424→   424→    return ENTITY_ACTIONS[entityTypeFilter] || []
+   425→   425→  }, [entityTypeFilter])
+   426→   426→
+   427→   427→  // Apply client-side filters (read/unread, date range)
+   428→   428→  const filteredActivities = useMemo(() => {
+   429→   429→    let filtered = allActivities
+   430→   430→
+   431→   431→    // Date range filter (client-side since API doesn't support it)
+   432→   432→    if (dateRange !== 'all') {
+   433→   433→      const range = getDateRangeFilter(dateRange, customFrom, customTo)
+   434→   434→      if (range.from && range.to) {
+   435→   435→        filtered = filtered.filter(a => {
+   436→   436→          const dateStr = a.createdAt.split('T')[0]
+   437→   437→          return dateStr >= range.from! && dateStr <= range.to!
+   438→   438→        })
+   439→   439→      }
+   440→   440→    }
+   441→   441→
+   442→   442→    // Read/unread filter
+   443→   443→    if (readFilter === 'unread') {
+   444→   444→      filtered = filtered.filter(a => !readIds.has(a.id))
+   445→   445→    } else if (readFilter === 'read') {
+   446→   446→      filtered = filtered.filter(a => readIds.has(a.id))
+   447→   447→    }
+   448→   448→
+   449→   449→    return filtered
+   450→   450→  }, [allActivities, dateRange, customFrom, customTo, readFilter, readIds])
+   451→   451→
+   452→   452→  // Infinite scroll with IntersectionObserver
+   453→   453→  useEffect(() => {
+   454→   454→    if (observerRef.current) observerRef.current.disconnect()
+   455→   455→    observerRef.current = new IntersectionObserver(
+   456→   456→      (entries) => {
+   457→   457→        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+   458→   458→          fetchNextPage()
+   459→   459→        }
+   460→   460→      },
+   461→   461→      { rootMargin: '200px' }
+   462→   462→    )
+   463→   463→    if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current)
+   464→   464→    return () => observerRef.current?.disconnect()
+   465→   465→  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+   466→   466→
+   467→   467→  // Handlers
+   468→   468→  const hasActiveFilters = entityTypeFilter !== 'all' || actionFilter !== 'all' || readFilter !== 'all' || dateRange !== 'all'
+   469→   469→
+   470→   470→  const clearFilters = () => {
+   471→   471→    setEntityTypeFilter('all')
+   472→   472→    setActionFilter('all')
+   473→   473→    setReadFilter('all')
+   474→   474→    setDateRange('all')
+   475→   475→    setCustomFrom('')
+   476→   476→    setCustomTo('')
+   477→   477→    setSelectedIds(new Set())
+   478→   478→  }
+   479→   479→
+   480→   480→  const handleMarkAllRead = () => {
+   481→   481→    if (allActivities.length === 0) return
+   482→   482→    setReadIds(new Set(allActivities.map(a => a.id)))
+   483→   483→    toast.success('All notifications marked as read')
+   484→   484→  }
+   485→   485→
+   486→   486→  const handleToggleRead = (id: string) => {
+   487→   487→    setReadIds(prev => {
+   488→   488→      const next = new Set(prev)
+   489→   489→      if (next.has(id)) {
+   490→   490→        next.delete(id)
+   491→   491→      } else {
+   492→   492→        next.add(id)
+   493→   493→      }
+   494→   494→      return next
+   495→   495→    })
+   496→   496→  }
+   497→   497→
+   498→   498→  const handleNotificationClick = (item: ActivityItem) => {
+   499→   499→    setReadIds(prev => new Set(prev).add(item.id))
+   500→   500→    const config = ENTITY_CONFIG[item.entityType]
+   501→   501→    if (config) {
+   502→   502→      navigate(config.view)
+   503→   503→    }
+   504→   504→  }
+   505→   505→
+   506→   506→  const handleToggleSelect = (id: string) => {
+   507→   507→    setSelectedIds(prev => {
+   508→   508→      const next = new Set(prev)
+   509→   509→      if (next.has(id)) {
+   510→   510→        next.delete(id)
+   511→   511→      } else {
+   512→   512→        next.add(id)
+   513→   513→      }
+   514→   514→      return next
+   515→   515→    })
+   516→   516→  }
+   517→   517→
+   518→   518→  const handleSelectAll = () => {
+   519→   519→    if (selectedIds.size === filteredActivities.length) {
+   520→   520→      setSelectedIds(new Set())
+   521→   521→    } else {
+   522→   522→      setSelectedIds(new Set(filteredActivities.map(a => a.id)))
+   523→   523→    }
+   524→   524→  }
+   525→   525→
+   526→   526→  const handleBatchMarkRead = () => {
+   527→   527→    setReadIds(prev => {
+   528→   528→      const next = new Set(prev)
+   529→   529→      selectedIds.forEach(id => next.add(id))
+   530→   530→      return next
+   531→   531→    })
+   532→   532→    toast.success(`${selectedIds.size} notification${selectedIds.size !== 1 ? 's' : ''} marked as read`)
+   533→   533→    setSelectedIds(new Set())
+   534→   534→  }
+   535→   535→
+   536→   536→  const handleBatchMarkUnread = () => {
+   537→   537→    setReadIds(prev => {
+   538→   538→      const next = new Set(prev)
+   539→   539→      selectedIds.forEach(id => next.delete(id))
+   540→   540→      return next
+   541→   541→    })
+   542→   542→    toast.success(`${selectedIds.size} notification${selectedIds.size !== 1 ? 's' : ''} marked as unread`)
+   543→   543→    setSelectedIds(new Set())
+   544→   544→  }
+   545→   545→
+   546→   546→  return (
+   547→   547→    <div className="space-y-6">
+   548→   548→      {/* Page Header */}
+   549→   549→      <motion.div
+   550→   550→        initial={{ opacity: 0, y: -10 }}
+   551→   551→        animate={{ opacity: 1, y: 0 }}
+   552→   552→        transition={{ duration: 0.3 }}
+   553→   553→        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+   554→   554→      >
+   555→   555→        <div className="flex items-center gap-3">
+   556→   556→          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+   557→   557→            <Bell className="h-5 w-5" />
+   558→   558→          </div>
+   559→   559→          <div>
+   560→   560→            <h1 className="text-xl font-bold tracking-tight">Notification Center</h1>
+   561→   561→            <p className="text-sm text-muted-foreground">View and manage all system activities</p>
+   562→   562→          </div>
+   563→   563→        </div>
+   564→   564→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-rose-400 sm:hidden" />
+   565→   565→        <Button
+   566→   566→          variant="outline"
+   567→   567→          size="sm"
+   568→   568→          className="hidden sm:flex items-center gap-1.5"
+   569→   569→          onClick={handleMarkAllRead}
+   570→   570→          disabled={stats.unreadCount === 0}
+   571→   571→        >
+   572→   572→          <CheckCheck className="h-3.5 w-3.5" />
+   573→   573→          Mark All Read
+   574→   574→        </Button>
+   575→   575→        {/* Mobile mark all read */}
+   576→   576→        <Button
+   577→   577→          variant="outline"
+   578→   578→          size="sm"
+   579→   579→          className="sm:hidden self-end"
+   580→   580→          onClick={handleMarkAllRead}
+   581→   581→          disabled={stats.unreadCount === 0}
+   582→   582→        >
+   583→   583→          <CheckCheck className="h-3.5 w-3.5 mr-1" />
+   584→   584→          Mark All Read
+   585→   585→        </Button>
+   586→   586→      </motion.div>
+   587→   587→
+   588→   588→      {/* Gradient accent line (desktop) */}
+   589→   589→      <div className="hidden sm:block h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-rose-400" />
+   590→   590→
+   591→   591→      {/* Stats Row */}
+   592→   592→      {!isLoading && (
+   593→   593→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   594→   594→          {[
+   595→   595→            {
+   596→   596→              icon: Activity,
+   597→   597→              label: 'Total Notifications',
+   598→   598→              value: stats.totalCount,
+   599→   599→              gradient: 'from-emerald-500 to-teal-500',
+   600→   600→              bgGradient: 'from-emerald-500/10 to-teal-500/10',
+   601→   601→              accentLine: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+   602→   602→            },
+   603→   603→            {
+   604→   604→              icon: BellDot,
+   605→   605→              label: 'Unread',
+   606→   606→              value: stats.unreadCount,
+   607→   607→              gradient: 'from-amber-500 to-orange-500',
+   608→   608→              bgGradient: 'from-amber-500/10 to-orange-500/10',
+   609→   609→              accentLine: 'bg-gradient-to-r from-amber-500 to-orange-500',
+   610→   610→            },
+   611→   611→            {
+   612→   612→              icon: Clock,
+   613→   613→              label: "Today's Activity",
+   614→   614→              value: stats.todayCount,
+   615→   615→              gradient: 'from-teal-500 to-cyan-500',
+   616→   616→              bgGradient: 'from-teal-500/10 to-cyan-500/10',
+   617→   617→              accentLine: 'bg-gradient-to-r from-teal-500 to-cyan-500',
+   618→   618→            },
+   619→   619→          ].map((stat, i) => {
+   620→   620→            const Icon = stat.icon
+   621→   621→            return (
+   622→   622→              <motion.div
+   623→   623→                key={stat.label}
+   624→   624→                custom={i}
+   625→   625→                variants={statCardVariants}
+   626→   626→                initial="hidden"
+   627→   627→                animate="visible"
+   628→   628→              >
+   629→   629→                <Card className="relative overflow-hidden rounded-xl border bg-card p-4">
+   630→   630→                  <div className={cn('absolute top-0 left-0 right-0 h-0.5', stat.accentLine)} />
+   631→   631→                  <CardContent className="relative p-0 flex items-center gap-3">
+   632→   632→                    <div className={cn(
+   633→   633→                      'flex h-10 w-10 items-center justify-center rounded-full',
+   634→   634→                      'bg-gradient-to-br text-white shadow-sm',
+   635→   635→                      stat.gradient,
+   636→   636→                    )}>
+   637→   637→                      <Icon className="h-5 w-5" />
+   638→   638→                    </div>
+   639→   639→                    <div>
+   640→   640→                      <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+   641→   641→                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+   642→   642→                    </div>
+   643→   643→                  </CardContent>
+   644→   644→                </Card>
+   645→   645→              </motion.div>
+   646→   646→            )
+   647→   647→          })}
+   648→   648→        </div>
+   649→   649→      )}
+   650→   650→
+   651→   651→      {/* Stats loading skeleton */}
+   652→   652→      {isLoading && (
+   653→   653→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   654→   654→          {Array.from({ length: 3 }).map((_, i) => (
+   655→   655→            <Skeleton key={i} className="h-24 rounded-xl" />
+   656→   656→          ))}
+   657→   657→        </div>
+   658→   658→      )}
+   659→   659→
+   660→   660→      {/* Filter Bar */}
+   661→   661→      <motion.div
+   662→   662→        initial={{ opacity: 0, y: 10 }}
+   663→   663→        animate={{ opacity: 1, y: 0 }}
+   664→   664→        transition={{ delay: 0.15, duration: 0.3 }}
+   665→   665→        className="rounded-xl border bg-card p-4 space-y-3"
+   666→   666→      >
+   667→   667→        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+   668→   668→          <Filter className="h-4 w-4" />
+   669→   669→          <span className="font-medium">Filters</span>
+   670→   670→        </div>
+   671→   671→        <div className="flex flex-wrap items-center gap-2">
+   672→   672→          {/* Entity Type */}
+   673→   673→          <Select value={entityTypeFilter} onValueChange={(v) => { setEntityTypeFilter(v); setActionFilter('all') }}>
+   674→   674→            <SelectTrigger className="w-[160px] h-9 text-sm">
+   675→   675→              <SelectValue placeholder="Entity Type" />
+   676→   676→            </SelectTrigger>
+   677→   677→            <SelectContent>
+   678→   678→              <SelectItem value="all">All Entities</SelectItem>
+   679→   679→              {Object.entries(ENTITY_CONFIG).map(([key, cfg]) => (
+   680→   680→                <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+   681→   681→              ))}
+   682→   682→            </SelectContent>
+   683→   683→          </Select>
+   684→   684→
+   685→   685→          {/* Action Type */}
+   686→   686→          <Select value={actionFilter} onValueChange={setActionFilter}>
+   687→   687→            <SelectTrigger className="w-[180px] h-9 text-sm">
+   688→   688→              <SelectValue placeholder="Action Type" />
+   689→   689→            </SelectTrigger>
+   690→   690→            <SelectContent>
+   691→   691→              <SelectItem value="all">All Actions</SelectItem>
+   692→   692→              {availableActions.map((action) => (
+   693→   693→                <SelectItem key={action} value={action}>
+   694→   694→                  {ACTION_LABELS[action] || action.replace(/_/g, ' ')}
+   695→   695→                </SelectItem>
+   696→   696→              ))}
+   697→   697→            </SelectContent>
+   698→   698→          </Select>
+   699→   699→
+   700→   700→          {/* Read/Unread Toggle */}
+   701→   701→          <Select value={readFilter} onValueChange={(v) => setReadFilter(v as 'all' | 'unread' | 'read')}>
+   702→   702→            <SelectTrigger className="w-[120px] h-9 text-sm">
+   703→   703→              <SelectValue placeholder="Status" />
+   704→   704→            </SelectTrigger>
+   705→   705→            <SelectContent>
+   706→   706→              <SelectItem value="all">All</SelectItem>
+   707→   707→              <SelectItem value="unread">Unread</SelectItem>
+   708→   708→              <SelectItem value="read">Read</SelectItem>
+   709→   709→            </SelectContent>
+   710→   710→          </Select>
+   711→   711→
+   712→   712→          {/* Date Range */}
+   713→   713→          <Select
+   714→   714→            value={dateRange}
+   715→   715→            onValueChange={(v) => {
+   716→   716→              setDateRange(v)
+   717→   717→              if (v !== 'custom') {
+   718→   718→                setCustomFrom('')
+   719→   719→                setCustomTo('')
+   720→   720→              }
+   721→   721→            }}
+   722→   722→          >
+   723→   723→            <SelectTrigger className="w-[140px] h-9 text-sm">
+   724→   724→              <SelectValue placeholder="Date Range" />
+   725→   725→            </SelectTrigger>
+   726→   726→            <SelectContent>
+   727→   727→              <SelectItem value="all">All Time</SelectItem>
+   728→   728→              <SelectItem value="today">Today</SelectItem>
+   729→   729→              <SelectItem value="week">This Week</SelectItem>
+   730→   730→              <SelectItem value="month">This Month</SelectItem>
+   731→   731→              <SelectItem value="custom">Custom</SelectItem>
+   732→   732→            </SelectContent>
+   733→   733→          </Select>
+   734→   734→
+   735→   735→          {/* Custom Date Inputs */}
+   736→   736→          {dateRange === 'custom' && (
+   737→   737→            <motion.div
+   738→   738→              initial={{ opacity: 0, width: 0 }}
+   739→   739→              animate={{ opacity: 1, width: 'auto' }}
+   740→   740→              exit={{ opacity: 0, width: 0 }}
+   741→   741→              className="flex items-center gap-2 overflow-hidden"
+   742→   742→            >
+   743→   743→              <div className="flex items-center gap-1.5">
+   744→   744→                <Label className="text-xs text-muted-foreground whitespace-nowrap">From</Label>
+   745→   745→                <Input
+   746→   746→                  type="date"
+   747→   747→                  className="h-9 w-[130px] text-sm"
+   748→   748→                  value={customFrom}
+   749→   749→                  onChange={(e) => setCustomFrom(e.target.value)}
+   750→   750→                />
+   751→   751→              </div>
+   752→   752→              <div className="flex items-center gap-1.5">
+   753→   753→                <Label className="text-xs text-muted-foreground whitespace-nowrap">To</Label>
+   754→   754→                <Input
+   755→   755→                  type="date"
+   756→   756→                  className="h-9 w-[130px] text-sm"
+   757→   757→                  value={customTo}
+   758→   758→                  onChange={(e) => setCustomTo(e.target.value)}
+   759→   759→                />
+   760→   760→              </div>
+   761→   761→            </motion.div>
+   762→   762→          )}
+   763→   763→
+   764→   764→          {/* Clear Filters */}
+   765→   765→          {hasActiveFilters && (
+   766→   766→            <Button
+   767→   767→              variant="ghost"
+   768→   768→              size="sm"
+   769→   769→              className="h-9 text-xs gap-1 text-muted-foreground hover:text-foreground"
+   770→   770→              onClick={clearFilters}
+   771→   771→            >
+   772→   772→              <X className="h-3 w-3" />
+   773→   773→              Clear Filters
+   774→   774→            </Button>
+   775→   775→          )}
+   776→   776→        </div>
+   777→   777→      </motion.div>
+   778→   778→
+   779→   779→      {/* Select All + Results Count */}
+   780→   780→      {!isLoading && filteredActivities.length > 0 && (
+   781→   781→        <div className="flex items-center justify-between">
+   782→   782→          <div className="flex items-center gap-2">
+   783→   783→            <Checkbox
+   784→   784→              checked={selectedIds.size === filteredActivities.length && filteredActivities.length > 0}
+   785→   785→              onCheckedChange={handleSelectAll}
+   786→   786→              aria-label="Select all notifications"
+   787→   787→            />
+   788→   788→            <span className="text-xs text-muted-foreground">
+   789→   789→              {selectedIds.size > 0
+   790→   790→                ? `${selectedIds.size} of ${filteredActivities.length} selected`
+   791→   791→                : `${filteredActivities.length} notification${filteredActivities.length !== 1 ? 's' : ''}`}
+   792→   792→            </span>
+   793→   793→          </div>
+   794→   794→        </div>
+   795→   795→      )}
+   796→   796→
+   797→   797→      {/* Notification List */}
+   798→   798→      {isLoading ? (
+   799→   799→        <div className="space-y-3">
+   800→   800→          {Array.from({ length: 5 }).map((_, i) => (
+   801→   801→            <NotificationSkeleton key={i} />
+   802→   802→          ))}
+   803→   803→        </div>
+   804→   804→      ) : isError ? (
+   805→   805→        <div className="flex flex-col items-center justify-center py-16 text-center">
+   806→   806→          <p className="text-sm text-destructive">Failed to load notifications. Please try again.</p>
+   807→   807→        </div>
+   808→   808→      ) : filteredActivities.length === 0 ? (
+   809→   809→        <EmptyState />
+   810→   810→      ) : (
+   811→   811→        <motion.div
+   812→   812→          variants={containerVariants}
+   813→   813→          initial="hidden"
+   814→   814→          animate="visible"
+   815→   815→          key={filterKey}
+   816→   816→          className="space-y-2"
+   817→   817→        >
+   818→   818→          {filteredActivities.map((item) => {
+   819→   819→            const config = ENTITY_CONFIG[item.entityType] || ENTITY_CONFIG.candidate
+   820→   820→            const Icon = config.icon
+   821→   821→            const isRead = readIds.has(item.id)
+   822→   822→            const isSelected = selectedIds.has(item.id)
+   823→   823→            const actionLabel = ACTION_LABELS[item.action] || item.action.replace(/_/g, ' ')
+   824→   824→            const employeeName = item.employee?.name
+   825→   825→            const initials = employeeName
+   826→   826→              ? employeeName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+   827→   827→              : '??'
+   828→   828→
+   829→   829→            return (
+   830→   830→              <motion.div
+   831→   831→                key={item.id}
+   832→   832→                variants={itemVariants}
+   833→   833→                className={cn(
+   834→   834→                  'group relative flex items-start gap-3 rounded-xl border bg-card p-4 transition-all duration-200',
+   835→   835→                  'hover:shadow-md hover:border-border/80',
+   836→   836→                  !isRead && 'border-l-2 border-l-amber-400',
+   837→   837→                )}
+   838→   838→              >
+   839→   839→                {/* Checkbox */}
+   840→   840→                <div className="flex items-center pt-1">
+   841→   841→                  <Checkbox
+   842→   842→                    checked={isSelected}
+   843→   843→                    onCheckedChange={() => handleToggleSelect(item.id)}
+   844→   844→                    aria-label={`Select notification ${item.id}`}
+   845→   845→                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+   846→   846→                  />
+   847→   847→                </div>
+   848→   848→
+   849→   849→                {/* Unread indicator dot */}
+   850→   850→                {!isRead && (
+   851→   851→                  <div className="flex items-center pt-1.5">
+   852→   852→                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+   853→   853→                  </div>
+   854→   854→                )}
+   855→   855→                {isRead && <div className="w-2" />}
+   856→   856→
+   857→   857→                {/* Entity icon */}
+   858→   858→                <div
+   859→   859→                  className={cn(
+   860→   860→                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+   861→   861→                    config.bgClass,
+   862→   862→                  )}
+   863→   863→                >
+   864→   864→                  <Icon className={cn('h-4.5 w-4.5', config.color)} />
+   865→   865→                </div>
+   866→   866→
+   867→   867→                {/* Content */}
+   868→   868→                <div
+   869→   869→                  className="flex-1 min-w-0 cursor-pointer"
+   870→   870→                  onClick={() => handleNotificationClick(item)}
+   871→   871→                >
+   872→   872→                  <div className="flex items-start justify-between gap-2">
+   873→   873→                    <p className={cn(
+   874→   874→                      'text-sm leading-relaxed',
+   875→   875→                      !isRead ? 'font-medium text-foreground' : 'text-muted-foreground',
+   876→   876→                    )}>
+   877→   877→                      {employeeName
+   878→   878→                        ? `${employeeName} ${actionLabel.toLowerCase()} a new ${config.label.toLowerCase()}`
+   879→   879→                        : `${actionLabel} ${config.label.toLowerCase()}`}
+   880→   880→                    </p>
+   881→   881→                    <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+   882→   882→                      {getRelativeTime(item.createdAt)}
+   883→   883→                    </span>
+   884→   884→                  </div>
+   885→   885→
+   886→   886→                  {/* Employee avatar + name + details */}
+   887→   887→                  <div className="mt-1.5 flex items-center gap-2">
+   888→   888→                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+   889→   889→                      {initials}
+   890→   890→                    </div>
+   891→   891→                    {employeeName && (
+   892→   892→                      <span className="text-xs text-muted-foreground">
+   893→   893→                        {employeeName}
+   894→   894→                      </span>
+   895→   895→                    )}
+   896→   896→                    {item.details && (
+   897→   897→                      <span className="text-xs text-muted-foreground/60 truncate">
+   898→   898→                        · {item.details}
+   899→   899→                      </span>
+   900→   900→                    )}
+   901→   901→                  </div>
+   902→   902→
+   903→   903→                  {/* Entity type badge */}
+   904→   904→                  <div className="mt-2 flex items-center gap-2">
+   905→   905→                    <Badge
+   906→   906→                      variant="secondary"
+   907→   907→                      className={cn('text-[10px] font-medium px-2 py-0 h-5 rounded-full', config.badgeClass)}
+   908→   908→                    >
+   909→   909→                      {config.label}
+   910→   910→                    </Badge>
+   911→   911→                    <Badge variant="outline" className="text-[10px] font-medium px-2 py-0 h-5 rounded-full">
+   912→   912→                      {actionLabel}
+   913→   913→                    </Badge>
+   914→   914→                  </div>
+   915→   915→                </div>
+   916→   916→
+   917→   917→                {/* Hover actions */}
+   918→   918→                <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+   919→   919→                  <Button
+   920→   920→                    variant="ghost"
+   921→   921→                    size="icon"
+   922→   922→                    className="h-7 w-7"
+   923→   923→                    onClick={(e) => { e.stopPropagation(); handleToggleRead(item.id) }}
+   924→   924→                    aria-label={isRead ? 'Mark as unread' : 'Mark as read'}
+   925→   925→                  >
+   926→   926→                    {isRead
+   927→   927→                      ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+   928→   928→                      : <Eye className="h-3.5 w-3.5 text-muted-foreground" />}
+   929→   929→                  </Button>
+   930→   930→                  <Button
+   931→   931→                    variant="ghost"
+   932→   932→                    size="icon"
+   933→   933→                    className="h-7 w-7"
+   934→   934→                    onClick={(e) => { e.stopPropagation(); handleNotificationClick(item) }}
+   935→   935→                    aria-label="Navigate to entity"
+   936→   936→                  >
+   937→   937→                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+   938→   938→                  </Button>
+   939→   939→                </div>
+   940→   940→              </motion.div>
+   941→   941→            )
+   942→   942→          })}
+   943→   943→        </motion.div>
+   944→   944→      )}
+   945→   945→
+   946→   946→      {/* Infinite scroll trigger / Load More */}
+   947→   947→      {hasNextPage && allActivities.length > 0 && (
+   948→   948→        <div ref={loadMoreRef} className="flex justify-center py-6">
+   949→   949→          {isFetchingNextPage ? (
+   950→   950→            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+   951→   951→              <Loader2 className="h-4 w-4 animate-spin" />
+   952→   952→              <span>Loading more notifications...</span>
+   953→   953→            </div>
+   954→   954→          ) : (
+   955→   955→            <Button
+   956→   956→              variant="outline"
+   957→   957→              size="sm"
+   958→   958→              className="gap-2"
+   959→   959→              onClick={() => fetchNextPage()}
+   960→   960→            >
+   961→   961→              <ChevronDown className="h-4 w-4" />
+   962→   962→              Load More
+   963→   963→            </Button>
+   964→   964→          )}
+   965→   965→        </div>
+   966→   966→      )}
+   967→   967→
+   968→   968→      {/* End of list indicator */}
+   969→   969→      {!hasNextPage && filteredActivities.length > 0 && (
+   970→   970→        <motion.div
+   971→   971→          initial={{ opacity: 0 }}
+   972→   972→          animate={{ opacity: 1 }}
+   973→   973→          className="flex items-center justify-center py-4 text-xs text-muted-foreground"
+   974→   974→        >
+   975→   975→          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+   976→   976→          <span className="px-4">You&apos;ve reached the end</span>
+   977→   977→          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+   978→   978→        </motion.div>
+   979→   979→      )}
+   980→   980→
+   981→   981→      {/* Batch Actions Floating Bar */}
+   982→   982→      <AnimatePresence>
+   983→   983→        {selectedIds.size > 0 && (
+   984→   984→          <motion.div
+   985→   985→            initial={{ y: 100, opacity: 0 }}
+   986→   986→            animate={{ y: 0, opacity: 1 }}
+   987→   987→            exit={{ y: 100, opacity: 0 }}
+   988→   988→            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   989→   989→            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+   990→   990→          >
+   991→   991→            <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-card/95 backdrop-blur-sm px-4 py-3 shadow-lg">
+   992→   992→              <div className="flex items-center gap-2">
+   993→   993→                <span className="text-sm font-medium">{selectedIds.size} selected</span>
+   994→   994→              </div>
+   995→   995→              <div className="h-5 w-px bg-border" />
+   996→   996→              <Button
+   997→   997→                variant="outline"
+   998→   998→                size="sm"
+   999→   999→                className="h-8 text-xs gap-1.5"
+  1000→  1000→                onClick={handleBatchMarkRead}
+  1001→  1001→              >
+  1002→  1002→                <Eye className="h-3.5 w-3.5" />
+  1003→  1003→                Mark as Read
+  1004→  1004→              </Button>
+  1005→  1005→              <Button
+  1006→  1006→                variant="outline"
+  1007→  1007→                size="sm"
+  1008→  1008→                className="h-8 text-xs gap-1.5"
+  1009→  1009→                onClick={handleBatchMarkUnread}
+  1010→  1010→              >
+  1011→  1011→                <EyeOff className="h-3.5 w-3.5" />
+  1012→  1012→                Mark as Unread
+  1013→  1013→              </Button>
+  1014→  1014→              <Button
+  1015→  1015→                variant="ghost"
+  1016→  1016→                size="sm"
+  1017→  1017→                className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+  1018→  1018→                onClick={() => setSelectedIds(new Set())}
+  1019→  1019→              >
+  1020→  1020→                <X className="h-3.5 w-3.5" />
+  1021→  1021→                Deselect All
+  1022→  1022→              </Button>
+  1023→  1023→            </div>
+  1024→  1024→          </motion.div>
+  1025→  1025→        )}
+  1026→  1026→      </AnimatePresence>
+  1027→  1027→    </div>
+  1028→  1028→  )
+  1029→  1029→}
+  1030→  1030→

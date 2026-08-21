@@ -551,53 +551,53 @@ export function EmployeesPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
                 <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{employees.length}</p>
+                <p className="text-2xl font-bold animate-count-up">{employees.length}</p>
                 <p className="text-xs text-muted-foreground">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-950">
                 <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{activeCount}</p>
+                <p className="text-2xl font-bold animate-count-up">{activeCount}</p>
                 <p className="text-xs text-muted-foreground">Active</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950">
                 <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{inactiveCount}</p>
+                <p className="text-2xl font-bold animate-count-up">{inactiveCount}</p>
                 <p className="text-xs text-muted-foreground">Inactive</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
                 <Briefcase className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-bold animate-count-up">
                   {employees.reduce((sum, e) => sum + e._count.placements, 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">Total Placements</p>
@@ -608,7 +608,7 @@ export function EmployeesPage() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg bg-muted/50 p-2">
+      <div className="filter-bar rounded-lg bg-muted/50 p-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

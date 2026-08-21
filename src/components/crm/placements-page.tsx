@@ -942,7 +942,7 @@ export function PlacementsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.3 }}
       >
-        <div className="rounded-lg bg-muted/50 p-2">
+        <div className="filter-bar rounded-lg bg-muted/50 p-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select value={placementFilter.status} onValueChange={(val) => setPlacementFilter({ status: val })}>
               <SelectTrigger className="w-full sm:w-[180px]">
@@ -961,7 +961,7 @@ export function PlacementsPage() {
       </motion.div>
 
       {/* Date Range Filter */}
-      <div className="rounded-lg bg-muted/50 p-3">
+      <div className="filter-bar rounded-lg bg-muted/50 p-3">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">

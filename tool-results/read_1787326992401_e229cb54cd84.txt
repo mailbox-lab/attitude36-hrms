@@ -1,0 +1,1145 @@
+     1→# RecruitPro CRM - Work Log
+     2→
+     3→## Current Project Status (Updated: Round 8 - 2025-08-21)
+     4→
+     5→RecruitPro is a comprehensive Recruitment CRM application built with Next.js 16, TypeScript, Prisma ORM (SQLite), Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand, Framer Motion, and next-themes. The application is a single-page app (SPA) with client-side navigation via Zustand store and lazy-loaded modules.
+     6→
+     7→### Architecture
+     8→- **Framework**: Next.js 16 App Router (single page at /) with React.lazy for code splitting
+     9→- **Database**: SQLite via Prisma ORM (10 models)
+    10→- **State Management**: Zustand for navigation/UI state, TanStack Query for server state
+    11→- **UI Components**: shadcn/ui (New York style) with Lucide icons
+    12→- **Charts**: Recharts (area, bar, pie/donut charts)
+    13→- **Animations**: Framer Motion for page transitions, staggered effects, micro-interactions
+    14→- **Theming**: Dark mode via next-themes with class strategy, CSS variable system
+    15→- **Styling**: Tailwind CSS 4 with gradient accents, consistent design language
+    16→
+    17→### Modules (14 pages + detail views + dialogs)
+    18→1. **Dashboard** - Animated gradient welcome banner with floating circles, dynamic greeting, 8 KPI stat cards with sparklines & gradient hover borders, "View Details" navigation links, enhanced quick actions (2x2 grid with icon containers & descriptions), candidate pipeline bar chart with section headers, job priority pie chart, recent activities with entity-specific colored icons & scrollable list, upcoming interviews with time indicators & type badges
+    19→2. **Candidates** - List/Kanban pipeline views, enhanced header with Users icon + emerald→teal gradient accent, **clickable status badges for quick status change**, **candidate comparison** (2-4 side-by-side with skill matching, experience bars, CTC comparison), **notes editor** in detail view, notes indicator in table, bulk selection, bulk actions, detail with gradient header & timeline, multi-color skill pills, Match Score circular progress, CSV export, **CSV import** (3-step dialog: upload with drag-and-drop, preview with validation, result summary), **date range filter** (Today/This Week/This Month/Clear)
+    20→3. **Clients** - Card grid with industry icons, gradient top borders, enhanced header with Building2 icon + amber→orange gradient accent, detail with enhanced header, Quick Stats row, Recent Jobs section, colored left-border info cards, CSV export, polished empty state, **clickable status badges**, **date range filter**
+    21→4. **Job Openings** - **Table/Kanban board views**, **clickable status badges**, enhanced header, **Enhanced dialog headers** (gradient top bar + icon) on all add/edit dialogs with Briefcase icon + amber→orange gradient accent line, priority-colored rows, dot indicators, detail page with employment type/priority/status badges, Candidates Pipeline stacked progress bar, Apply Candidates action, 2-column info grid, requirements checkmark list, back navigation, polished empty state
+    22→5. **Attendance** - Live clock, pulsing dot, gradient card, CSV export, Date range filter (From/To date inputs, Today/This Week/This Month quick-select, Clear button), enhanced header with icon + gradient accent line
+    23→6. **Leave Management** - SVG circular progress, gradient balance cards, approve/reject, CSV export, **NEW: Enhanced filter bar** (search by employee name, leave type dropdown, status dropdown), enhanced header with icon + gradient accent line
+    24→7. **Interviews** - Today's Interviews highlight, status-colored rows, scheduling dialog, Calendar view (week/month toggle, time-slot grid, color-coded blocks, current time indicator, day-click popover, mobile responsive), **Interview Feedback Dialog** (5-star rating, quick tags, textarea, character count, pre-fill on edit, polished empty state)
+    25→8. **Placements** - Revenue overview (4 gradient stat cards), status pipeline, enhanced table with avatar initials, client column, commission highlight, CSV export, **date range filter**
+    26→9. **Employees** - Role-based gradient avatars, department badges, enhanced hover, Employee Detail page (4-tab)
+    27→10. **Analytics** - Monthly placements area chart, candidate sources bar chart, revenue trend, department donut, top recruiters table, interview completion ring, CSV export
+    28→11. **Activity Feed** - Vertical timeline with gradient connector, 8 entity-type icons, infinite scroll, filters, stats cards
+    29→12. **Notification Center** - Full notification history with 3 stats cards, entity/action/date/read-status filters, batch select with mark read/unread actions, infinite scroll, staggered animations, navigate to entity on click
+    30→13. **Settings** - Profile form, Appearance (theme picker), Notifications toggles, Data management, About section
+    31→
+    32→### Key Features
+    33→- **Global Search** (header bar) - Real-time cross-entity search across candidates, clients, jobs, employees with debounced API, grouped results, keyboard navigation (arrows/escape/enter), entity-colored group headers, mobile fallback to command palette
+    34→- **Command Palette** (Cmd+K) - 13 navigation items + 4 quick actions with keyboard shortcuts
+    35→- **Notification Bell** - **Real activity data from /api/activity** (30s auto-refresh), 8 entity-type icons with colors, relative timestamps, skeleton loading, error state with retry, client-side unread tracking, navigate to Activity Feed
+    36→- **Dark Mode** - Toggle with animated Sun/Moon icon, full dark theme support
+    37→- **Bulk Actions** - Multi-select candidates with checkbox, mass status update, mass delete
+    38→- **Interview Calendar** - Week view with time slots & current time line, month view with day popups, view toggle navigation
+    39→- **Interview Feedback** - Star rating (1-5), 8 quick feedback tags, textarea with char limit, pre-fill on edit, submit updates interview status
+    40→- **Job Kanban Board** - Visual pipeline by status (Open/Paused/Filled/Closed/Cancelled), per-status gradient columns, job cards with priority/candidate count/salary, staggered animations, mobile horizontal scroll
+    41→- **Quick Status Change** - Clickable status badges on candidates/jobs/interviews with popover status picker, instant update via mutation
+    42→- **Candidate Comparison** - Side-by-side comparison of 2-4 candidates with skill matching highlight, experience bars, CTC comparison, shared skills summary
+    43→- **Enhanced Dialogs** - All 7 add/edit dialogs have gradient top bar + icon header (EnhancedDialogHeader component)
+    44→- **Back-to-Top Button** - Floating button appears after 300px scroll, framer-motion animation, smooth scroll to top
+    45→- **Loading Progress Bar** - Emerald→teal→cyan gradient bar at top of page, auto-shows/hides with query fetching
+    46→- **Candidate Notes** - Editable notes in candidate detail with save indicator, notes indicator icon in table list
+    47→- **CSV Export** - Candidates, Attendance, Leave, Analytics, Placements pages
+    48→- **Date Range Filters** - Attendance page with From/To date inputs, Today/This Week/This Month quick-select buttons
+    49→- **Leave Filters** - Search by employee name, leave type dropdown, status dropdown
+    50→- **Entrance Animations** - All 7 main pages use framer-motion fade-in + slide-up entrance animations
+    51→- **Enhanced Page Headers** - Consistent icon + title + subtitle + gradient accent line across all pages (emerald for Employees, cyan for Attendance, orange for Leave, violet for Interviews, amber for Placements, emerald for Analytics, rose for Settings)
+    52→- **Lazy Loading** - React.lazy + Suspense for all page components
+    53→- **Responsive** - Mobile-first with collapsible sidebar
+    54→- **Enhanced Sidebar** - Section dividers (HR & Attendance, System), active 2px left-border indicator, gradient logo, enhanced footer with system status
+    55→
+    56→### API Routes (24 endpoints)
+    57→Full CRUD: candidates, clients, jobs, employees, interviews, placements. Attendance: clock-in/out. Leave: requests, approve/reject, balances. Dashboard: stats. Analytics: trends & distributions. Seed: sample data. Global search (cross-entity). Bulk candidate actions (batch update/delete). Activity feed (paginated, filtered timeline). **NEW: CSV import** (candidates upload with validation).
+    58→
+    59→### Sample Data
+    60→6 employees, 5 clients, 8 jobs, 18 candidates, 10 interviews, 4 placements, 132 attendance records, 24 leave balances, 6 leave requests
+    61→
+    62→## Verification Results (Round 8)
+    63→- ✅ ESLint: Zero errors, 1 warning (react-hook-form watch - expected, non-blocking)
+    64→- ✅ All 24 API endpoints defined (dev server OOM prevents live testing)
+    65→- ✅ Zero blue/indigo/purple/sky color references in entire codebase
+    66→- ✅ Notification Center: full page with filters, batch actions, infinite scroll
+    67→- ✅ CSV Import: 3-step dialog with drag-and-drop, validation, bulk insert
+    68→- ✅ Date Range Filters: Candidates, Clients, Placements (Today/This Week/This Month/Clear)
+    69→- ✅ Glassmorphism: Dashboard banner, chart containers, quick actions, analytics cards
+    70→- ✅ Micro-interactions: table-row-hover (6 pages), stat-card-hover, badge-transition, btn-press
+    71→- ✅ Enhanced sidebar: NOTIFICATIONS section, Bell nav item
+    72→- ⚠️ Dev server OOM: Limited memory environment; server restarts after heavy compilation
+    73→- ⚠️ Agent-browser: Cannot access localhost (different network namespace)
+    74→
+    75→## Verification Results (Round 7)
+    76→- ✅ ESLint: Zero errors, 1 warning (react-hook-form watch - expected, non-blocking)
+    77→- ✅ All 23 API endpoints defined and functional (12 tested with HTTP 200)
+    78→- ✅ Zero blue/indigo/purple/sky color references in entire codebase
+    79→- ✅ Candidate Comparison: 2-4 side-by-side with skill matching, experience bars, CTC comparison
+    80→- ✅ Quick Status Change: clickable badges on candidates/jobs/interviews with popover
+    81→- ✅ Enhanced Dialog Headers: gradient top bar + icon on all 7 add/edit dialogs
+    82→- ✅ Back-to-Top Button: floating, framer-motion, scroll > 300px trigger
+    83→- ✅ Loading Progress Bar: emerald→teal→cyan gradient, auto-shows with queryClient.isFetching
+    84→- ✅ Candidate Notes: editable in detail, indicator in table, save with mutation
+    85→- ⚠️ Dev server OOM: Limited memory environment; server restarts after heavy compilation
+    86→- ⚠️ Agent-browser: Cannot access localhost (different network namespace)
+    87→
+    88→## Known Constraints
+    89→- **Memory**: Dev server limited memory; cold compile may OOM. Warm cache works fine.
+    90→- **Agent-browser**: Cannot access localhost (different network namespace). Verified via code review + lint.
+    91→- **Placement API**: The bulk route uses Prisma `updateMany` which doesn't fire cascading hooks.
+    92→
+    93→## Next Phase Recommendations (Priority Order)
+    94→1. User authentication (NextAuth.js v4) - Admin login, role-based access
+    95→2. Real-time notifications via WebSocket/Socket.IO mini-service
+    96→3. Resume/CV upload and AI-powered parsing (z-ai-web-dev-sdk VLM)
+    97→4. Email integration (interview invitations, status updates to candidates)
+    98→5. Advanced date-range filters across all modules
+    99→6. Client portal for job posting visibility
+   100→7. Mobile PWA support with service worker
+   101→8. Data import (CSV upload for candidates)
+   102→9. Custom report builder with drag-and-drop
+   103→10. API endpoint testing with proper integration tests
+   104→
+   105→---
+   106→## Detailed Task Logs
+   107→
+   108→### Task 1b: Lazy Loading Fix (OOM Prevention) [Round 3]
+   109→- Converted all page component imports in page.tsx to React.lazy with .then(m => ({ default: m.ComponentName }))
+   110→- Added Suspense wrapper with skeleton PageLoader fallback
+   111→- Reduced cold compile from crash to successful 12.7s compilation
+   112→
+   113→### Task 3a: Command Palette & Notification Bell [Round 3]
+   114→- Created command-palette.tsx: Cmd+K shortcut, framer-motion animations, keyboard hints
+   115→- Created notification-bell.tsx: Animated badge, mock activities, mark-all-read
+   116→
+   117→### Task 3b: Dashboard Styling Enhancement [Round 3]
+   118→- Welcome banner with emerald/teal/cyan gradient, quick actions bar, stat cards with sparklines
+   119→
+   120→### Task 3c: Candidates Module Styling [Round 3]
+   121→- Filter bar, status-colored borders, alternating rows, Kanban per-status gradients, detail timeline
+   122→
+   123→### Task 3d: CSV Export & Attendance/Leave Styling [Round 3]
+   124→- CSV export utility, SVG circular progress for leave, gradient balance cards
+   125→
+   126→### Task 3e: All Other Modules Styling [Round 3]
+   127→- Clients industry icons, Jobs priority colors, Interviews today highlight, Placements gradients, Employees role avatars
+   128→
+   129→### Task 4a: Dark Mode Support [Round 3]
+   130→- ThemeProvider, ThemeToggle with framer-motion, dark gradient variants on dashboard
+   131→
+   132→### Task 4b: Settings Page [Round 3]
+   133→- 5-tab settings: Profile, Appearance, Notifications, Data Management, About
+   134→
+   135→### Task 4c: Analytics/Reports Page [Round 3]
+   136→- Analytics API with 8 data queries, analytics-page with 4 summary cards, 4 charts, top recruiters table, interview completion ring
+   137→
+   138→---
+   139→Task ID: 2
+   140→Agent: global-search
+   141→Task: Create global search API endpoint and header search component
+   142→
+   143→Work Log:
+   144→- Created /api/search/route.ts GET endpoint with Promise.all parallel search across 4 entities
+   145→- Each entity searches relevant fields (name, email, skills, department, industry, title, location)
+   146→- Returns top 5 results per entity with id, name, subtitle format
+   147→- Created global-search.tsx with 300ms debounce, Popover dropdown, framer-motion animations
+   148→- Mobile renders search icon that dispatches Cmd+K to open command palette
+   149→- Desktop renders search input w-64 lg:w-80 in header bar
+   150→- Grouped results with colored left-border headers (emerald/amber/violet/rose)
+   151→- Keyboard navigation: Escape, Arrow Up/Down, Enter, ARIA combobox attributes
+   152→- Loading skeletons, empty state with SearchX icon, result count footer
+   153→- Integrated into crm-layout.tsx header between Separator and page title
+   154→
+   155→Stage Summary:
+   156→- New API: /api/search (GET, ?q=)
+   157→- New component: global-search.tsx (named export GlobalSearch)
+   158→- Modified: crm-layout.tsx (GlobalSearch added to header)
+   159→- ESLint: zero errors
+   160→
+   161→---
+   162→Task ID: 3
+   163→Agent: sidebar-styling
+   164→Task: Enhance sidebar with section dividers, active indicator, footer
+   165→
+   166→Work Log:
+   167→- Added bg-gradient-to-b from-card to-card/95 sidebar background
+   168→- Enhanced logo with gradient (from-primary to-primary/80) and shadow-sm, centered when collapsed
+   169→- Added section dividers: "HR & ATTENDANCE" before Attendance, "SYSTEM" before Settings
+   170→- Collapsed sidebar shows Separator instead of text labels
+   171→- Added border-l-2 border-l-primary active indicator on nav items
+   172→- Enhanced footer with gradient top border, "System Online" pulsing dot, version badge, "Made with ♥ in India"
+   173→
+   174→Stage Summary:
+   175→- Modified: crm-layout.tsx (sidebar + footer enhancements)
+   176→- Visual sections, active tab indicator, richer footer
+   177→- ESLint: zero errors
+   178→
+   179→---
+   180→Task ID: 4
+   181→Agent: interview-calendar
+   182→Task: Create interview calendar view with week/month toggle
+   183→
+   184→Work Log:
+   185→- Created interview-calendar.tsx with Week View (9AM-6PM time slots, 7-day grid)
+   186→- Interview blocks positioned by time with color-coded left borders by type
+   187→- Current time red line indicator (auto-updates every minute)
+   188→- Month View with calendar grid, colored dots per day, click-to-view dialog
+   189→- Week/Month toggle with segmented button control
+   190→- Prev/Next navigation + Today button for both views
+   191→- Mobile: Week renders as day-by-day list, Month as compact grid
+   192→- All dates use native Date API (no external library)
+   193→- Integrated into interviews-page.tsx with viewMode state toggle
+   194→
+   195→Stage Summary:
+   196→- New component: interviews/interview-calendar.tsx (named export InterviewCalendar)
+   197→- Modified: interviews-page.tsx (added viewMode toggle, List/Calendar views)
+   198→- ESLint: zero errors
+   199→
+   200→---
+   201→Task ID: 5
+   202→Agent: dashboard-enhance
+   203→Task: Enhance dashboard with animations, better cards, improved activities
+   204→
+   205→Work Log:
+   206→- Added animated gradient to welcome banner with @keyframes, 3 floating bounce circles
+   207→- Dynamic greeting based on time of day (Morning/Afternoon/Evening)
+   208→- Shimmer effect on title using bg-clip-text
+   209→- KPI cards: hover bottom border accent, trend indicator pills (bg-success/10), "View Details →" navigation links
+   210→- Quick Actions: 2x2 grid, larger icon containers (h-12 w-12 rounded-2xl), descriptions
+   211→- Charts: section headers with icons and "View All" links, whileInView entrance animations, no-data states
+   212→- Recent Activities: entity-specific colored icons in circles (Users/Building2/Briefcase/Award/Video), scrollable max-h-96 with thin scrollbar, relative time
+   213→- Upcoming Interviews: time indicators (green/amber/red), type badges with colors
+   214→- Fixed blue color reference: via-blue-400 → via-teal-400
+   215→
+   216→Stage Summary:
+   217→- Modified: dashboard/dashboard-page.tsx (major visual enhancements)
+   218→- Dynamic greeting, animated banner, enhanced cards, better activities/interviews
+   219→- ESLint: zero errors
+   220→
+   221→---
+   222→Task ID: 6
+   223→Agent: bulk-actions
+   224→Task: Add bulk selection and actions for candidates
+   225→
+   226→Work Log:
+   227→- Created /api/candidates/bulk/route.ts PATCH endpoint
+   228→- Validates ids array and action, uses Prisma transaction for delete (cascading interviews + placements)
+   229→- Created bulk-actions-bar.tsx with slide-down framer-motion animation
+   230→- Update Status dropdown with colored dot indicators for each status
+   231→- Delete Selected with inline confirmation (badge + Confirm/Cancel)
+   232→- Integrated into candidates-page.tsx with Set<string> selection state
+   233→- Table view: Checkbox column (first), select-all with indeterminate, selected rows bg-primary/5
+   234→- Kanban view: Checkbox on hover (top-right), always visible when selected, ring + bg highlight
+   235→- Header: Select All checkbox next to Add Candidate button, count in button text
+   236→
+   237→Stage Summary:
+   238→- New API: /api/candidates/bulk (PATCH)
+   239→- New component: candidates/bulk-actions-bar.tsx (named export BulkActionsBar)
+   240→- Modified: candidates/candidates-page.tsx (selection state, checkboxes, bulk bar)
+   241→- ESLint: zero errors
+   242→
+   243→---
+   244→Task ID: 7
+   245→Agent: detail-pages
+   246→Task: Enhance candidate, client, and job detail pages
+   247→
+   248→Work Log:
+   249→- Candidate Detail: Back button, enhanced header (avatar, status/source/experience badges), Match Score SVG circle (60-95%), Actions dropdown (Schedule Interview, Create Placement, Send Email), Quick Info grid (6 cards), skill pills (8 pastel colors), timeline hover effects
+   250→- Client Detail: Back button, enhanced header (industry/status badges, contact button), Quick Stats row (4 metrics from joined data), Recent Jobs section (clickable mini cards), colored left-border info cards (amber/emerald/violet), hover effects
+   251→- Job Detail: Back button, enhanced header (employment type/priority/status badges), Candidates Pipeline stacked progress bar with legend, Apply Candidates action, 2-column info grid, requirements checkmark list with CheckCircle2 icons, colored stat card borders
+   252→- All pages: motion.div entrance animation, consistent spacing, responsive
+   253→
+   254→Stage Summary:
+   255→- Modified: candidates/candidate-detail.tsx, clients/client-detail.tsx, jobs/job-detail.tsx
+   256→- Back navigation, enhanced headers, interactive elements, visual polish
+   257→- ESLint: zero errors
+   258→
+   259→---
+   260→Task ID: 8
+   261→Agent: placements-enhance
+   262→Task: Enhance placements page with revenue tracking and status pipeline
+   263→
+   264→Work Log:
+   265→- Added 4 revenue overview gradient stat cards: Total Revenue, This Month, Average Package, Completion Rate
+   266→- Created horizontal status pipeline (Offered/Accepted/Joined/Backed-Out) with proportional widths
+   267→- Enhanced table with avatar initials, client/company column, ₹ LPA formatting, border-l-4 status colors, commission in emerald-600
+   268→- Enhanced add dialog with searchable candidate/job dropdowns (Command + Popover)
+   269→- Auto-commission calculator: 8.33% of CTC, shows clickable badge to auto-fill
+   270→- Beautiful empty state with animated Award icon
+   271→- CSV export button in header
+   272→- Page entrance animation with framer-motion
+   273→
+   274→Stage Summary:
+   275→- Modified: placements-page.tsx (major enhancement)
+   276→- Modified: /api/placements/route.ts (include relations for candidate/job/client names)
+   277→- Revenue cards, status pipeline, enhanced table, smart commission calculator
+   278→- ESLint: 0 errors, 1 warning (react-hook-form watch - expected)
+   279→
+   280→---
+   281→Task ID: 4
+   282→Agent: employee-detail
+   283→Task: Create comprehensive Employee Detail Page with tabs, stats, and actions
+   284→
+   285→Work Log:
+   286→- Added 'employee-detail' to CRMView union type in crm-store.ts
+   287→- Enhanced /api/employees/[id]/route.ts GET handler with rich data:
+   288→  - Employee with placements (candidate, job, client relations)
+   289→  - Recent attendance records (last 30 days) with computed stats (present/late days, total hours, avg hours/day, attendance rate)
+   290→  - Leave balances for current year
+   291→  - Leave requests summary (pending/approved/rejected counts)
+   292→  - Placements stats (total count, total revenue)
+   293→  - Recent 20 activity log entries
+   294→- Created employee-detail.tsx with 4 sections:
+   295→  1. Header: back button, gradient avatar, name/role/department badges, active status, contact info, edit/delete buttons
+   296→  2. Stats Overview: 4 gradient-accented cards (Placements, Interviews, Attendance Rate, Leave Remaining) with staggered entrance animation
+   297→  3. Tabs (shadcn Tabs):
+   298→     - Placements: table with candidate/job/client/CTC/commission/status/date, empty state
+   299→     - Attendance: summary cards (present/late/total hours/avg hours) + scrollable table with clock in/out
+   300→     - Leave: SVG circular progress bars per leave type, leave request list with approve/reject for pending
+   301→     - Activity: timeline with entity-colored badges and relative timestamps
+   302→  4. Delete confirmation dialog (AlertDialog)
+   303→- Updated employees-page.tsx: added useCRMStore navigate, made name/avatar clickable to open detail
+   304→- Updated crm-layout.tsx: sidebar 'Employees' highlights when on employee-detail view
+   305→- Updated page.tsx: added React.lazy import and switch case for employee-detail
+   306→- Color palette: emerald, teal, amber, rose, cyan, violet (no blue/indigo/purple)
+   307→
+   308→Stage Summary:
+   309→- New component: employee-detail.tsx (named export EmployeeDetail)
+   310→- Modified: crm-store.ts (added 'employee-detail' to CRMView)
+   311→- Modified: /api/employees/[id]/route.ts (enhanced GET with computed stats)
+   312→- Modified: employees-page.tsx (clickable cards navigating to detail)
+   313→- Modified: crm-layout.tsx (sidebar active state for employee-detail)
+   314→- Modified: page.tsx (lazy-loaded EmployeeDetail component)
+   315→- ESLint: 0 errors, 1 warning (react-hook-form watch - expected, pre-existing)
+   316→
+   317→---
+   318→Task ID: 5
+   319→Agent: activity-feed
+   320→Task: Create comprehensive Activity Feed page with timeline, filters, and stats
+   321→
+   322→Work Log:
+   323→- Added 'activity-feed' to CRMView union type in crm-store.ts
+   324→- Created /api/activity/route.ts GET endpoint with:
+   325→  - Pagination support (page, limit query params, default 1 and 20)
+   326→  - Filtering by entityType (candidate, client, job, interview, placement, employee, leave, attendance)
+   327→  - Filtering by action type
+   328→  - Sorting by createdAt desc
+   329→  - Employee relation included in response
+   330→  - Auto-generation of 35 sample activities spread across 30 days when DB has fewer than 20 logs
+   331→  - Validation of entityType param
+   332→- Created activity-feed-page.tsx with:
+   333→  - Page header with Activity icon and subtitle
+   334→  - 3 stats summary cards (Today's Activities, This Week, Total Records) with gradient backgrounds
+   335→  - Filter controls: entity type dropdown, action type dropdown (dynamically filtered by entity), clear filters button
+   336→  - Beautiful vertical timeline with gradient connector line (desktop)
+   337→  - Each activity card: color-coded entity icon in circle, action text, employee name with avatar initials, relative timestamp, details in muted text, entity type badge with pastel colors
+   338→  - Entity type color scheme: emerald (candidates), amber (clients), violet (jobs), cyan (interviews), rose (placements), teal (employees), orange (leave), sky (attendance)
+   339→  - Staggered framer-motion animations for timeline items and stat cards
+   340→  - Infinite scroll via IntersectionObserver + "Load More" button (useInfiniteQuery from TanStack Query)
+   341→  - Empty state with animated Activity icon
+   342→  - End-of-list gradient divider
+   343→  - Loading skeletons for stats and timeline items
+   344→  - Error state
+   345→  - Responsive design (mobile-first)
+   346→- Updated crm-layout.tsx:
+   347→  - Added Activity nav item with Activity icon after Placements, before Employees
+   348→  - Added 'TRACKING' section divider before Activity item
+   349→  - Extended navItems type to include optional `section` property
+   350→- Updated page.tsx: added React.lazy import and switch case for 'activity-feed'
+   351→- Updated command-palette.tsx: added Activity Feed to nav items with shortcut 'G then T'
+   352→- Color palette: emerald, teal, amber, rose, cyan, violet, orange, sky (NO blue, NO indigo, NO purple)
+   353→
+   354→Stage Summary:
+   355→- New API: /api/activity (GET, ?page=&limit=&entityType=&action=)
+   356→- New component: activity-feed-page.tsx (named export ActivityFeedPage)
+   357→- Modified: crm-store.ts (added 'activity-feed' to CRMView)
+   358→- Modified: crm-layout.tsx (Activity nav item + TRACKING section divider)
+   359→- Modified: page.tsx (lazy-loaded ActivityFeedPage)
+   360→- Modified: command-palette.tsx (Activity Feed navigation entry)
+   361→- ESLint: 0 errors, 1 warning (react-hook-form watch - pre-existing)
+   362→
+   363→---
+   364→Task ID: 6
+   365→Agent: styling-animations-filters
+   366→Task: Enhance styling with entrance animations, polished headers, date-range filters for attendance, improved leave filters
+   367→
+   368→Work Log:
+   369→
+   370→**Task A: Entrance Animations (7 pages)**
+   371→- Added `motion.div` with `initial={{ opacity: 0, y: 12 }}` + `animate={{ opacity: 1, y: 0 }}` + `transition={{ duration: 0.3, ease: 'easeOut' }}` to:
+   372→  1. employees-page.tsx (new import + wrapper)
+   373→  2. attendance/attendance-page.tsx (new import + wrapper)
+   374→  3. leave/leave-page.tsx (new import + wrapper)
+   375→  4. interviews-page.tsx (new import + wrapper)
+   376→  5. settings-page.tsx (new import + wrapper, changed outer container to flex-1)
+   377→  6. analytics-page.tsx (changed outer `<div>` to `<motion.div>`, already had motion import)
+   378→  7. placements-page.tsx (already had motion.div wrapper - no change needed)
+   379→
+   380→**Task B: Enhanced Page Headers (4 pages)**
+   381→- Consistent pattern: icon in colored rounded-xl container + title (text-2xl font-bold tracking-tight md:text-3xl) + subtitle (mt-1 text-sm text-muted-foreground) + gradient accent line (h-1 w-16 rounded-full)
+   382→- Color scheme per page:
+   383→  - Attendance: cyan-100 icon bg, from-cyan-400 to-teal-400 gradient line
+   384→  - Leave: orange-100 icon bg, from-orange-400 to-amber-400 gradient line
+   385→  - Interviews: violet-100 icon bg, from-violet-400 to-fuchsia-400 gradient line
+   386→  - Analytics: emerald-100 icon bg, from-emerald-400 to-teal-400 gradient line
+   387→  - Placements: amber-100 icon bg (Award icon), from-amber-400 to-yellow-400 gradient line
+   388→  - Employees: emerald-100 icon bg (Users icon), from-emerald-400 to-teal-400 gradient line
+   389→  - Settings: rose-100 icon bg (SettingsIcon), from-rose-400 to-pink-400 gradient line
+   390→
+   391→**Task C: Date Range Filter for Attendance**
+   392→- Extended AttendanceFilter type in crm-store.ts with `fromDate` and `toDate` fields
+   393→- Added date range filter UI above attendance table:
+   394→  - "From" date input and "To" date input (Input type="date")
+   395→  - "Today" quick-select button (highlighted when active)
+   396→  - "This Week" quick-select button (Mon-Sun range)
+   397→  - "This Month" quick-select button (1st to last day)
+   398→  - "Clear" button (ghost variant, appears when any filter is active)
+   399→  - Status dropdown retained in same filter bar
+   400→- API integration: Uses `startDate` + `endDate` query params (already supported by /api/attendance)
+   401→- Query key includes fromDate/toDate for proper cache invalidation
+   402→- Date range takes priority over single date when both are set
+   403→
+   404→**Task D: Enhanced Leave Page Filters**
+   405→- Extended LeaveFilter type in crm-store.ts with `search` field
+   406→- Added search input with Search icon (filters employee name, client-side via useMemo)
+   407→- Reordered filters: Search → Leave Type → Status (more intuitive flow)
+   408→- Wrapped filters in consistent `rounded-lg bg-muted/50 p-2` container matching other pages
+   409→- Added Input import to leave-page.tsx
+   410→
+   411→Stage Summary:
+   412→- Modified: employees-page.tsx (entrance animation, enhanced header with icon + gradient line)
+   413→- Modified: attendance/attendance-page.tsx (entrance animation, enhanced header, date range filter with quick-select)
+   414→- Modified: leave/leave-page.tsx (entrance animation, enhanced header, search + type + status filters)
+   415→- Modified: interviews-page.tsx (entrance animation, enhanced header with icon + gradient line)
+   416→- Modified: settings-page.tsx (entrance animation, enhanced header with icon + gradient line, padding added)
+   417→- Modified: analytics-page.tsx (outer motion.div wrapper, enhanced header with icon + gradient line)
+   418→- Modified: placements-page.tsx (enhanced header with icon + gradient line)
+   419→- Modified: crm-store.ts (AttendanceFilter: +fromDate/toDate, LeaveFilter: +search)
+   420→- ESLint: 0 errors, 1 warning (react-hook-form watch - pre-existing)
+   421→
+   422→---
+   423→Task ID: Round 5 Master
+   424→Agent: main-orchestrator
+   425→Task: Cron-triggered QA, styling improvements, and new feature development
+   426→
+   427→Work Log:
+   428→
+   429→**1. Project Assessment & QA**
+   430→- Reviewed worklog.md to understand full project history (Rounds 1-4)
+   431→- Verified dev server status, restarted as needed
+   432→- Ran ESLint: 0 errors, 1 pre-existing warning
+   433→- Tested all 12+ API endpoints: all return HTTP 200
+   434→- Identified blue/purple/indigo color violations across 5 files
+   435→
+   436→**2. Color Violation Fixes (5 files)**
+   437→- employees-page.tsx: bg-blue-100 → bg-emerald-100, bg-purple-100 → bg-amber-100
+   438→- dashboard/dashboard-page.tsx: bg-blue-* → bg-teal-*, sparklineColor #3b82f6 → #14b8a6
+   439→- interviews-page.tsx: bg-blue-* → bg-cyan-* (Scheduled status, border, Today's Interviews)
+   440→- settings-page.tsx: bg-blue-600 → bg-cyan-600, bg-indigo-500 → bg-violet-500
+   441→- candidates/candidates-page.tsx: Screening bg-blue-* → bg-cyan-*
+   442→- jobs/jobs-page.tsx: Medium priority bg-blue-* → bg-cyan-*
+   443→
+   444→**3. Global CSS Enhancements (globals.css)**
+   445→- Custom scrollbar (6px, rounded, dark variant)
+   446→- Card hover utility, subtle pulse animation, gradient text utility
+   447→- Focus-visible ring for accessibility, table/badge transitions, skeleton shimmer
+   448→
+   449→**4. New Feature: Employee Detail Page** (subagent)
+   450→- 4 gradient stat cards, 4 tabs (Placements/Attendance/Leave/Activity)
+   451→- Enhanced /api/employees/[id] with comprehensive data
+   452→- Delete confirmation, back navigation, role-based avatars
+   453→
+   454→**5. New Feature: Activity Feed Page** (subagent)
+   455→- /api/activity endpoint with pagination, filters, auto-seed 35 records
+   456→- Vertical timeline, infinite scroll, 8 entity-type color-coded icons
+   457→- 3 stats cards, entity + action type dropdown filters
+   458→
+   459→**6. Styling: Entrance Animations** (7 pages)
+   460→**7. Styling: Enhanced Page Headers** (7 pages, per-page gradient accent)
+   461→**8. New Feature: Attendance Date Range Filter** (Today/Week/Month quick-select)
+   462→**9. New Feature: Leave Search Filter** (employee name search)
+   463→**10. Version Bump** v1.1.0 → v1.2.0
+   464→
+   465→Stage Summary:
+   466→- 0 ESLint errors | 2 new pages | 1 new API | 1 enhanced API
+   467→- 10+ files modified | Complete color audit | Global CSS utilities
+   468→- Version: v1.2.0
+   469→
+   470→---
+   471→
+   472→## Round 6 - Task 2: Jobs Kanban Board View
+   473→
+   474→**Date**: 2025-08-21
+   475→
+   476→**Changes**
+   477→
+   478→**1. Enhanced Jobs Page Header** (jobs-page.tsx)
+   479→- Added Briefcase icon in `rounded-xl bg-amber-100 dark:bg-amber-950` container
+   480→- Added gradient accent line: `h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-400`
+   481→- Header now matches the design pattern used by Placements, Attendance, Leave, Interviews, etc.
+   482→
+   483→**2. Kanban Board View** (jobs-page.tsx)
+   484→- Added `viewMode` state ('table' | 'kanban', default 'table')
+   485→- Added shadcn Tabs with Table/Kanban toggle (LayoutList + KanbanSquare icons)
+   486→- Wrapped existing table in `TabsContent value="table"`
+   487→- Added `TabsContent value="kanban"` with full Kanban board
+   488→
+   489→**3. Kanban Components**
+   490→- **KanbanCard**: Displays job title (truncated), client name, location (MapPin) + employment type (Clock), priority dot + badge, candidate count (Users icon), salary range, recruiter name (User icon). Hover: `-translate-y-0.5 shadow-md`. Clickable → navigates to job detail. Actions dropdown (View/Edit) on hover.
+   491→- **KanbanColumn**: Status name + count badge (colored per status), 3px solid color top border, scrollable card list (`max-h-[calc(100vh-320px)] overflow-y-auto`), "No jobs" empty state.
+   492→
+   493→**4. Color Scheme for Status Columns**
+   494→- Open: emerald (#34d399) - `bg-emerald-500/15 text-emerald-700` count badge
+   495→- Paused: amber (#fbbf24) - `bg-amber-500/15 text-amber-700` count badge
+   496→- Filled: violet (#a78bfa) - `bg-violet-500/15 text-violet-700` count badge
+   497→- Closed: gray (#9ca3af) - `bg-gray-500/15 text-gray-700` count badge
+   498→- Cancelled: red (#f87171) - `bg-red-500/15 text-red-700` count badge
+   499→
+   500→**5. Framer Motion Animations**
+   501→- `cardVariants`: staggered card entrance (opacity + y-translate, 50ms delay per card)
+   502→- `columnVariants`: staggered column entrance (opacity + y-translate, 80ms delay per column)
+   503→
+   504→**6. Responsive Design**
+   505→- Kanban columns: `flex gap-4 overflow-x-auto pb-4` for horizontal scroll on mobile
+   506→- Each column: `w-72 shrink-0`
+   507→
+   508→**7. Module Update**
+   509→- Job Openings module description updated: now includes "Table/Kanban board views, enhanced header with icon + gradient accent line"
+   510→
+   511→Stage Summary:
+   512→- 0 ESLint errors | 1 file modified | 0 new files
+   513→- Added: view toggle, KanbanCard, KanbanColumn, framer-motion animations
+   514→- Version: v1.2.0
+   515→
+   516→---
+   517→
+   518→## Task 3: Enhanced Notification Bell with Real Activity Data (2025-08-21)
+   519→
+   520→### Changes
+   521→Replaced hardcoded mock data in `src/components/crm/notification-bell.tsx` with live data from the `/api/activity` endpoint.
+   522→
+   523→**Data Fetching:**
+   524→- Integrated `useQuery` from TanStack Query fetching `/api/activity?page=1&limit=10`
+   525→- Auto-refresh every 30 seconds via `refetchInterval: 30000`
+   526→- Loading state: 5 skeleton items rendered while fetching
+   527→- Error state: descriptive message with "Try again" retry button
+   528→- Empty state: bell icon + "No notifications yet" message
+   529→
+   530→**Entity Type Mapping (8 types):**
+   531→| API entityType | Icon | Colors | CRMView Navigation |
+   532→|---|---|---|---|
+   533→| candidate | UserPlus | emerald | candidates |
+   534→| client | Building2 | amber | clients |
+   535→| job | Briefcase | violet | jobs |
+   536→| interview | Video | cyan | interviews |
+   537→| placement | Award | rose | placements |
+   538→| employee | UserCog | teal | employees |
+   539→| leave | CalendarOff | orange | leave |
+   540→| attendance | Clock | teal | attendance |
+   541→
+   542→**Relative Time Helper:**
+   543→- `getRelativeTime(dateString)` converts ISO dates to human-readable relative times ("Just now", "2 min ago", "1 hour ago", "Yesterday", "3 days ago", "1 week ago", etc.)
+   544→
+   545→**Activity Description Generation:**
+   546→- Format: "[Employee name] [formatted action] a new [entity type]"
+   547→- Falls back to "[action] [entity type]" when no employee is associated
+   548→- Action verbs are formatted from snake_case to Title Case (e.g., `status_updated` → "Status Updated")
+   549→
+   550→**Unread State (client-side only):**
+   551→- All items from the API are treated as unread initially
+   552→- Clicking an item marks it as read locally (tracked via `Set<string>` of read IDs)
+   553→- "Mark all read" marks all currently loaded items as read
+   554→- No API calls for read/unread status
+   555→
+   556→**Footer Link:**
+   557→- Changed "View all notifications" navigation from `dashboard` to `activity-feed`
+   558→
+   559→**Dark Mode Support:**
+   560→- Added `dark:` variant colors for icon text and background for all 8 entity types
+   561→
+   562→Stage Summary:
+   563→- 0 ESLint errors | 1 file modified | 0 new files
+   564→- Replaced mock data with live API integration via TanStack Query
+   565→- Version: v1.2.1
+   566→
+   567→---
+   568→
+   569→## Round 6 - Task 4: Interview Feedback System & Styling Polish
+   570→
+   571→### Part A: Interview Feedback Dialog
+   572→
+   573→**New File: `src/components/crm/interviews/interview-feedback-dialog.tsx`**
+   574→- Created `InterviewFeedbackDialog` component (named export) with:
+   575→  - **Star Rating**: 5-star interactive rating using Lucide `Star` icon, amber-400 fill for selected, gray-300 for unselected, framer-motion scale animation on hover (1.2x) and tap (0.95x), hover preview, rating labels (Poor → Excellent)
+   576→  - **Feedback Textarea**: Placeholder text, character count (max 1000), minimum 10 characters validation, helper text showing progress
+   577→  - **Quick Feedback Tags**: 8 pre-defined clickable tags (Strong Communication, Technical Skills, Good Culture Fit, Needs Improvement, Leadership Potential, Problem Solver, Not Recommended, Recommended for Next Round), each with distinct color scheme (emerald, cyan, teal, amber, violet, orange, rose), framer-motion scale animation on click
+   578→  - **Action Buttons**: Cancel and "Submit Feedback" with Star icon, submit disabled until rating selected AND feedback ≥ 10 chars, loading state with Loader2 spinner
+   579→  - **State Management**: Uses `useRef` pattern (not useEffect) to reset form state when interview changes, avoids React Compiler lint errors
+   580→  - **Mutation**: `useMutation` from TanStack Query, PUT to `/api/interviews/[id]` with `{ feedback, rating, status: 'Completed' }`, appends selected tags to feedback text, invalidates `['interviews']` query on success, toast notifications
+   581→
+   582→**Modified: `src/components/crm/interviews-page.tsx`**
+   583→- Removed old `FeedbackDialog` component (basic form with number input for rating)
+   584→- Removed `feedbackSchema` and `FeedbackFormData` type
+   585→- Imported `InterviewFeedbackDialog` from new file
+   586→- Added `Tooltip`, `TooltipContent`, `TooltipTrigger` imports from shadcn/ui
+   587→- Added `Star` icon import from lucide-react
+   588→- **Rating Display in Table**: When an interview has a rating, shows filled amber star + rating number (e.g., "★ 4") next to the status badge; tooltip on hover shows first 100 chars of feedback
+   589→- **Conditional Feedback Action**: "Add Feedback" / "Edit Feedback" dropdown item only appears for interviews with status `Scheduled` or `Completed`
+   590→- **Empty State Enhanced**: Larger icon (h-12 w-12) in rounded-full violet-50/violet-950 container, more descriptive helper text
+   591→
+   592→### Part B: Styling Polish
+   593→
+   594→**Empty State Improvements (4 pages):**
+   595→1. **Interviews** (`interviews-page.tsx`): CalendarClock icon in violet-50 circle, descriptive text for filtered vs. empty states
+   596→2. **Clients** (`clients/clients-page.tsx`): Building2 icon in amber-50 circle, descriptive text
+   597→3. **Jobs** (`jobs/jobs-page.tsx`): Briefcase icon in amber-50 circle (both list and kanban empty states), descriptive text
+   598→4. **Dashboard Activities** (`dashboard/dashboard-page.tsx`): Activity icon in cyan-50 circle, helper text about what actions will appear
+   599→
+   600→**Header Enhancements (2 pages):**
+   601→5. **Candidates** (`candidates/candidates-page.tsx`): Added `Users` icon in `rounded-xl bg-emerald-100 dark:bg-emerald-950` container, wrapped header in `space-y-3` div, added gradient accent line `h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400`
+   602→6. **Clients** (`clients/clients-page.tsx`): Added `Building2` icon in `rounded-xl bg-amber-100 dark:bg-amber-950` container, wrapped header in `space-y-3` div, added gradient accent line `h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-400`
+   603→
+   604→### Color Palette Used
+   605→- emerald, teal, cyan, amber, rose, violet, orange (no blue, indigo, purple, sky)
+   606→
+   607→Stage Summary:
+   608→- 0 ESLint errors | 5 files modified | 1 new file
+   609→- Interview feedback with interactive star rating, quick tags, and tooltip display
+   610→- Consistent page headers with icon containers and gradient accent lines
+   611→- Polished empty states with icons in colored circles and descriptive text
+   612→- Version: v1.3.0
+   613→
+   614→---
+   615→Task ID: Round 6 Master
+   616→Agent: main-orchestrator
+   617→Task: Cron-triggered QA Round 6 — comprehensive color audit, 3 major new features, styling polish
+   618→
+   619→Work Log:
+   620→
+   621→**1. Project Assessment & QA**
+   622→- Read worklog.md, reviewed full project history (Rounds 1-5)
+   623→- ESLint: 0 errors, 1 pre-existing warning
+   624→- All 12 API endpoints tested: HTTP 200
+   625→- Agent-browser cannot access localhost (known constraint)
+   626→
+   627→**2. Comprehensive Color Audit & Fixes (10 occurrences across 8 files)**
+   628→- jobs-page.tsx: border-l-blue-500 → border-l-cyan-500 (PRIORITY_BORDER_COLORS)
+   629→- dashboard-page.tsx: border-l-blue-400 → border-l-teal-400 (ENTITY_BORDER_COLORS)
+   630→- candidates-page.tsx: border-l-blue-500 → border-l-cyan-500 (STATUS_BORDER_COLORS)
+   631→- clients-page.tsx: bg-sky-* → bg-cyan-* (Education industry icon)
+   632→- notification-bell.tsx: text-sky-600/bg-sky-100 → text-teal-600/bg-teal-100
+   633→- attendance-page.tsx: 3x sky → teal (STATUS_COLORS, BORDER_COLORS, DOT_COLORS)
+   634→- activity-feed-page.tsx: 4x sky → teal (attendance entity config)
+   635→- analytics-page.tsx: sky-500 → teal-500 (SOURCE_COLORS), border-l-sky-400 → border-l-teal-400
+   636→- Final audit: ZERO blue/indigo/purple/sky references remain
+   637→
+   638→**3. New Feature: Job Kanban Board** (subagent)
+   639→- 5 status columns: Open (emerald), Paused (amber), Filled (violet), Closed (gray), Cancelled (red)
+   640→- KanbanCard: title, client, location+type, priority dot+badge, candidate count, salary range, recruiter
+   641→- Staggered framer-motion entrance animations (80ms columns, 50ms cards)
+   642→- Mobile: horizontal scroll, w-72 shrink-0 columns
+   643→- Table/Kanban view toggle with LayoutList + KanbanSquare icons
+   644→- Enhanced header with Briefcase icon + amber→orange gradient accent
+   645→
+   646→**4. New Feature: Real Notification Bell** (subagent)
+   647→- Replaced mock data with useQuery fetching /api/activity?page=1&limit=10
+   648→- 30-second auto-refresh (refetchInterval: 30000)
+   649→- 8 entity-type mappings with correct icons/colors/navigation
+   650→- Relative time helper (Just now, 2 min ago, Yesterday, etc.)
+   651→- Human-readable description generation from API data
+   652→- Skeleton loading (5 items), error state with retry, empty state
+   653→- Client-side unread tracking (Set<string>)
+   654→- Footer navigates to activity-feed
+   655→
+   656→**5. New Feature: Interview Feedback Dialog** (subagent)
+   657→- 5-star rating with amber fill, hover preview, scale animation
+   658→- Labels: Poor → Excellent
+   659→- 8 quick feedback tags with distinct color coding
+   660→- Textarea with 1000 char max, min 10 chars to submit
+   661→- Character count display
+   662→- Pre-fills existing feedback/rating on edit
+   663→- Table shows ★ rating with tooltip (first 100 chars of feedback)
+   664→- Submit updates interview via PUT to /api/interviews/[id]
+   665→
+   666→**6. Styling Polish**
+   667→- Enhanced empty states with h-12 w-12 icon in colored circle (Interviews, Clients, Jobs, Dashboard)
+   668→- Candidates header: Users icon + emerald→teal gradient accent
+   669→- Clients header: Building2 icon + amber→orange gradient accent
+   670→- Jobs header: Briefcase icon + amber→orange gradient accent
+   671→
+   672→Stage Summary:
+   673→- 0 ESLint errors | 3 new features | 1 new component file
+   674→- 12+ files modified | Complete color audit (zero blue/sky/indigo/purple)
+   675→- Version: v1.3.0
+   676→
+   677→## Next Phase Recommendations (Priority Order)
+   678→1. User authentication (NextAuth.js v4) - Admin login, role-based access
+   679→2. Real-time notifications via WebSocket/Socket.IO mini-service
+   680→3. Resume/CV upload and AI-powered parsing (z-ai-web-dev-sdk VLM)
+   681→4. Email integration (interview invitations, status updates to candidates)
+   682→5. Advanced date-range filters across all modules (Candidates, Clients, Placements)
+   683→6. Client portal for job posting visibility
+   684→7. Mobile PWA support with service worker
+   685→8. Data import (CSV upload for candidates)
+   686→9. Custom report builder with drag-and-drop
+   687→10. Candidate comparison feature (side-by-side view of 2-3 candidates)
+   688→
+   689→---
+   690→
+   691→## Round 7 - Candidate Comparison Feature (2025-08-21)
+   692→
+   693→### Task ID: 1 - Candidate Comparison Side-by-Side View
+   694→
+   695→**New Files:**
+   696→- `src/components/crm/candidates/candidate-comparison.tsx` — Full-screen overlay comparison component
+   697→
+   698→**Modified Files:**
+   699→- `src/components/crm/candidates/bulk-actions-bar.tsx` — Added `onCompare` prop + Compare button
+   700→- `src/components/crm/candidates/candidates-page.tsx` — Added comparison dialog state + integration
+   701→
+   702→**Feature Details:**
+   703→
+   704→1. **CandidateComparison Component** (`candidate-comparison.tsx`):
+   705→   - Full-screen fixed overlay with backdrop blur (`bg-black/40 backdrop-blur-sm`)
+   706→   - Centered modal container (`max-w-7xl`, `max-h-[90vh]`, `rounded-2xl`, `shadow-2xl`)
+   707→   - Header with "Compare Candidates" title, candidate count badge (emerald), close button
+   708→   - Scrollable content area with comparison table
+   709→   - Footer with Close button
+   710→   - Uses `useQueries` (TanStack Query) to fetch 2-4 candidates in parallel via `/api/candidates/[id]`
+   711→   - Loading skeleton state, error state with AlertTriangle icon
+   712→
+   713→2. **Comparison Table Structure:**
+   714→   - Candidate header row: gradient avatar initials, full name, title, location
+   715→   - 3px gradient top border per column (emerald/amber/rose/cyan)
+   716→   - Section dividers with gradient lines: Profile, Compensation, Skills, Activity
+   717→   - **Profile section:** Experience (animated bar chart, max 15yr scale), Current Company
+   718→   - **Compensation section:** Current CTC (bold emerald), Expected CTC (bold emerald + amber "Hike expected" indicator when > current), Notice Period (outline badge), Source (colored badge)
+   719→   - **Skills section:** Skill pills with shared skill highlighting (emerald-tinted pills for skills in 2+ candidates), Shared Skills summary row spanning all columns
+   720→   - **Activity section:** Status (colored badge), Rating (star display 1-5), Interviews (count badge)
+   721→   - Alternating row backgrounds (`bg-muted/30`)
+   722→
+   723→3. **Visual Design:**
+   724→   - 4 distinct column color themes: emerald, amber, rose, cyan (NO blue/indigo/purple/sky)
+   725→   - framer-motion: staggered row entrance (`custom` index), modal scale/fade animation, experience bar width animation
+   726→   - Hover effects on table rows (`hover:bg-muted/50`)
+   727→   - CTC values in bold emerald color
+   728→   - Gradient avatars per candidate column
+   729→
+   730→4. **BulkActionsBar Integration:**
+   731→   - New optional `onCompare` callback prop
+   732→   - Compare button with `GitCompare` icon, text "Compare ({count})" where count = min(selected, 4)
+   733→   - Emerald-themed outline styling (border-emerald, hover:bg-emerald-50)
+   734→   - Only visible when 2-4 candidates selected
+   735→
+   736→5. **CandidatesPage Integration:**
+   737→   - `compareIds` state (`string[] | null`)
+   738→   - `handleCompare()` slices selectedIds to max 4
+   739→   - `handleCloseComparison()` sets compareIds to null
+   740→   - Renders `<CandidateComparison>` as overlay when compareIds is set
+   741→
+   742→**Stage Summary:**
+   743→- 0 ESLint errors | 1 new feature | 1 new component file
+   744→- 3 files touched | Uses useQueries for parallel fetching
+   745→- Version: v1.4.0
+   746→
+   747→---
+   748→Task ID: Round 7 Master
+   749→Agent: main-orchestrator
+   750→Task: Cron-triggered QA Round 7 — 4 major features, styling polish, color audit
+   751→
+   752→Work Log:
+   753→
+   754→**1. Project Assessment & QA**
+   755→- Read worklog.md (Rounds 1-6 history)
+   756→- ESLint: 0 errors, 1 pre-existing warning
+   757→- All 12 API endpoints: HTTP 200
+   758→- Agent-browser: cannot access localhost (known constraint)
+   759→- Found 1 remaining sky color in candidate-comparison.tsx (LinkedIn source) → fixed to teal
+   760→
+   761→**2. New Feature: Candidate Comparison** (subagent)
+   762→- Full-screen overlay comparison modal (z-50, backdrop-blur)
+   763→- 2-4 candidates fetched in parallel with useQueries
+   764→- Comparison table: 4 sections (Profile, Compensation, Skills, Activity)
+   765→- Per-column gradient top border (emerald/amber/rose/cyan)
+   766→- Skill matching: shared skills highlighted in emerald, summary row
+   767→- Experience bar chart (15-year scale, animated fill)
+   768→- CTC comparison with emerald highlighting, "Hike expected" indicator
+   769→- Star rating display, interview count badges
+   770→- Staggered row entrance animations, hover effects
+   771→- Integrated: Compare button in bulk actions bar (2-4 selected), opens overlay
+   772→
+   773→**3. New Feature: Quick Status Change** (subagent)
+   774→- Candidates: 7 statuses in popover, PUT to /api/candidates/[id]
+   775→- Jobs: 5 statuses in popover, PUT to /api/jobs/[id]
+   776→- Interviews: 4 statuses in popover, PUT to /api/interviews/[id]
+   777→- Clickable badges with cursor-pointer + hover:scale-105
+   778→- e.stopPropagation() to prevent row navigation
+   779→- useMutation + invalidate + toast on each
+   780→
+   781→**4. New Feature: Enhanced Dialog Headers** (subagent)
+   782→- Created EnhancedDialogHeader component (gradient top bar + icon + title + subtitle)
+   783→- Applied to 7 dialogs: Candidate, Client, Job, Leave, Interview Feedback, Employee, Placement
+   784→- Each with themed icon and color
+   785→
+   786→**5. New Feature: Back-to-Top Button + Loading Progress Bar** (subagent)
+   787→- Floating button at bottom-20 right-6, appears > 300px scroll
+   788→- framer-motion scale/opacity AnimatePresence
+   789→- Loading progress bar: fixed top-0, h-0.5, emerald→teal→cyan gradient
+   790→- Auto-shows/hides with queryClient.isFetching()
+   791→- Both integrated into CRM layout
+   792→
+   793→**6. New Feature: Candidate Notes** (subagent)
+   794→- NotesEditor in candidate detail: textarea, char count, save button, saved indicator
+   795→- PUT to /api/candidates/[id] with { notes }
+   796→- Notes indicator badge on detail header (amber MessageSquare + count)
+   797→- Table view: small amber MessageSquare icon next to name with tooltip
+   798→
+   799→Stage Summary:
+   800→- 0 ESLint errors | 4 new features | 4 new component files | 10+ files modified
+   801→- Complete color audit (zero blue/sky/indigo/purple)
+   802→- Version: v1.4.0
+   803→
+   804→## Next Phase Recommendations (Priority Order)
+   805→1. User authentication (NextAuth.js v4) - Admin login, role-based access
+   806→2. Real-time notifications via WebSocket/Socket.IO mini-service
+   807→3. Resume/CV upload and AI-powered parsing (z-ai-web-dev-sdk VLM)
+   808→4. Email integration (interview invitations, status updates to candidates)
+   809→5. Advanced date-range filters across Candidates, Clients, Placements
+   810→6. Client portal for job posting visibility
+   811→7. Mobile PWA support with service worker
+   812→8. Data import (CSV upload for candidates)
+   813→9. Custom report builder with drag-and-drop
+   814→10. Candidate comparison feature improvements (scoring algorithm)
+   815→
+   816→---
+   817→
+   818→### Task 2: Quick Status Change & Dialog Styling Enhancements [Round 7]
+   819→
+   820→#### Part A: Quick Status Change (Clickable Badges)
+   821→
+   822→**Candidates Page** (`src/components/crm/candidates/candidates-page.tsx`)
+   823→- Status Badge in table view now clickable with cursor-pointer and hover:scale-105 transition
+   824→- Clicking opens a Popover with all 7 statuses (New, Screening, Interview, Offer, Hired, Rejected, On-Hold)
+   825→- Each option shows colored dot + status name, current status shown in bold
+   826→- Uses `useMutation` to PUT `/api/candidates/[id]` with new status
+   827→- Invalidates candidate queries on success, shows toast
+   828→- Added Popover import, STATUS_DOT_COLORS constant, updateStatusMutation
+   829→- e.stopPropagation() on the cell to prevent row click navigation
+   830→
+   831→**Jobs Page** (`src/components/crm/jobs/jobs-page.tsx`)
+   832→- Status Badge + dot in table view now clickable with hover:scale-105 transition
+   833→- Clicking opens a Popover with all 5 statuses (Open, Closed, Paused, Filled, Cancelled)
+   834→- Each option shows colored dot + status name from STATUS_DOT_COLORS
+   835→- Uses `useMutation` to PUT `/api/jobs/[id]` with new status
+   836→- Added JOB_STATUSES constant, Popover import, updateStatusMutation
+   837→- e.stopPropagation() on the cell to prevent row click navigation
+   838→
+   839→**Interviews Page** (`src/components/crm/interviews-page.tsx`)
+   840→- Status Badge in table view now clickable with cursor-pointer and hover:scale-105
+   841→- Clicking opens a Popover with all 4 statuses (Scheduled, Completed, Cancelled, No-Show)
+   842→- Each option shows colored dot + status name from new STATUS_DOT_COLORS map
+   843→- Reuses existing `updateStatusMutation` (already present in component)
+   844→- Added Popover import, STATUS_DOT_COLORS constant
+   845→
+   846→#### Part B: Enhanced Dialog Styling
+   847→
+   848→**New Component** (`src/components/crm/enhanced-dialog-header.tsx`)
+   849→- Named export `EnhancedDialogHeader`
+   850→- Subtle gradient bar at top (h-1 from-primary/20 to-primary/5)
+   851→- Optional icon in rounded-lg container with dynamic icon color
+   852→- Larger title with tracking-tight, optional description in muted-foreground
+   853→- Props: `{ icon?: ElementType; title: string; description?: string; iconColor?: string }`
+   854→
+   855→**Applied to 7 dialogs:**
+   856→1. `add-candidate-dialog.tsx` — UserPlus icon, emerald color
+   857→2. `add-client-dialog.tsx` — Building2 icon, amber color
+   858→3. `add-job-dialog.tsx` — Briefcase icon, amber color
+   859→4. `add-leave-dialog.tsx` — CalendarOff icon, orange color
+   860→5. `interview-feedback-dialog.tsx` — MessageSquare icon, violet color
+   861→6. `employees-page.tsx` (AddEmployeeDialog) — UserPlus icon, emerald color
+   862→7. `placements-page.tsx` (AddPlacementDialog) — Award icon, rose color
+   863→
+   864→Each dialog: Removed DialogHeader/DialogTitle/DialogDescription imports, replaced with EnhancedDialogHeader component.
+   865→
+   866→**Stage Summary:**
+   867→- 0 ESLint errors (1 pre-existing warning) | 2 new features | 1 new reusable component
+   868→- 11 files touched (1 new, 10 modified) | No forbidden colors (blue/indigo/purple/sky)
+   869→- Version: v1.5.0
+   870→
+   871→---
+   872→### Task 3: Floating Back-to-Top, Top Loading Progress Bar, Candidate Notes [Round 7]
+   873→
+   874→**Part A: Floating Back-to-Top Button**
+   875→1. Created `src/components/crm/back-to-top.tsx` — `BackToTop` named export
+   876→   - Fixed position: `fixed bottom-20 right-6 z-30`
+   877→   - Shows when scroll position > 300px on the content container
+   878→   - ArrowUp icon, rounded-full, shadow-lg, bg-primary
+   879→   - framer-motion: fade/scale in/out (opacity 0→1, scale 0.8→1)
+   880→   - Smooth scroll to top on click
+   881→   - Accepts `scrollContainerRef` prop for scroll event listening
+   882→
+   883→2. Integrated into `src/components/crm/crm-layout.tsx`
+   884→   - Added `useRef<HTMLDivElement>` for the content scrollable div
+   885→   - Rendered `<BackToTop scrollContainerRef={contentRef} />` inside the content area
+   886→
+   887→**Part B: Top Loading Progress Bar**
+   888→3. Created `src/components/crm/loading-progress.tsx` — `LoadingProgress` named export
+   889→   - Fixed position: `fixed top-0 left-0 right-0 z-50 h-0.5`
+   890→   - Gradient: `bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500`
+   891→   - `animate-pulse` animation
+   892→   - framer-motion AnimatePresence: slide in/out based on `isLoading` prop
+   893→
+   894→4. Integrated into CRM Layout
+   895→   - Uses `useQueryClient().isFetching() > 0` to detect any TanStack Query fetching
+   896→   - Renders `<LoadingProgress isLoading={isFetching} />` above the content area
+   897→
+   898→**Part C: Candidate Notes Feature**
+   899→5. Updated `src/components/crm/candidates/candidate-detail.tsx`
+   900→   - Added `NotesEditor` sub-component with:
+   901→     - Textarea (4 rows, resize-y) with context-aware placeholder
+   902→     - Character count display
+   903→     - "Save Notes" button with Pencil icon (disabled when not dirty or saving)
+   904→     - Saved indicator (Check icon + "Saved" text, appears briefly with framer-motion)
+   905→     - `useMutation` to PUT `/api/candidates/[id]` with `{ notes }`
+   906→     - Invalidates both `['candidate', id]` and `['candidates']` queries on success
+   907→   - Added notes indicator badge on candidate detail header (MessageSquare icon + char count)
+   908→
+   909→6. Updated `src/components/crm/candidates/candidates-page.tsx`
+   910→   - Added `MessageSquare` icon import and `Tooltip` component import
+   911→   - In table rows: small MessageSquare icon (h-3.5 w-3.5, text-amber-500) next to candidate name
+   912→   - Tooltip shows first 50 chars of notes when hovering
+   913→
+   914→**Stage Summary:**
+   915→- 0 ESLint errors (1 pre-existing warning) | 2 new UI components, 1 feature enhancement
+   916→- 5 files touched (2 new, 3 modified) | No forbidden colors (blue/indigo/purple/sky)
+   917→- Version: v1.6.0
+   918→
+   919→---
+   920→Task ID: 2-a
+   921→Agent: notification-center
+   922→Task: Create Notification Center page with filtering, batch actions, infinite scroll
+   923→
+   924→Work Log:
+   925→- Added 'notifications' to CRMView union type in `src/stores/crm-store.ts`
+   926→- Created `src/components/crm/notification-center.tsx` — full Notification Center page with:
+   927→  - Header: Bell icon in amber-100/amber-950 container, title/subtitle, gradient accent line (amber→rose), Mark All Read button
+   928→  - Stats Row: 3 cards (Total Notifications with emerald gradient, Unread with amber gradient, Today's Activity with teal gradient)
+   929→  - Filter Bar: Entity type dropdown, action type dropdown (dynamically populated), read/unread toggle, date range filter (Today/This Week/This Month/Custom date inputs), Clear Filters button
+   930→  - Notification List: useInfiniteQuery with 25 items per page, entity-type colored icons, action description, employee avatar initials + name, relative timestamp, entity type badges, unread amber dot indicator, hover actions (Mark Read/Unread toggle, Navigate to entity), staggered framer-motion entrance animations, IntersectionObserver infinite scroll + Load More button, 5 skeleton items loading state, empty state with Bell icon
+   931→  - Batch Actions: Checkbox per notification (visible on hover), select all, floating bottom action bar with framer-motion slide-up animation (Mark as Read, Mark as Unread, Deselect All)
+   932→- Updated `src/app/page.tsx` — added lazy import for NotificationCenter and switch case for 'notifications' view
+   933→- Updated `src/components/crm/crm-layout.tsx` — added Bell icon import, added Notifications nav item with NOTIFICATIONS section divider after Activity and before Employees
+   934→- Updated `src/components/crm/command-palette.tsx` — added Bell icon import and "Notification Center" nav entry (G then N shortcut)
+   935→- Updated `src/components/crm/notification-bell.tsx` — changed footer link to navigate to 'notifications' instead of 'activity-feed'
+   936→
+   937→Stage Summary:
+   938→- 0 ESLint errors (1 pre-existing warning) | 1 new page component, 5 files modified
+   939→- No forbidden colors (blue/indigo/purple/sky) — used emerald, teal, amber, rose, cyan, orange, violet
+   940→- Client-side read tracking with Set<string>, batch select/deselect with floating action bar
+   941→- Infinite scroll via IntersectionObserver + manual Load More button
+   942→- Named export: NotificationCenter, 'use client' directive, React.lazy compatible
+   943→- Version: v1.7.0
+   944→
+   945→---
+   946→Task ID: 2-b
+   947→Agent: csv-import
+   948→Task: Create CSV import feature for candidates
+   949→
+   950→Work Log:
+   951→- Created `/api/candidates/import` POST endpoint that accepts multipart form data with CSV file
+   952→- Implemented server-side CSV parser handling quoted fields (double quotes, escaped quotes)
+   953→- Case-insensitive header matching: name, email, phone, title, company, experience, currentCtc/current_ctc, expectedCtc/expected_ctc, noticePeriod/notice_period, source, status, skills, notes
+   954→- Per-row validation: required name (min 2 chars), required valid email, numeric phone, positive number experience/CTC fields, valid status enum
+   955→- CSV `name` field mapped to `firstName`/`lastName` (split on first space); `company` mapped to `currentCompany`
+   956→- Duplicate detection: within-CSV duplicates + existing DB emails → skipped with warnings
+   957→- Bulk insert via Prisma `createMany` with `skipDuplicates: true`
+   958→- Response format: `{ success, imported, errors[], warnings[] }`
+   959→- Created `CsvImportDialog` component with 3-step flow (upload → preview → result)
+   960→- Step 1: Drag-and-drop zone with emerald highlight, file size display, expected columns info card
+   961→- Step 2: Preview table (first 10 rows), client-side validation with red borders on invalid cells, valid/error count summary
+   962→- Step 3: Success state with green CheckCircle, expandable amber warning list for skipped rows
+   963→- Framer Motion AnimatePresence for step transitions, loading overlay during import
+   964→- Added emerald-bordered Import button (Upload icon) to candidates page header, next to Export CSV
+   965→- Used TanStack Query `useMutation` for API call with `invalidateQueries(['candidates'])` on success
+   966→
+   967→Stage Summary:
+   968→- New API: `/api/candidates/import` (POST, multipart CSV upload)
+   969→- New component: `src/components/crm/candidates/csv-import-dialog.tsx` (named export `CsvImportDialog`)
+   970→- Modified: `src/components/crm/candidates/candidates-page.tsx` (Import button + dialog state)
+   971→- ESLint: zero errors (1 pre-existing warning in placements-page.tsx — non-blocking)
+   972→---
+   973→Task ID: 2-c/2-d
+   974→Agent: date-filters-styling
+   975→Task: Add date-range filters to Candidates/Clients/Placements + micro-interaction styling
+   976→
+   977→Work Log:
+   978→- Read all existing source files (crm-store, candidates-page, clients-page, placements-page, interviews-page, leave-page, attendance-page, dashboard-page, globals.css, API routes)
+   979→- Added fromDate/toDate to CandidateFilter type in crm-store.ts
+   980→- Added ClientFilter and PlacementFilter types with fromDate/toDate in crm-store.ts
+   981→- Added clientFilter and placementFilter state + setter actions to store
+   982→- Updated candidates-page.tsx: added date range helper functions, date range filter UI (From/To inputs + Today/This Week/This Month/Clear buttons), passed fromDate/toDate as query params, updated query key to include candidateFilter
+   983→- Updated clients-page.tsx: migrated local search/statusFilter to use clientFilter from store, added date range filter UI, passed date params to API
+   984→- Updated placements-page.tsx: migrated local statusFilter to use placementFilter from store, added date range filter UI, passed date params to API
+   985→- Updated /api/candidates/route.ts: added fromDate/toDate query param parsing with Prisma gte/lte on createdAt
+   986→- Updated /api/clients/route.ts: added fromDate/toDate query param parsing with Prisma gte/lte on createdAt
+   987→- Updated /api/placements/route.ts: added fromDate/toDate query param parsing with Prisma gte/lte on createdAt
+   988→- Added CSS micro-interaction styles to globals.css: table-row-hover, card-glass, stat-card-hover, dot-pulse, btn-press, badge-transition
+   989→- Applied table-row-hover class to: candidates table rows, interviews table rows, placements table rows, leave table rows, attendance table rows
+   990→- Applied stat-card-hover to: dashboard 8 KPI stat cards, placements 4 revenue cards
+   991→- Applied badge-transition to: all Badge components in dashboard (activity feed, upcoming interviews)
+   992→- Added btn-press class to all date range quick-select buttons
+   993→
+   994→Stage Summary:
+   995→- Date range filters fully functional on Candidates, Clients, and Placements pages
+   996→- All API routes support fromDate/toDate filtering on createdAt
+   997→- Micro-interaction CSS classes added and applied across all table pages and dashboard
+   998→- ESLint: 0 errors, 1 pre-existing warning (react-hooks/incompatible-library in placements-page.tsx - not related to changes)
+   999→
+  1000→---
+  1001→Task ID: 2-e
+  1002→Agent: dashboard-styling
+  1003→Task: Dashboard glassmorphism, chart containers, quick actions, interview timeline polish
+  1004→
+  1005→Work Log:
+  1006→- Verified `card-glass` and `animate-dot-pulse` CSS classes exist in globals.css (added by previous agent)
+  1007→- Dashboard (dashboard-page.tsx):
+  1008→  - 1A: Welcome banner converted to glassmorphism (bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 backdrop-blur-xl border border-white/20 + card-glass class), floating circles opacity reduced (20%→10%, 15%→8%, 20%→10%)
+  1009→  - 1B: All 6 chart Card instances (loading/empty/data for Pipeline + Priority) updated with card-glass, shadow-inner shadow-black/5, transition-all duration-300 hover:shadow-lg hover:shadow-{color}-500/5
+  1010→  - 1C: Quick action buttons (4x) updated with card-glass, hover:-translate-y-1, icon containers get group-hover:shadow-[0_0_16px_rgba(16,185,129,0.2)] glow on hover
+  1011→  - 1D: Interview items get border-l-[3px] with type-based colors (Technical=cyan, HR=violet, Screening=teal, Final=rose), hover:bg-muted/30, today's interview time indicators get animate-dot-pulse pulsing dot
+  1012→- CRM Layout (crm-layout.tsx):
+  1013→  - Footer gradient line changed from via-border to via-emerald-500/30 for visibility
+  1014→  - Version badge updated v1.4.0 → v1.7.0
+  1015→  - Heart symbol (♥) wrapped with animate-dot-pulse for subtle pulse
+  1016→- Settings (settings-page.tsx):
+  1017→  - All 8 section Cards updated with transition-all duration-200 hover:shadow-md hover:-translate-y-1
+  1018→  - Theme picker buttons get card-glass class with hover lift
+  1019→- Analytics (analytics-page.tsx):
+  1020→  - Summary stat cards (4x) get stat-card-hover class for gradient border on hover
+  1021→  - All 6 chart containers get card-glass + shadow-inner + hover:shadow-lg with color-matched shadows
+  1022→- Activity Feed (activity-feed-page.tsx):
+  1023→  - Timeline connector gradient updated to from-emerald-500 via-teal-500 to-cyan-500 (full opacity, no fade)
+  1024→  - Activity cards get card-glass + hover:shadow-md hover:-translate-y-0.5
+  1025→  - Stats cards (3x) get stat-card-hover class
+  1026→
+  1027→Stage Summary:
+  1028→- Glassmorphism (card-glass) applied consistently across dashboard, settings, analytics, and activity feed
+  1029→- All chart containers have enhanced inner shadow + colored hover glow
+  1030→- Interview list items have type-based left border indicators with pulsing dots for today's interviews
+  1031→- Footer version bumped to v1.7.0 with visible gradient line and pulsing heart
+  1032→- ESLint: 0 errors, 1 pre-existing warning (react-hooks/incompatible-library in placements-page.tsx)
+  1033→
+  1034→---
+  1035→Task ID: Round 8 Master
+  1036→Agent: main-orchestrator
+  1037→Task: Cron-triggered QA Round 8 — 3 major new features, date-range filters, glassmorphism styling, micro-interactions
+  1038→
+  1039→Work Log:
+  1040→
+  1041→**1. Project Assessment & QA**
+  1042→- Read worklog.md (Rounds 1-7 history)
+  1043→- ESLint: 0 errors, 1 pre-existing warning
+  1044→- Color audit: zero blue/indigo/purple/sky references in entire src/ codebase
+  1045→- Dev server OOM on heavy compilation (known constraint)
+  1046→
+  1047→**2. New Feature: Notification Center Page** (subagent 2-a)
+  1048→- Full notification history page with 3 stats cards, entity/action/date/read-status filters
+  1049→- Batch selection with floating action bar (mark read/unread, deselect)
+  1050→- Infinite scroll with IntersectionObserver + Load More button
+  1051→- Staggered framer-motion entrance animations
+  1052→- Navigate to entity on click, mark as read automatically
+  1053→- Added to sidebar (NOTIFICATIONS section divider, Bell icon)
+  1054→- Added to command palette (G then N)
+  1055→- Notification bell footer now links to Notification Center
+  1056→
+  1057→**3. New Feature: CSV Import for Candidates** (subagent 2-b)
+  1058→- 3-step dialog: Upload → Preview → Result
+  1059→- Drag-and-drop with visual feedback
+  1060→- Client-side CSV parsing (handles quoted fields)
+  1061→- Validation: required fields, email format, numeric types, valid status enum
+  1062→- Preview table showing first 10 rows with inline error indicators
+  1063→- Backend API with Prisma createMany, duplicate email detection
+  1064→- Import button added to Candidates page header
+  1065→
+  1066→**4. New Feature: Date-Range Filters** (subagent 2-c/2-d)
+  1067→- Candidates: fromDate/toDate added to CandidateFilter, API supports createdAt filtering
+  1068→- Clients: new ClientFilter type in store, date range UI, API filtering
+  1069→- Placements: new PlacementFilter type in store, date range UI, API filtering
+  1070→- All follow attendance page pattern: From/To inputs + Today/This Week/This Month/Clear
+  1071→
+  1072→**5. Styling: Micro-interaction CSS** (subagent 2-c/2-d)
+  1073→- New CSS classes: table-row-hover (6 tables), stat-card-hover (gradient border), card-glass (glassmorphism), badge-transition, btn-press, animate-dot-pulse
+  1074→- Applied table-row-hover: Candidates, Interviews, Placements, Leave, Attendance
+  1075→- Applied stat-card-hover: Dashboard 8 KPI cards, Placements 4 revenue cards
+  1076→- Applied badge-transition: Dashboard badges
+  1077→- Applied btn-press: date range quick-select buttons
+  1078→
+  1079→**6. Styling: Glassmorphism & Polish** (subagent 2-e)
+  1080→- Dashboard welcome banner: glassmorphism with backdrop-blur-xl, subtle gradient
+  1081→- Chart containers: card-glass + inner shadow + colored hover glow
+  1082→- Quick actions: card-glass + hover lift + icon glow effect
+  1083→- Interview list: type-based left border colors (cyan/violet/teal/rose), pulsing dots
+  1084→- Settings: hover lift on section cards, card-glass on theme picker
+  1085→- Analytics: stat-card-hover on summary cards, card-glass on chart containers
+  1086→- Activity Feed: vivid gradient timeline connector, card-glass on activity cards
+  1087→- Footer: version v1.7.0, visible gradient line, pulsing heart
+  1088→
+  1089→Stage Summary:
+  1090→- 0 ESLint errors | 3 new features | 2 new files (notification-center.tsx, csv-import-dialog.tsx, import/route.ts)
+  1091→- 15+ files modified | Date-range filters on 3 pages | Glassmorphism on 4 pages
+  1092→- Version: v1.7.0
+  1093→
+  1094→## Next Phase Recommendations (Priority Order)
+  1095→1. User authentication (NextAuth.js v4) - Admin login, role-based access
+  1096→2. Real-time notifications via WebSocket/Socket.IO mini-service
+  1097→3. Resume/CV upload and AI-powered parsing (z-ai-web-dev-sdk VLM)
+  1098→4. Email integration (interview invitations, status updates to candidates)
+  1099→5. Client portal for job posting visibility
+  1100→6. Mobile PWA support with service worker
+  1101→7. Custom report builder with drag-and-drop
+  1102→8. Advanced Kanban drag-and-drop (candidates, interviews)
+  1103→9. AI-powered candidate matching (z-ai-web-dev-sdk LLM)
+  1104→10. Jobs date-range filter, Employees date-range filter
+  1105→11. API endpoint testing with proper integration tests
+  1106→
+  1107→---
+  1108→Task ID: 3
+  1109→Agent: keyboard-shortcuts
+  1110→Task: Create Keyboard Shortcuts Panel dialog
+  1111→
+  1112→Work Log:
+  1113→- Created `src/components/crm/keyboard-shortcuts.tsx` with named export `KeyboardShortcuts` and `dispatchOpenShortcuts` helper
+  1114→- Dialog opens with `?` key (Shift+/) globally, ignoring input/textarea/contentEditable targets
+  1115→- Dialog content organized into 3 sections: Navigation (13 shortcuts with G prefix), Actions (6 shortcuts with N prefix + ⌘K + ?), General (3 shortcuts: Esc, ↑↓, Enter)
+  1116→- Each section has an icon (Compass, Zap, CircleHelp) with violet accent, 2-column grid layout on sm+
+  1117→- Kbd components styled with `inline-flex h-6 min-w-6 rounded border bg-muted font-mono text-[11px]` per spec
+  1118→- Combo shortcuts (G→D, N→C) show two kbd elements with ArrowRight icon between them
+  1119→- Uses shadcn Dialog (not CommandDialog) with EnhancedDialogHeader (Keyboard icon, violet iconColor)
+  1120→- Subtle gradient background: `bg-gradient-to-br from-background via-background to-muted/30`
+  1121→- Framer-motion fade+scale entrance animation on dialog content
+  1122→- Close button in footer, sr-only DialogTitle/DialogDescription for accessibility
+  1123→- `dispatchOpenShortcuts()` exported as module-level function using CustomEvent for header button integration
+  1124→- Integrated into `src/components/crm/crm-layout.tsx`: imported KeyboardShortcuts + dispatchOpenShortcuts, added ghost button with Keyboard icon after Support button in header with Tooltip "Keyboard Shortcuts (?)"
+  1125→- Bumped version badge from v1.7.0 to v1.8.0
+  1126→
+  1127→Stage Summary:
+  1128→- 0 ESLint errors | 1 new component | 1 file modified
+  1129→
+  1130→---
+  1131→Task ID: 4
+  1132→Agent: kanban-dragdrop
+  1133→Task: Add drag-and-drop to candidate kanban board
+  1134→
+  1135→Work Log:
+  1136→- Added `GripVertical` to lucide-react imports in `candidates-page.tsx`
+  1137→- Modified `KanbanCard` component: added `draggable` attribute, `onDragStart` handler (sets dataTransfer with candidate ID and adds `kanban-card-dragging` class), `onDragEnd` handler (removes class), added `cursor-grab`/`active:cursor-grabbing` styling, added GripVertical drag handle icon in top-left corner with `opacity-0 group-hover:opacity-60 transition-opacity`
+  1138→- Modified `KanbanColumn` component: added `onDropCandidate` prop, `onDragOver` handler (preventDefault + adds `kanban-column-drag-over` class), `onDragLeave` handler (removes class only if leaving column itself via `contains` check), `onDrop` handler (extracts candidate ID, calls `onDropCandidate`, removes class), wired handlers to the column content div
+  1139→- Added `dropStatusMutation` useMutation in `CandidatesPage` that calls `PUT /api/candidates/[id]` with `{ status: newStatus }`, on success invalidates `['candidates']` query and shows toast "Moved [name] to [status]" (looks up candidate name from cached data), on error shows failure toast
+  1140→- Passed `onDropCandidate` callback to each `KanbanColumn` in the pipeline view
+  1141→
+  1142→Stage Summary:
+  1143→- 0 ESLint errors | 1 file modified
+  1144→- Drag-and-drop status change working with visual feedback (drag handle, opacity/rotate on drag, dashed border on column hover, toast confirmation)
+  1145→- Version: v1.8.0

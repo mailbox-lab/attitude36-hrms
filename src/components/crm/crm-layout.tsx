@@ -27,12 +27,14 @@ import {
   ChevronLeft,
   HeadphonesIcon,
   Bell,
+  Keyboard,
 } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { KeyboardShortcuts, dispatchOpenShortcuts } from '@/components/crm/keyboard-shortcuts'
 import { CommandPalette } from '@/components/crm/command-palette'
 import { NotificationBell } from '@/components/crm/notification-bell'
 import { ThemeToggle } from '@/components/crm/theme-toggle'
@@ -224,6 +226,14 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
             </TooltipTrigger>
             <TooltipContent>Support</TooltipContent>
           </Tooltip>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={dispatchOpenShortcuts}>
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Keyboard Shortcuts (?)</TooltipContent>
+          </Tooltip>
         </header>
 
         {/* Loading Progress Bar */}
@@ -247,13 +257,13 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
             <div className="hidden sm:flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                  <span className="animate-subtle-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </span>
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v1.7.0
+                v1.8.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with <span className="animate-dot-pulse inline-block">♥</span> in India</span>
@@ -269,6 +279,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
+      <KeyboardShortcuts />
       <CommandPalette />
     </div>
   )

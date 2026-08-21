@@ -270,7 +270,7 @@ function AttendanceTable({
 }) {
   if (isLoading) {
     return (
-      <Card className="rounded-xl shadow-md">
+      <Card className="rounded-xl shadow-md card-glass">
         <CardContent className="p-4">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -291,7 +291,7 @@ function AttendanceTable({
 
   if (records.length === 0) {
     return (
-      <Card className="rounded-xl shadow-md">
+      <Card className="rounded-xl shadow-md card-glass">
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm font-medium text-muted-foreground">No attendance records found</p>
@@ -304,7 +304,7 @@ function AttendanceTable({
   }
 
   return (
-    <Card className="rounded-xl shadow-md">
+    <Card className="rounded-xl shadow-md card-glass">
       <div className="max-h-96 overflow-y-auto">
         <Table>
           <TableHeader>
@@ -575,7 +575,7 @@ export function AttendancePage() {
       />
 
       {/* Date Range Filter */}
-      <div className="rounded-lg bg-muted/50 p-3">
+      <div className="filter-bar rounded-lg bg-muted/50 p-3">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
@@ -606,7 +606,7 @@ export function AttendancePage() {
               <Button
                 variant={attendanceFilter.fromDate === todayStr && attendanceFilter.toDate === todayStr ? 'default' : 'outline'}
                 size="sm"
-                className="h-7 text-xs px-2.5"
+                className="h-7 text-xs px-2.5 btn-press"
                 onClick={() => setAttendanceFilter(getTodayRange())}
               >
                 Today
@@ -614,7 +614,7 @@ export function AttendancePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs px-2.5"
+                className="h-7 text-xs px-2.5 btn-press"
                 onClick={() => setAttendanceFilter(getThisWeekRange())}
               >
                 This Week
@@ -622,7 +622,7 @@ export function AttendancePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs px-2.5"
+                className="h-7 text-xs px-2.5 btn-press"
                 onClick={() => setAttendanceFilter(getThisMonthRange())}
               >
                 This Month
@@ -631,7 +631,7 @@ export function AttendancePage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive"
+                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive btn-press"
                   onClick={() => setAttendanceFilter({ fromDate: '', toDate: '', date: '', status: attendanceFilter.status })}
                 >
                   <X className="h-3 w-3" />

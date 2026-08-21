@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -203,9 +203,11 @@ function formatDuration(minutes: number) {
 function ScheduleInterviewDialog({
   open,
   onOpenChange,
+  defaultDate,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  defaultDate?: Date | null
 }) {
   const queryClient = useQueryClient()
 
@@ -222,6 +224,15 @@ function ScheduleInterviewDialog({
       meetingLink: '',
     },
   })
+
+  useEffect(() => {
+    if (open && defaultDate) {
+      const y = defaultDate.getFullYear()
+      const m = String(defaultDate.getMonth() + 1).padStart(2, '0')
+      const d = String(defaultDate.getDate()).padStart(2, '0')
+      form.setValue('date', `${y}-${m}-${d}T09:00`)
+    }
+  }, [open, defaultDate, form])
 
   const { data: candidates } = useQuery<{ data: CandidateOption[] }>({
     queryKey: ['candidates-list'],
@@ -459,7 +470,13 @@ export function InterviewsPage() {
   const [typeFilter, setTypeFilter] = useState('All')
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null)
   const [feedbackInterview, setFeedbackInterview] = useState<Interview | null>(null)
+
+  const handleScheduleFromCalendar = useCallback((date: Date) => {
+    setScheduleDate(date)
+    setScheduleDialogOpen(true)
+  }, [])
 
   const { data, isLoading, error } = useQuery<{ data: Interview[] }>({
     queryKey: ['interviews', statusFilter, typeFilter, search],
@@ -560,10 +577,10 @@ export function InterviewsPage() {
       </div>
 
       {/* Calendar View */}
-      {viewMode === 'calendar' && <InterviewCalendar />}
+      {viewMode === 'calendar' && <InterviewCalendar onScheduleInterview={handleScheduleFromCalendar} />}
 
       {/* Filters */}
-      {viewMode === 'list' && <div className="rounded-lg bg-muted/50 p-2">
+      {viewMode === 'list' && <div className="filter-bar rounded-lg bg-muted/50 p-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -849,7 +866,11 @@ export function InterviewsPage() {
       {/* Dialogs */}
       <ScheduleInterviewDialog
         open={scheduleDialogOpen}
-        onOpenChange={setScheduleDialogOpen}
+        onOpenChange={(open) => {
+          setScheduleDialogOpen(open)
+          if (!open) setScheduleDate(null)
+        }}
+        defaultDate={scheduleDate}
       />
       <InterviewFeedbackDialog
         open={!!feedbackInterview}

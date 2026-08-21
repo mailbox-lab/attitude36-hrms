@@ -150,7 +150,7 @@ function BalanceCard({
   const strokeDashoffset = circumference * (1 - (isLoading ? 0 : percentage) / 100)
 
   return (
-    <Card className={`relative overflow-hidden rounded-xl shadow-md ring-1 ${config.ringColor} bg-gradient-to-br ${config.gradient}`}>
+    <Card className={`relative overflow-hidden rounded-xl shadow-md ring-1 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${config.ringColor} bg-gradient-to-br ${config.gradient}`}>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1">
@@ -243,7 +243,7 @@ function LeaveTable({
 }) {
   if (isLoading) {
     return (
-      <Card className="rounded-xl shadow-md">
+      <Card className="rounded-xl shadow-md card-glass">
         <CardContent className="p-4">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -266,7 +266,7 @@ function LeaveTable({
 
   if (requests.length === 0) {
     return (
-      <Card className="rounded-xl shadow-md">
+      <Card className="rounded-xl shadow-md card-glass">
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <CalendarOff className="h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm font-medium text-muted-foreground">No leave requests found</p>
@@ -279,7 +279,7 @@ function LeaveTable({
   }
 
   return (
-    <Card className="rounded-xl shadow-md">
+    <Card className="rounded-xl shadow-md card-glass">
       <div className="max-h-96 overflow-y-auto">
         <Table>
           <TableHeader>
@@ -552,7 +552,7 @@ export function LeavePage() {
       </section>
 
       {/* Filters */}
-      <div className="rounded-lg bg-muted/50 p-2">
+      <div className="filter-bar rounded-lg bg-muted/50 p-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

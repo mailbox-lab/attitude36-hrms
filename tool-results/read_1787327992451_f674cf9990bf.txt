@@ -1,0 +1,1030 @@
+     1→'use client'
+     2→
+     3→import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+     4→import { motion, AnimatePresence } from 'framer-motion'
+     5→import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+     6→import { useCRMStore, type CRMView } from '@/stores/crm-store'
+     7→import { Card, CardContent } from '@/components/ui/card'
+     8→import { Button } from '@/components/ui/button'
+     9→import { Badge } from '@/components/ui/badge'
+    10→import { Skeleton } from '@/components/ui/skeleton'
+    11→import { Checkbox } from '@/components/ui/checkbox'
+    12→import {
+    13→  Select,
+    14→  SelectContent,
+    15→  SelectItem,
+    16→  SelectTrigger,
+    17→  SelectValue,
+    18→} from '@/components/ui/select'
+    19→import { Input } from '@/components/ui/input'
+    20→import { Label } from '@/components/ui/label'
+    21→import {
+    22→  Bell,
+    23→  Activity,
+    24→  BellDot,
+    25→  Clock,
+    26→  CheckCheck,
+    27→  Filter,
+    28→  X,
+    29→  Loader2,
+    30→  ChevronDown,
+    31→  Eye,
+    32→  EyeOff,
+    33→  ExternalLink,
+    34→  Users,
+    35→  Building2,
+    36→  Briefcase,
+    37→  Video,
+    38→  Award,
+    39→  UserCog,
+    40→  CalendarOff,
+    41→} from 'lucide-react'
+    42→import { cn } from '@/lib/utils'
+    43→import { toast } from 'sonner'
+    44→
+    45→// ===== Types =====
+    46→
+    47→interface ActivityItem {
+    48→  id: string
+    49→  entityType: string
+    50→  entityId: string | null
+    51→  action: string
+    52→  details: string | null
+    53→  employeeId: string | null
+    54→  employee: { id: string; name: string } | null
+    55→  createdAt: string
+    56→}
+    57→
+    58→interface ActivityResponse {
+    59→  data: ActivityItem[]
+    60→  pagination: {
+    61→    page: number
+    62→    limit: number
+    63→    total: number
+    64→    totalPages: number
+    65→  }
+    66→}
+    67→
+    68→// ===== Constants =====
+    69→
+    70→const ENTITY_CONFIG: Record<string, {
+    71→  icon: typeof Users
+    72→  label: string
+    73→  color: string
+    74→  bgClass: string
+    75→  badgeClass: string
+    76→  view: CRMView
+    77→}> = {
+    78→  candidate: {
+    79→    icon: Users,
+    80→    label: 'Candidate',
+    81→    color: 'text-emerald-600 dark:text-emerald-400',
+    82→    bgClass: 'bg-emerald-100 dark:bg-emerald-950/50',
+    83→    badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+    84→    view: 'candidates',
+    85→  },
+    86→  client: {
+    87→    icon: Building2,
+    88→    label: 'Client',
+    89→    color: 'text-amber-600 dark:text-amber-400',
+    90→    bgClass: 'bg-amber-100 dark:bg-amber-950/50',
+    91→    badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+    92→    view: 'clients',
+    93→  },
+    94→  job: {
+    95→    icon: Briefcase,
+    96→    label: 'Job',
+    97→    color: 'text-violet-600 dark:text-violet-400',
+    98→    bgClass: 'bg-violet-100 dark:bg-violet-950/50',
+    99→    badgeClass: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400',
+   100→    view: 'jobs',
+   101→  },
+   102→  interview: {
+   103→    icon: Video,
+   104→    label: 'Interview',
+   105→    color: 'text-cyan-600 dark:text-cyan-400',
+   106→    bgClass: 'bg-cyan-100 dark:bg-cyan-950/50',
+   107→    badgeClass: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-400',
+   108→    view: 'interviews',
+   109→  },
+   110→  placement: {
+   111→    icon: Award,
+   112→    label: 'Placement',
+   113→    color: 'text-rose-600 dark:text-rose-400',
+   114→    bgClass: 'bg-rose-100 dark:bg-rose-950/50',
+   115→    badgeClass: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400',
+   116→    view: 'placements',
+   117→  },
+   118→  employee: {
+   119→    icon: UserCog,
+   120→    label: 'Employee',
+   121→    color: 'text-teal-600 dark:text-teal-400',
+   122→    bgClass: 'bg-teal-100 dark:bg-teal-950/50',
+   123→    badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400',
+   124→    view: 'employees',
+   125→  },
+   126→  leave: {
+   127→    icon: CalendarOff,
+   128→    label: 'Leave',
+   129→    color: 'text-orange-600 dark:text-orange-400',
+   130→    bgClass: 'bg-orange-100 dark:bg-orange-950/50',
+   131→    badgeClass: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400',
+   132→    view: 'leave',
+   133→  },
+   134→  attendance: {
+   135→    icon: Clock,
+   136→    label: 'Attendance',
+   137→    color: 'text-teal-600 dark:text-teal-400',
+   138→    bgClass: 'bg-teal-100 dark:bg-teal-950/50',
+   139→    badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400',
+   140→    view: 'attendance',
+   141→  },
+   142→}
+   143→
+   144→const ACTION_LABELS: Record<string, string> = {
+   145→  created: 'Created',
+   146→  status_updated: 'Status Updated',
+   147→  interview_scheduled: 'Interview Scheduled',
+   148→  skills_updated: 'Skills Updated',
+   149→  moved_to_pipeline: 'Moved to Pipeline',
+   150→  note_added: 'Note Added',
+   151→  resume_updated: 'Resume Updated',
+   152→  rating_updated: 'Rating Updated',
+   153→  contact_updated: 'Contact Updated',
+   154→  status_changed: 'Status Changed',
+   155→  job_posted: 'Job Posted',
+   156→  meeting_scheduled: 'Meeting Scheduled',
+   157→  priority_changed: 'Priority Changed',
+   158→  requirement_updated: 'Requirements Updated',
+   159→  salary_updated: 'Salary Updated',
+   160→  candidate_assigned: 'Candidates Assigned',
+   161→  closed: 'Closed',
+   162→  scheduled: 'Scheduled',
+   163→  completed: 'Completed',
+   164→  rescheduled: 'Rescheduled',
+   165→  feedback_added: 'Feedback Added',
+   166→  cancelled: 'Cancelled',
+   167→  reminder_sent: 'Reminder Sent',
+   168→  offered: 'Offered',
+   169→  accepted: 'Accepted',
+   170→  joined: 'Joined',
+   171→  backed_out: 'Backed Out',
+   172→  commission_generated: 'Commission Generated',
+   173→  profile_updated: 'Profile Updated',
+   174→  role_changed: 'Role Changed',
+   175→  department_changed: 'Department Changed',
+   176→  deactivated: 'Deactivated',
+   177→  requested: 'Requested',
+   178→  approved: 'Approved',
+   179→  rejected: 'Rejected',
+   180→  balance_updated: 'Balance Updated',
+   181→  clocked_in: 'Clocked In',
+   182→  clocked_out: 'Clocked Out',
+   183→  late_marked: 'Late Marked',
+   184→  half_day: 'Half Day',
+   185→  absent_marked: 'Absent Marked',
+   186→}
+   187→
+   188→const ENTITY_ACTIONS: Record<string, string[]> = {
+   189→  candidate: ['created', 'status_updated', 'interview_scheduled', 'skills_updated', 'moved_to_pipeline', 'note_added', 'resume_updated', 'rating_updated'],
+   190→  client: ['created', 'contact_updated', 'status_changed', 'job_posted', 'meeting_scheduled'],
+   191→  job: ['created', 'priority_changed', 'status_updated', 'requirement_updated', 'salary_updated', 'candidate_assigned', 'closed'],
+   192→  interview: ['scheduled', 'completed', 'rescheduled', 'feedback_added', 'cancelled', 'reminder_sent'],
+   193→  placement: ['offered', 'accepted', 'joined', 'backed_out', 'commission_generated'],
+   194→  employee: ['created', 'profile_updated', 'role_changed', 'department_changed', 'deactivated'],
+   195→  leave: ['requested', 'approved', 'rejected', 'cancelled', 'balance_updated'],
+   196→  attendance: ['clocked_in', 'clocked_out', 'late_marked', 'half_day', 'absent_marked'],
+   197→}
+   198→
+   199→// ===== Helpers =====
+   200→
+   201→function getRelativeTime(dateStr: string): string {
+   202→  const now = Date.now()
+   203→  const then = new Date(dateStr).getTime()
+   204→  const diffMs = now - then
+   205→  const diffSeconds = Math.floor(diffMs / 1000)
+   206→  const diffMinutes = Math.floor(diffSeconds / 60)
+   207→  const diffHours = Math.floor(diffMinutes / 60)
+   208→  const diffDays = Math.floor(diffHours / 24)
+   209→  const diffWeeks = Math.floor(diffDays / 7)
+   210→
+   211→  if (diffSeconds < 60) return 'Just now'
+   212→  if (diffMinutes === 1) return '1 min ago'
+   213→  if (diffMinutes < 60) return `${diffMinutes} min ago`
+   214→  if (diffHours === 1) return '1 hour ago'
+   215→  if (diffHours < 24) return `${diffHours} hours ago`
+   216→  if (diffDays === 1) return 'Yesterday'
+   217→  if (diffDays < 7) return `${diffDays} days ago`
+   218→  if (diffWeeks === 1) return '1 week ago'
+   219→  return `${diffWeeks} weeks ago`
+   220→}
+   221→
+   222→function isToday(dateStr: string): boolean {
+   223→  const d = new Date(dateStr)
+   224→  const now = new Date()
+   225→  return d.getDate() === now.getDate() &&
+   226→    d.getMonth() === now.getMonth() &&
+   227→    d.getFullYear() === now.getFullYear()
+   228→}
+   229→
+   230→function isThisWeek(dateStr: string): boolean {
+   231→  const d = new Date(dateStr)
+   232→  const now = new Date()
+   233→  const startOfWeek = new Date(now)
+   234→  startOfWeek.setDate(now.getDate() - now.getDay())
+   235→  startOfWeek.setHours(0, 0, 0, 0)
+   236→  return d >= startOfWeek
+   237→}
+   238→
+   239→function isThisMonth(dateStr: string): boolean {
+   240→  const d = new Date(dateStr)
+   241→  const now = new Date()
+   242→  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+   243→}
+   244→
+   245→function getDateRangeFilter(dateRange: string, customFrom?: string, customTo?: string): { from?: string; to?: string } {
+   246→  if (dateRange === 'today') {
+   247→    const today = new Date().toISOString().split('T')[0]
+   248→    return { from: today, to: today }
+   249→  }
+   250→  if (dateRange === 'week') {
+   251→    const now = new Date()
+   252→    const start = new Date(now)
+   253→    start.setDate(now.getDate() - now.getDay())
+   254→    start.setHours(0, 0, 0, 0)
+   255→    return { from: start.toISOString().split('T')[0], to: now.toISOString().split('T')[0] }
+   256→  }
+   257→  if (dateRange === 'month' && !customFrom && !customTo) {
+   258→    const now = new Date()
+   259→    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+   260→    return { from: start.toISOString().split('T')[0], to: now.toISOString().split('T')[0] }
+   261→  }
+   262→  if (dateRange === 'custom' && customFrom && customTo) {
+   263→    return { from: customFrom, to: customTo }
+   264→  }
+   265→  return {}
+   266→}
+   267→
+   268→// ===== Animation Variants =====
+   269→
+   270→const containerVariants = {
+   271→  hidden: { opacity: 0 },
+   272→  visible: {
+   273→    opacity: 1,
+   274→    transition: { staggerChildren: 0.04 },
+   275→  },
+   276→}
+   277→
+   278→const itemVariants = {
+   279→  hidden: { opacity: 0, y: 12 },
+   280→  visible: {
+   281→    opacity: 1,
+   282→    y: 0,
+   283→    transition: { type: 'spring', stiffness: 300, damping: 24 },
+   284→  },
+   285→}
+   286→
+   287→const statCardVariants = {
+   288→  hidden: { opacity: 0, y: 20, scale: 0.95 },
+   289→  visible: (i: number) => ({
+   290→    opacity: 1,
+   291→    y: 0,
+   292→    scale: 1,
+   293→    transition: { delay: i * 0.1, type: 'spring', stiffness: 300, damping: 24 },
+   294→  }),
+   295→}
+   296→
+   297→// ===== Sub-components =====
+   298→
+   299→function NotificationSkeleton() {
+   300→  return (
+   301→    <div className="flex items-start gap-3 rounded-xl border bg-card p-4">
+   302→      <Skeleton className="h-5 w-5 shrink-0 rounded" />
+   303→      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+   304→      <div className="flex-1 space-y-2">
+   305→        <Skeleton className="h-4 w-3/4" />
+   306→        <Skeleton className="h-3 w-1/2" />
+   307→      </div>
+   308→    </div>
+   309→  )
+   310→}
+   311→
+   312→function EmptyState() {
+   313→  return (
+   314→    <motion.div
+   315→      initial={{ opacity: 0, y: 20 }}
+   316→      animate={{ opacity: 1, y: 0 }}
+   317→      transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
+   318→      className="flex flex-col items-center justify-center py-20 text-center"
+   319→    >
+   320→      <div className="relative mb-6">
+   321→        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/20 to-rose-500/20 blur-2xl scale-150" />
+   322→        <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-100 to-rose-100 dark:from-amber-500/20 dark:to-rose-500/20">
+   323→          <Bell className="h-9 w-9 text-amber-600 dark:text-amber-400" />
+   324→        </div>
+   325→      </div>
+   326→      <h3 className="text-lg font-semibold mb-2">No Notifications</h3>
+   327→      <p className="text-sm text-muted-foreground max-w-sm">
+   328→        Notifications will appear here as you interact with the recruitment pipeline. Start by adding candidates, scheduling interviews, or managing placements.
+   329→      </p>
+   330→    </motion.div>
+   331→  )
+   332→}
+   333→
+   334→// ===== Main Component =====
+   335→
+   336→export function NotificationCenter() {
+   337→  const { navigate } = useCRMStore()
+   338→
+   339→  // Filters
+   340→  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all')
+   341→  const [actionFilter, setActionFilter] = useState<string>('all')
+   342→  const [readFilter, setReadFilter] = useState<'all' | 'unread' | 'read'>('all')
+   343→  const [dateRange, setDateRange] = useState<string>('all')
+   344→  const [customFrom, setCustomFrom] = useState<string>('')
+   345→  const [customTo, setCustomTo] = useState<string>('')
+   346→
+   347→  // Client-side read tracking
+   348→  const [readIds, setReadIds] = useState<Set<string>>(new Set())
+   349→
+   350→  // Selection for batch actions
+   351→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+   352→
+   353→  // Refs
+   354→  const observerRef = useRef<IntersectionObserver | null>(null)
+   355→  const loadMoreRef = useRef<HTMLDivElement>(null)
+   356→
+   357→  // Build filter key for query invalidation
+   358→  const filterKey = useMemo(
+   359→    () => `${entityTypeFilter}-${actionFilter}-${dateRange}-${customFrom}-${customTo}`,
+   360→    [entityTypeFilter, actionFilter, dateRange, customFrom, customTo]
+   361→  )
+   362→
+   363→  // Fetch notifications with infinite query
+   364→  const fetchPage = useCallback(async ({ pageParam = 1 }: { pageParam?: number }): Promise<ActivityResponse> => {
+   365→    const params = new URLSearchParams()
+   366→    params.set('page', String(pageParam))
+   367→    params.set('limit', '25')
+   368→    if (entityTypeFilter !== 'all') params.set('entityType', entityTypeFilter)
+   369→    if (actionFilter !== 'all') params.set('action', actionFilter)
+   370→    const res = await fetch(`/api/activity?${params.toString()}`)
+   371→    if (!res.ok) throw new Error('Failed to fetch activities')
+   372→    return res.json()
+   373→  }, [entityTypeFilter, actionFilter])
+   374→
+   375→  const {
+   376→    data,
+   377→    isLoading,
+   378→    isFetchingNextPage,
+   379→    isError,
+   380→    hasNextPage,
+   381→    fetchNextPage,
+   382→  } = useInfiniteQuery({
+   383→    queryKey: ['notifications', filterKey],
+   384→    queryFn: fetchPage,
+   385→    initialPageParam: 1,
+   386→    getNextPageParam: (lastPage) => {
+   387→      return lastPage.pagination.page < lastPage.pagination.totalPages
+   388→        ? lastPage.pagination.page + 1
+   389→        : undefined
+   390→    },
+   391→    staleTime: 30_000,
+   392→  })
+   393→
+   394→  // Flatten pages
+   395→  const allActivities = useMemo(() => {
+   396→    return data?.pages.flatMap(p => p.data) ?? []
+   397→  }, [data])
+   398→
+   399→  const totalRecords = data?.pages[0]?.pagination.total ?? 0
+   400→
+   401→  // Stats query (unfiltered)
+   402→  const { data: statsData } = useQuery({
+   403→    queryKey: ['notifications-stats'],
+   404→    queryFn: async () => {
+   405→      const res = await fetch('/api/activity?page=1&limit=1000')
+   406→      if (!res.ok) throw new Error('Failed')
+   407→      const json = await res.json()
+   408→      return json.data as ActivityItem[]
+   409→    },
+   410→    staleTime: 60_000,
+   411→  })
+   412→
+   413→  const stats = useMemo(() => {
+   414→    const items = statsData ?? []
+   415→    const totalCount = items.length
+   416→    const unreadCount = items.filter(a => !readIds.has(a.id)).length
+   417→    const todayCount = items.filter(a => isToday(a.createdAt)).length
+   418→    return { totalCount, unreadCount, todayCount }
+   419→  }, [statsData, readIds])
+   420→
+   421→  // Available actions based on entity type
+   422→  const availableActions = useMemo(() => {
+   423→    if (entityTypeFilter === 'all') return Object.keys(ACTION_LABELS)
+   424→    return ENTITY_ACTIONS[entityTypeFilter] || []
+   425→  }, [entityTypeFilter])
+   426→
+   427→  // Apply client-side filters (read/unread, date range)
+   428→  const filteredActivities = useMemo(() => {
+   429→    let filtered = allActivities
+   430→
+   431→    // Date range filter (client-side since API doesn't support it)
+   432→    if (dateRange !== 'all') {
+   433→      const range = getDateRangeFilter(dateRange, customFrom, customTo)
+   434→      if (range.from && range.to) {
+   435→        filtered = filtered.filter(a => {
+   436→          const dateStr = a.createdAt.split('T')[0]
+   437→          return dateStr >= range.from! && dateStr <= range.to!
+   438→        })
+   439→      }
+   440→    }
+   441→
+   442→    // Read/unread filter
+   443→    if (readFilter === 'unread') {
+   444→      filtered = filtered.filter(a => !readIds.has(a.id))
+   445→    } else if (readFilter === 'read') {
+   446→      filtered = filtered.filter(a => readIds.has(a.id))
+   447→    }
+   448→
+   449→    return filtered
+   450→  }, [allActivities, dateRange, customFrom, customTo, readFilter, readIds])
+   451→
+   452→  // Infinite scroll with IntersectionObserver
+   453→  useEffect(() => {
+   454→    if (observerRef.current) observerRef.current.disconnect()
+   455→    observerRef.current = new IntersectionObserver(
+   456→      (entries) => {
+   457→        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+   458→          fetchNextPage()
+   459→        }
+   460→      },
+   461→      { rootMargin: '200px' }
+   462→    )
+   463→    if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current)
+   464→    return () => observerRef.current?.disconnect()
+   465→  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+   466→
+   467→  // Handlers
+   468→  const hasActiveFilters = entityTypeFilter !== 'all' || actionFilter !== 'all' || readFilter !== 'all' || dateRange !== 'all'
+   469→
+   470→  const clearFilters = () => {
+   471→    setEntityTypeFilter('all')
+   472→    setActionFilter('all')
+   473→    setReadFilter('all')
+   474→    setDateRange('all')
+   475→    setCustomFrom('')
+   476→    setCustomTo('')
+   477→    setSelectedIds(new Set())
+   478→  }
+   479→
+   480→  const handleMarkAllRead = () => {
+   481→    if (allActivities.length === 0) return
+   482→    setReadIds(new Set(allActivities.map(a => a.id)))
+   483→    toast.success('All notifications marked as read')
+   484→  }
+   485→
+   486→  const handleToggleRead = (id: string) => {
+   487→    setReadIds(prev => {
+   488→      const next = new Set(prev)
+   489→      if (next.has(id)) {
+   490→        next.delete(id)
+   491→      } else {
+   492→        next.add(id)
+   493→      }
+   494→      return next
+   495→    })
+   496→  }
+   497→
+   498→  const handleNotificationClick = (item: ActivityItem) => {
+   499→    setReadIds(prev => new Set(prev).add(item.id))
+   500→    const config = ENTITY_CONFIG[item.entityType]
+   501→    if (config) {
+   502→      navigate(config.view)
+   503→    }
+   504→  }
+   505→
+   506→  const handleToggleSelect = (id: string) => {
+   507→    setSelectedIds(prev => {
+   508→      const next = new Set(prev)
+   509→      if (next.has(id)) {
+   510→        next.delete(id)
+   511→      } else {
+   512→        next.add(id)
+   513→      }
+   514→      return next
+   515→    })
+   516→  }
+   517→
+   518→  const handleSelectAll = () => {
+   519→    if (selectedIds.size === filteredActivities.length) {
+   520→      setSelectedIds(new Set())
+   521→    } else {
+   522→      setSelectedIds(new Set(filteredActivities.map(a => a.id)))
+   523→    }
+   524→  }
+   525→
+   526→  const handleBatchMarkRead = () => {
+   527→    setReadIds(prev => {
+   528→      const next = new Set(prev)
+   529→      selectedIds.forEach(id => next.add(id))
+   530→      return next
+   531→    })
+   532→    toast.success(`${selectedIds.size} notification${selectedIds.size !== 1 ? 's' : ''} marked as read`)
+   533→    setSelectedIds(new Set())
+   534→  }
+   535→
+   536→  const handleBatchMarkUnread = () => {
+   537→    setReadIds(prev => {
+   538→      const next = new Set(prev)
+   539→      selectedIds.forEach(id => next.delete(id))
+   540→      return next
+   541→    })
+   542→    toast.success(`${selectedIds.size} notification${selectedIds.size !== 1 ? 's' : ''} marked as unread`)
+   543→    setSelectedIds(new Set())
+   544→  }
+   545→
+   546→  return (
+   547→    <div className="space-y-6">
+   548→      {/* Page Header */}
+   549→      <motion.div
+   550→        initial={{ opacity: 0, y: -10 }}
+   551→        animate={{ opacity: 1, y: 0 }}
+   552→        transition={{ duration: 0.3 }}
+   553→        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+   554→      >
+   555→        <div className="flex items-center gap-3">
+   556→          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+   557→            <Bell className="h-5 w-5" />
+   558→          </div>
+   559→          <div>
+   560→            <h1 className="text-xl font-bold tracking-tight">Notification Center</h1>
+   561→            <p className="text-sm text-muted-foreground">View and manage all system activities</p>
+   562→          </div>
+   563→        </div>
+   564→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-rose-400 sm:hidden" />
+   565→        <Button
+   566→          variant="outline"
+   567→          size="sm"
+   568→          className="hidden sm:flex items-center gap-1.5"
+   569→          onClick={handleMarkAllRead}
+   570→          disabled={stats.unreadCount === 0}
+   571→        >
+   572→          <CheckCheck className="h-3.5 w-3.5" />
+   573→          Mark All Read
+   574→        </Button>
+   575→        {/* Mobile mark all read */}
+   576→        <Button
+   577→          variant="outline"
+   578→          size="sm"
+   579→          className="sm:hidden self-end"
+   580→          onClick={handleMarkAllRead}
+   581→          disabled={stats.unreadCount === 0}
+   582→        >
+   583→          <CheckCheck className="h-3.5 w-3.5 mr-1" />
+   584→          Mark All Read
+   585→        </Button>
+   586→      </motion.div>
+   587→
+   588→      {/* Gradient accent line (desktop) */}
+   589→      <div className="hidden sm:block h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-rose-400" />
+   590→
+   591→      {/* Stats Row */}
+   592→      {!isLoading && (
+   593→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   594→          {[
+   595→            {
+   596→              icon: Activity,
+   597→              label: 'Total Notifications',
+   598→              value: stats.totalCount,
+   599→              gradient: 'from-emerald-500 to-teal-500',
+   600→              bgGradient: 'from-emerald-500/10 to-teal-500/10',
+   601→              accentLine: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+   602→            },
+   603→            {
+   604→              icon: BellDot,
+   605→              label: 'Unread',
+   606→              value: stats.unreadCount,
+   607→              gradient: 'from-amber-500 to-orange-500',
+   608→              bgGradient: 'from-amber-500/10 to-orange-500/10',
+   609→              accentLine: 'bg-gradient-to-r from-amber-500 to-orange-500',
+   610→            },
+   611→            {
+   612→              icon: Clock,
+   613→              label: "Today's Activity",
+   614→              value: stats.todayCount,
+   615→              gradient: 'from-teal-500 to-cyan-500',
+   616→              bgGradient: 'from-teal-500/10 to-cyan-500/10',
+   617→              accentLine: 'bg-gradient-to-r from-teal-500 to-cyan-500',
+   618→            },
+   619→          ].map((stat, i) => {
+   620→            const Icon = stat.icon
+   621→            return (
+   622→              <motion.div
+   623→                key={stat.label}
+   624→                custom={i}
+   625→                variants={statCardVariants}
+   626→                initial="hidden"
+   627→                animate="visible"
+   628→              >
+   629→                <Card className="relative overflow-hidden rounded-xl border bg-card p-4">
+   630→                  <div className={cn('absolute top-0 left-0 right-0 h-0.5', stat.accentLine)} />
+   631→                  <CardContent className="relative p-0 flex items-center gap-3">
+   632→                    <div className={cn(
+   633→                      'flex h-10 w-10 items-center justify-center rounded-full',
+   634→                      'bg-gradient-to-br text-white shadow-sm',
+   635→                      stat.gradient,
+   636→                    )}>
+   637→                      <Icon className="h-5 w-5" />
+   638→                    </div>
+   639→                    <div>
+   640→                      <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+   641→                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+   642→                    </div>
+   643→                  </CardContent>
+   644→                </Card>
+   645→              </motion.div>
+   646→            )
+   647→          })}
+   648→        </div>
+   649→      )}
+   650→
+   651→      {/* Stats loading skeleton */}
+   652→      {isLoading && (
+   653→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   654→          {Array.from({ length: 3 }).map((_, i) => (
+   655→            <Skeleton key={i} className="h-24 rounded-xl" />
+   656→          ))}
+   657→        </div>
+   658→      )}
+   659→
+   660→      {/* Filter Bar */}
+   661→      <motion.div
+   662→        initial={{ opacity: 0, y: 10 }}
+   663→        animate={{ opacity: 1, y: 0 }}
+   664→        transition={{ delay: 0.15, duration: 0.3 }}
+   665→        className="rounded-xl border bg-card p-4 space-y-3"
+   666→      >
+   667→        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+   668→          <Filter className="h-4 w-4" />
+   669→          <span className="font-medium">Filters</span>
+   670→        </div>
+   671→        <div className="flex flex-wrap items-center gap-2">
+   672→          {/* Entity Type */}
+   673→          <Select value={entityTypeFilter} onValueChange={(v) => { setEntityTypeFilter(v); setActionFilter('all') }}>
+   674→            <SelectTrigger className="w-[160px] h-9 text-sm">
+   675→              <SelectValue placeholder="Entity Type" />
+   676→            </SelectTrigger>
+   677→            <SelectContent>
+   678→              <SelectItem value="all">All Entities</SelectItem>
+   679→              {Object.entries(ENTITY_CONFIG).map(([key, cfg]) => (
+   680→                <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+   681→              ))}
+   682→            </SelectContent>
+   683→          </Select>
+   684→
+   685→          {/* Action Type */}
+   686→          <Select value={actionFilter} onValueChange={setActionFilter}>
+   687→            <SelectTrigger className="w-[180px] h-9 text-sm">
+   688→              <SelectValue placeholder="Action Type" />
+   689→            </SelectTrigger>
+   690→            <SelectContent>
+   691→              <SelectItem value="all">All Actions</SelectItem>
+   692→              {availableActions.map((action) => (
+   693→                <SelectItem key={action} value={action}>
+   694→                  {ACTION_LABELS[action] || action.replace(/_/g, ' ')}
+   695→                </SelectItem>
+   696→              ))}
+   697→            </SelectContent>
+   698→          </Select>
+   699→
+   700→          {/* Read/Unread Toggle */}
+   701→          <Select value={readFilter} onValueChange={(v) => setReadFilter(v as 'all' | 'unread' | 'read')}>
+   702→            <SelectTrigger className="w-[120px] h-9 text-sm">
+   703→              <SelectValue placeholder="Status" />
+   704→            </SelectTrigger>
+   705→            <SelectContent>
+   706→              <SelectItem value="all">All</SelectItem>
+   707→              <SelectItem value="unread">Unread</SelectItem>
+   708→              <SelectItem value="read">Read</SelectItem>
+   709→            </SelectContent>
+   710→          </Select>
+   711→
+   712→          {/* Date Range */}
+   713→          <Select
+   714→            value={dateRange}
+   715→            onValueChange={(v) => {
+   716→              setDateRange(v)
+   717→              if (v !== 'custom') {
+   718→                setCustomFrom('')
+   719→                setCustomTo('')
+   720→              }
+   721→            }}
+   722→          >
+   723→            <SelectTrigger className="w-[140px] h-9 text-sm">
+   724→              <SelectValue placeholder="Date Range" />
+   725→            </SelectTrigger>
+   726→            <SelectContent>
+   727→              <SelectItem value="all">All Time</SelectItem>
+   728→              <SelectItem value="today">Today</SelectItem>
+   729→              <SelectItem value="week">This Week</SelectItem>
+   730→              <SelectItem value="month">This Month</SelectItem>
+   731→              <SelectItem value="custom">Custom</SelectItem>
+   732→            </SelectContent>
+   733→          </Select>
+   734→
+   735→          {/* Custom Date Inputs */}
+   736→          {dateRange === 'custom' && (
+   737→            <motion.div
+   738→              initial={{ opacity: 0, width: 0 }}
+   739→              animate={{ opacity: 1, width: 'auto' }}
+   740→              exit={{ opacity: 0, width: 0 }}
+   741→              className="flex items-center gap-2 overflow-hidden"
+   742→            >
+   743→              <div className="flex items-center gap-1.5">
+   744→                <Label className="text-xs text-muted-foreground whitespace-nowrap">From</Label>
+   745→                <Input
+   746→                  type="date"
+   747→                  className="h-9 w-[130px] text-sm"
+   748→                  value={customFrom}
+   749→                  onChange={(e) => setCustomFrom(e.target.value)}
+   750→                />
+   751→              </div>
+   752→              <div className="flex items-center gap-1.5">
+   753→                <Label className="text-xs text-muted-foreground whitespace-nowrap">To</Label>
+   754→                <Input
+   755→                  type="date"
+   756→                  className="h-9 w-[130px] text-sm"
+   757→                  value={customTo}
+   758→                  onChange={(e) => setCustomTo(e.target.value)}
+   759→                />
+   760→              </div>
+   761→            </motion.div>
+   762→          )}
+   763→
+   764→          {/* Clear Filters */}
+   765→          {hasActiveFilters && (
+   766→            <Button
+   767→              variant="ghost"
+   768→              size="sm"
+   769→              className="h-9 text-xs gap-1 text-muted-foreground hover:text-foreground"
+   770→              onClick={clearFilters}
+   771→            >
+   772→              <X className="h-3 w-3" />
+   773→              Clear Filters
+   774→            </Button>
+   775→          )}
+   776→        </div>
+   777→      </motion.div>
+   778→
+   779→      {/* Select All + Results Count */}
+   780→      {!isLoading && filteredActivities.length > 0 && (
+   781→        <div className="flex items-center justify-between">
+   782→          <div className="flex items-center gap-2">
+   783→            <Checkbox
+   784→              checked={selectedIds.size === filteredActivities.length && filteredActivities.length > 0}
+   785→              onCheckedChange={handleSelectAll}
+   786→              aria-label="Select all notifications"
+   787→            />
+   788→            <span className="text-xs text-muted-foreground">
+   789→              {selectedIds.size > 0
+   790→                ? `${selectedIds.size} of ${filteredActivities.length} selected`
+   791→                : `${filteredActivities.length} notification${filteredActivities.length !== 1 ? 's' : ''}`}
+   792→            </span>
+   793→          </div>
+   794→        </div>
+   795→      )}
+   796→
+   797→      {/* Notification List */}
+   798→      {isLoading ? (
+   799→        <div className="space-y-3">
+   800→          {Array.from({ length: 5 }).map((_, i) => (
+   801→            <NotificationSkeleton key={i} />
+   802→          ))}
+   803→        </div>
+   804→      ) : isError ? (
+   805→        <div className="flex flex-col items-center justify-center py-16 text-center">
+   806→          <p className="text-sm text-destructive">Failed to load notifications. Please try again.</p>
+   807→        </div>
+   808→      ) : filteredActivities.length === 0 ? (
+   809→        <EmptyState />
+   810→      ) : (
+   811→        <motion.div
+   812→          variants={containerVariants}
+   813→          initial="hidden"
+   814→          animate="visible"
+   815→          key={filterKey}
+   816→          className="space-y-2"
+   817→        >
+   818→          {filteredActivities.map((item) => {
+   819→            const config = ENTITY_CONFIG[item.entityType] || ENTITY_CONFIG.candidate
+   820→            const Icon = config.icon
+   821→            const isRead = readIds.has(item.id)
+   822→            const isSelected = selectedIds.has(item.id)
+   823→            const actionLabel = ACTION_LABELS[item.action] || item.action.replace(/_/g, ' ')
+   824→            const employeeName = item.employee?.name
+   825→            const initials = employeeName
+   826→              ? employeeName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+   827→              : '??'
+   828→
+   829→            return (
+   830→              <motion.div
+   831→                key={item.id}
+   832→                variants={itemVariants}
+   833→                className={cn(
+   834→                  'group relative flex items-start gap-3 rounded-xl border bg-card p-4 transition-all duration-200',
+   835→                  'hover:shadow-md hover:border-border/80',
+   836→                  !isRead && 'border-l-2 border-l-amber-400',
+   837→                )}
+   838→              >
+   839→                {/* Checkbox */}
+   840→                <div className="flex items-center pt-1">
+   841→                  <Checkbox
+   842→                    checked={isSelected}
+   843→                    onCheckedChange={() => handleToggleSelect(item.id)}
+   844→                    aria-label={`Select notification ${item.id}`}
+   845→                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+   846→                  />
+   847→                </div>
+   848→
+   849→                {/* Unread indicator dot */}
+   850→                {!isRead && (
+   851→                  <div className="flex items-center pt-1.5">
+   852→                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+   853→                  </div>
+   854→                )}
+   855→                {isRead && <div className="w-2" />}
+   856→
+   857→                {/* Entity icon */}
+   858→                <div
+   859→                  className={cn(
+   860→                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+   861→                    config.bgClass,
+   862→                  )}
+   863→                >
+   864→                  <Icon className={cn('h-4.5 w-4.5', config.color)} />
+   865→                </div>
+   866→
+   867→                {/* Content */}
+   868→                <div
+   869→                  className="flex-1 min-w-0 cursor-pointer"
+   870→                  onClick={() => handleNotificationClick(item)}
+   871→                >
+   872→                  <div className="flex items-start justify-between gap-2">
+   873→                    <p className={cn(
+   874→                      'text-sm leading-relaxed',
+   875→                      !isRead ? 'font-medium text-foreground' : 'text-muted-foreground',
+   876→                    )}>
+   877→                      {employeeName
+   878→                        ? `${employeeName} ${actionLabel.toLowerCase()} a new ${config.label.toLowerCase()}`
+   879→                        : `${actionLabel} ${config.label.toLowerCase()}`}
+   880→                    </p>
+   881→                    <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+   882→                      {getRelativeTime(item.createdAt)}
+   883→                    </span>
+   884→                  </div>
+   885→
+   886→                  {/* Employee avatar + name + details */}
+   887→                  <div className="mt-1.5 flex items-center gap-2">
+   888→                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+   889→                      {initials}
+   890→                    </div>
+   891→                    {employeeName && (
+   892→                      <span className="text-xs text-muted-foreground">
+   893→                        {employeeName}
+   894→                      </span>
+   895→                    )}
+   896→                    {item.details && (
+   897→                      <span className="text-xs text-muted-foreground/60 truncate">
+   898→                        · {item.details}
+   899→                      </span>
+   900→                    )}
+   901→                  </div>
+   902→
+   903→                  {/* Entity type badge */}
+   904→                  <div className="mt-2 flex items-center gap-2">
+   905→                    <Badge
+   906→                      variant="secondary"
+   907→                      className={cn('text-[10px] font-medium px-2 py-0 h-5 rounded-full', config.badgeClass)}
+   908→                    >
+   909→                      {config.label}
+   910→                    </Badge>
+   911→                    <Badge variant="outline" className="text-[10px] font-medium px-2 py-0 h-5 rounded-full">
+   912→                      {actionLabel}
+   913→                    </Badge>
+   914→                  </div>
+   915→                </div>
+   916→
+   917→                {/* Hover actions */}
+   918→                <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+   919→                  <Button
+   920→                    variant="ghost"
+   921→                    size="icon"
+   922→                    className="h-7 w-7"
+   923→                    onClick={(e) => { e.stopPropagation(); handleToggleRead(item.id) }}
+   924→                    aria-label={isRead ? 'Mark as unread' : 'Mark as read'}
+   925→                  >
+   926→                    {isRead
+   927→                      ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+   928→                      : <Eye className="h-3.5 w-3.5 text-muted-foreground" />}
+   929→                  </Button>
+   930→                  <Button
+   931→                    variant="ghost"
+   932→                    size="icon"
+   933→                    className="h-7 w-7"
+   934→                    onClick={(e) => { e.stopPropagation(); handleNotificationClick(item) }}
+   935→                    aria-label="Navigate to entity"
+   936→                  >
+   937→                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+   938→                  </Button>
+   939→                </div>
+   940→              </motion.div>
+   941→            )
+   942→          })}
+   943→        </motion.div>
+   944→      )}
+   945→
+   946→      {/* Infinite scroll trigger / Load More */}
+   947→      {hasNextPage && allActivities.length > 0 && (
+   948→        <div ref={loadMoreRef} className="flex justify-center py-6">
+   949→          {isFetchingNextPage ? (
+   950→            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+   951→              <Loader2 className="h-4 w-4 animate-spin" />
+   952→              <span>Loading more notifications...</span>
+   953→            </div>
+   954→          ) : (
+   955→            <Button
+   956→              variant="outline"
+   957→              size="sm"
+   958→              className="gap-2"
+   959→              onClick={() => fetchNextPage()}
+   960→            >
+   961→              <ChevronDown className="h-4 w-4" />
+   962→              Load More
+   963→            </Button>
+   964→          )}
+   965→        </div>
+   966→      )}
+   967→
+   968→      {/* End of list indicator */}
+   969→      {!hasNextPage && filteredActivities.length > 0 && (
+   970→        <motion.div
+   971→          initial={{ opacity: 0 }}
+   972→          animate={{ opacity: 1 }}
+   973→          className="flex items-center justify-center py-4 text-xs text-muted-foreground"
+   974→        >
+   975→          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+   976→          <span className="px-4">You&apos;ve reached the end</span>
+   977→          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+   978→        </motion.div>
+   979→      )}
+   980→
+   981→      {/* Batch Actions Floating Bar */}
+   982→      <AnimatePresence>
+   983→        {selectedIds.size > 0 && (
+   984→          <motion.div
+   985→            initial={{ y: 100, opacity: 0 }}
+   986→            animate={{ y: 0, opacity: 1 }}
+   987→            exit={{ y: 100, opacity: 0 }}
+   988→            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   989→            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+   990→          >
+   991→            <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-card/95 backdrop-blur-sm px-4 py-3 shadow-lg">
+   992→              <div className="flex items-center gap-2">
+   993→                <span className="text-sm font-medium">{selectedIds.size} selected</span>
+   994→              </div>
+   995→              <div className="h-5 w-px bg-border" />
+   996→              <Button
+   997→                variant="outline"
+   998→                size="sm"
+   999→                className="h-8 text-xs gap-1.5"
+  1000→                onClick={handleBatchMarkRead}
+  1001→              >
+  1002→                <Eye className="h-3.5 w-3.5" />
+  1003→                Mark as Read
+  1004→              </Button>
+  1005→              <Button
+  1006→                variant="outline"
+  1007→                size="sm"
+  1008→                className="h-8 text-xs gap-1.5"
+  1009→                onClick={handleBatchMarkUnread}
+  1010→              >
+  1011→                <EyeOff className="h-3.5 w-3.5" />
+  1012→                Mark as Unread
+  1013→              </Button>
+  1014→              <Button
+  1015→                variant="ghost"
+  1016→                size="sm"
+  1017→                className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+  1018→                onClick={() => setSelectedIds(new Set())}
+  1019→              >
+  1020→                <X className="h-3.5 w-3.5" />
+  1021→                Deselect All
+  1022→              </Button>
+  1023→            </div>
+  1024→          </motion.div>
+  1025→        )}
+  1026→      </AnimatePresence>
+  1027→    </div>
+  1028→  )
+  1029→}
+  1030→

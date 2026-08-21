@@ -18,9 +18,11 @@ import {
   ChevronsRight,
   CalendarDays,
   CalendarX,
+  CalendarPlus,
   User,
   Clock,
   MapPin,
+  Plus,
   Video,
 } from 'lucide-react'
 
@@ -469,11 +471,13 @@ function DayInterviewsDialog({
   onOpenChange,
   day,
   interviews,
+  onScheduleInterview,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   day: Date | null
   interviews: Interview[]
+  onScheduleInterview?: (date: Date) => void
 }) {
   if (!day) return null
 
@@ -496,6 +500,20 @@ function DayInterviewsDialog({
           <DialogDescription>
             {dayInterviews.length} interview{dayInterviews.length !== 1 ? 's' : ''} scheduled
           </DialogDescription>
+          {onScheduleInterview && (
+            <Button
+              variant="outline"
+              className="mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+              onClick={() => {
+                onScheduleInterview(day)
+                onOpenChange(false)
+              }}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              <CalendarPlus className="mr-1.5 h-3.5 w-3.5" />
+              Schedule Interview
+            </Button>
+          )}
         </DialogHeader>
         {dayInterviews.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
@@ -558,7 +576,7 @@ function DayInterviewsDialog({
   )
 }
 
-function MonthView({ interviews }: { interviews: Interview[] }) {
+function MonthView({ interviews, onScheduleInterview }: { interviews: Interview[]; onScheduleInterview?: (date: Date) => void }) {
   const today = useMemo(() => new Date(), [])
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
@@ -788,6 +806,7 @@ function MonthView({ interviews }: { interviews: Interview[] }) {
         onOpenChange={setDialogOpen}
         day={selectedDay}
         interviews={interviews}
+        onScheduleInterview={onScheduleInterview}
       />
     </div>
   )
@@ -795,7 +814,7 @@ function MonthView({ interviews }: { interviews: Interview[] }) {
 
 // ===== Main Component =====
 
-export function InterviewCalendar() {
+export function InterviewCalendar({ onScheduleInterview }: { onScheduleInterview?: (date: Date) => void }) {
   const [view, setView] = useState<CalendarView>('week')
 
   const { data, isLoading } = useQuery<{ data: Interview[] }>({
@@ -874,7 +893,7 @@ export function InterviewCalendar() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <MonthView interviews={interviews} />
+            <MonthView interviews={interviews} onScheduleInterview={onScheduleInterview} />
           </motion.div>
         )}
       </AnimatePresence>

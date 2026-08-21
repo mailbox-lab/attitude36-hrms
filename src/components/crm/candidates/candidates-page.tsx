@@ -53,6 +53,7 @@ import {
   Upload,
   CalendarDays,
   X,
+  GripVertical,
 } from 'lucide-react'
 import {
   Popover,
@@ -174,12 +175,28 @@ function KanbanCard({
   const skills = parseSkills(candidate.skills)
   const initials = getInitials(candidate.firstName, candidate.lastName)
 
+  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    e.dataTransfer.setData('text/plain', candidate.id)
+    e.dataTransfer.effectAllowed = 'move'
+    e.currentTarget.classList.add('kanban-card-dragging')
+  }
+
+  function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+    e.currentTarget.classList.remove('kanban-card-dragging')
+  }
+
   return (
     <div
-      className={`group relative rounded-lg border border-l-4 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      className={`group relative cursor-grab active:cursor-grabbing rounded-lg border border-l-4 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
         STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-500'
       } ${isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}
     >
+      <div className="absolute left-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-60">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
       <div className={`absolute right-2 top-2 z-10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
         <Checkbox
           checked={isSelected}
@@ -267,6 +284,7 @@ function KanbanColumn({
   onEditCandidate,
   selectedIds,
   onToggleSelect,
+  onDropCandidate,
 }: {
   status: string
   candidates: Candidate[]
@@ -274,7 +292,29 @@ function KanbanColumn({
   onEditCandidate: (candidate: Candidate) => void
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
+  onDropCandidate: (candidateId: string, newStatus: string) => void
 }) {
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    e.currentTarget.classList.add('kanban-column-drag-over')
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      e.currentTarget.classList.remove('kanban-column-drag-over')
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    const candidateId = e.dataTransfer.getData('text/plain')
+    if (candidateId) {
+      onDropCandidate(candidateId, status)
+    }
+    e.currentTarget.classList.remove('kanban-column-drag-over')
+  }
+
   return (
     <div className="flex w-72 shrink-0 flex-col">
       <div className="mb-3 flex items-center justify-between px-1">
@@ -308,22 +348,28 @@ function KanbanColumn({
           {candidates.length}
         </span>
       </div>
-      <div className="rounded-t-lg border-t-2 flex max-h-[calc(100vh-320px)] min-h-[120px] flex-col gap-2.5 overflow-y-auto rounded-b-lg bg-muted/30 p-2.5" style={{
-        borderTopColor:
-          status === 'New'
-            ? '#10b981'
-            : status === 'Screening'
-              ? '#3b82f6'
-              : status === 'Interview'
-                ? '#f59e0b'
-                : status === 'Offer'
-                  ? '#8b5cf6'
-                  : status === 'Hired'
-                    ? '#22c55e'
-                    : status === 'Rejected'
-                      ? '#ef4444'
-                      : '#6b7280',
-      }}>
+      <div
+        className="rounded-t-lg border-t-2 flex max-h-[calc(100vh-320px)] min-h-[120px] flex-col gap-2.5 overflow-y-auto rounded-b-lg bg-muted/30 p-2.5 transition-colors"
+        style={{
+          borderTopColor:
+            status === 'New'
+              ? '#10b981'
+              : status === 'Screening'
+                ? '#3b82f6'
+                : status === 'Interview'
+                  ? '#f59e0b'
+                  : status === 'Offer'
+                    ? '#8b5cf6'
+                    : status === 'Hired'
+                      ? '#22c55e'
+                      : status === 'Rejected'
+                        ? '#ef4444'
+                        : '#6b7280',
+        }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {candidates.length === 0 ? (
           <div className="flex flex-1 items-center justify-center py-8">
             <p className="text-xs text-muted-foreground/60">No candidates</p>
@@ -451,6 +497,28 @@ export function CandidatesPage() {
     },
     onError: () => {
       toast.error('Failed to update candidate status')
+    },
+  })
+
+  // Drag-and-drop status change mutation
+  const dropStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`/api/candidates/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+      return res.json()
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+      const candidate = candidates.find((c) => c.id === variables.id)
+      const name = candidate ? `${candidate.firstName} ${candidate.lastName}` : 'Candidate'
+      toast.success(`Moved ${name} to ${variables.status}`)
+    },
+    onError: () => {
+      toast.error('Failed to move candidate')
     },
   })
 
@@ -644,7 +712,7 @@ export function CandidatesPage() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="rounded-lg bg-muted/50 p-3">
+      <div className="filter-bar rounded-lg bg-muted/50 p-3">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
@@ -972,6 +1040,9 @@ export function CandidatesPage() {
                   onEditCandidate={handleEditCandidate}
                   selectedIds={selectedIds}
                   onToggleSelect={toggleSelect}
+                  onDropCandidate={(candidateId, newStatus) =>
+                    dropStatusMutation.mutate({ id: candidateId, status: newStatus })
+                  }
                 />
               ))}
             </div>

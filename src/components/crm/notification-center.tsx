@@ -626,7 +626,7 @@ export function NotificationCenter() {
                 initial="hidden"
                 animate="visible"
               >
-                <Card className="relative overflow-hidden rounded-xl border bg-card p-4">
+                <Card className="stat-card-hover relative overflow-hidden rounded-xl border bg-card p-4">
                   <div className={cn('absolute top-0 left-0 right-0 h-0.5', stat.accentLine)} />
                   <CardContent className="relative p-0 flex items-center gap-3">
                     <div className={cn(
@@ -662,7 +662,7 @@ export function NotificationCenter() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, duration: 0.3 }}
-        className="rounded-xl border bg-card p-4 space-y-3"
+        className="filter-bar rounded-xl border bg-card p-4 space-y-3"
       >
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Filter className="h-4 w-4" />
@@ -831,8 +831,8 @@ export function NotificationCenter() {
                 key={item.id}
                 variants={itemVariants}
                 className={cn(
-                  'group relative flex items-start gap-3 rounded-xl border bg-card p-4 transition-all duration-200',
-                  'hover:shadow-md hover:border-border/80',
+                  'group relative flex items-start gap-3 rounded-xl border bg-card p-4 transition-all duration-200 card-glass',
+                  'hover:shadow-md hover:border-border/80 hover:-translate-y-0.5',
                   !isRead && 'border-l-2 border-l-amber-400',
                 )}
               >
@@ -996,7 +996,7 @@ export function NotificationCenter() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs gap-1.5"
+                className="h-8 text-xs gap-1.5 btn-press"
                 onClick={handleBatchMarkRead}
               >
                 <Eye className="h-3.5 w-3.5" />
@@ -1005,7 +1005,7 @@ export function NotificationCenter() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs gap-1.5"
+                className="h-8 text-xs gap-1.5 btn-press"
                 onClick={handleBatchMarkUnread}
               >
                 <EyeOff className="h-3.5 w-3.5" />
@@ -1014,7 +1014,7 @@ export function NotificationCenter() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground btn-press"
                 onClick={() => setSelectedIds(new Set())}
               >
                 <X className="h-3.5 w-3.5" />

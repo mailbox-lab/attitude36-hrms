@@ -1,0 +1,884 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useCallback, useMemo } from 'react'
+     4→import { useQuery } from '@tanstack/react-query'
+     5→import { AnimatePresence, motion } from 'framer-motion'
+     6→import { Button } from '@/components/ui/button'
+     7→import { Badge } from '@/components/ui/badge'
+     8→import { Card, CardContent } from '@/components/ui/card'
+     9→import {
+    10→  Dialog,
+    11→  DialogContent,
+    12→  DialogHeader,
+    13→  DialogTitle,
+    14→  DialogDescription,
+    15→} from '@/components/ui/dialog'
+    16→import {
+    17→  ChevronsLeft,
+    18→  ChevronsRight,
+    19→  CalendarDays,
+    20→  CalendarX,
+    21→  User,
+    22→  Clock,
+    23→  MapPin,
+    24→  Video,
+    25→} from 'lucide-react'
+    26→
+    27→// ===== Types =====
+    28→
+    29→type Interview = {
+    30→  id: string
+    31→  candidateId: string
+    32→  candidate: { id: string; firstName: string; lastName: string }
+    33→  jobId: string | null
+    34→  job: { id: string; title: string } | null
+    35→  type: string
+    36→  interviewer: string | null
+    37→  date: string
+    38→  duration: number
+    39→  location: string | null
+    40→  meetingLink: string | null
+    41→  status: string
+    42→  feedback: string | null
+    43→  rating: number | null
+    44→  createdAt: string
+    45→  updatedAt: string
+    46→}
+    47→
+    48→type CalendarView = 'week' | 'month'
+    49→
+    50→// ===== Constants =====
+    51→
+    52→const HOURS_START = 9
+    53→const HOURS_END = 18
+    54→const HOUR_HEIGHT = 64 // px per hour slot
+    55→
+    56→const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    57→const DAY_NAMES_MINI = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+    58→const MONTH_NAMES = [
+    59→  'January', 'February', 'March', 'April', 'May', 'June',
+    60→  'July', 'August', 'September', 'October', 'November', 'December',
+    61→]
+    62→
+    63→const TYPE_BORDER_COLORS: Record<string, string> = {
+    64→  Phone: 'border-l-amber-500',
+    65→  Technical: 'border-l-emerald-500',
+    66→  HR: 'border-l-violet-500',
+    67→  Managerial: 'border-l-rose-500',
+    68→  Final: 'border-l-primary',
+    69→}
+    70→
+    71→const TYPE_BG_COLORS: Record<string, string> = {
+    72→  Phone: 'bg-amber-50 dark:bg-amber-950/30',
+    73→  Technical: 'bg-emerald-50 dark:bg-emerald-950/30',
+    74→  HR: 'bg-violet-50 dark:bg-violet-950/30',
+    75→  Managerial: 'bg-rose-50 dark:bg-rose-950/30',
+    76→  Final: 'bg-primary/5',
+    77→}
+    78→
+    79→const TYPE_DOT_COLORS: Record<string, string> = {
+    80→  Phone: 'bg-amber-500',
+    81→  Technical: 'bg-emerald-500',
+    82→  HR: 'bg-violet-500',
+    83→  Managerial: 'bg-rose-500',
+    84→  Final: 'bg-primary',
+    85→}
+    86→
+    87→const TYPE_BADGE_COLORS: Record<string, string> = {
+    88→  Phone: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+    89→  Technical: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+    90→  HR: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+    91→  Managerial: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+    92→  Final: 'bg-primary/15 text-primary',
+    93→}
+    94→
+    95→const STATUS_COLORS: Record<string, string> = {
+    96→  Scheduled: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+    97→  Completed: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+    98→  Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+    99→  'No-Show': 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+   100→}
+   101→
+   102→// ===== Date Helpers (all local time) =====
+   103→
+   104→function getMonday(d: Date): Date {
+   105→  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+   106→  const day = date.getDay()
+   107→  const diff = day === 0 ? -6 : 1 - day
+   108→  date.setDate(date.getDate() + diff)
+   109→  date.setHours(0, 0, 0, 0)
+   110→  return date
+   111→}
+   112→
+   113→function getWeekDays(monday: Date): Date[] {
+   114→  const days: Date[] = []
+   115→  for (let i = 0; i < 7; i++) {
+   116→    const d = new Date(monday)
+   117→    d.setDate(monday.getDate() + i)
+   118→    days.push(d)
+   119→  }
+   120→  return days
+   121→}
+   122→
+   123→function isSameDay(a: Date, b: Date): boolean {
+   124→  return (
+   125→    a.getFullYear() === b.getFullYear() &&
+   126→    a.getMonth() === b.getMonth() &&
+   127→    a.getDate() === b.getDate()
+   128→  )
+   129→}
+   130→
+   131→function isToday(d: Date): boolean {
+   132→  return isSameDay(d, new Date())
+   133→}
+   134→
+   135→function formatTime(date: Date): string {
+   136→  let hours = date.getHours()
+   137→  const minutes = date.getMinutes()
+   138→  const ampm = hours >= 12 ? 'PM' : 'AM'
+   139→  hours = hours % 12
+   140→  if (hours === 0) hours = 12
+   141→  return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`
+   142→}
+   143→
+   144→function formatHour(hour: number): string {
+   145→ const ampm = hour >= 12 ? 'PM' : 'AM'
+   146→  const h = hour % 12 || 12
+   147→  return `${h} ${ampm}`
+   148→}
+   149→
+   150→function getMonthGrid(year: number, month: number): (Date | null)[] {
+   151→  const firstDay = new Date(year, month, 1)
+   152→  const lastDay = new Date(year, month + 1, 0)
+   153→  const daysInMonth = lastDay.getDate()
+   154→
+   155→  let startDay = firstDay.getDay() // 0=Sun
+   156→  // Adjust for Monday start
+   157→  startDay = startDay === 0 ? 6 : startDay - 1
+   158→
+   159→  const cells: (Date | null)[] = []
+   160→
+   161→  // Leading empty cells
+   162→  for (let i = 0; i < startDay; i++) {
+   163→    cells.push(null)
+   164→  }
+   165→
+   166→  // Month days
+   167→  for (let d = 1; d <= daysInMonth; d++) {
+   168→    cells.push(new Date(year, month, d))
+   169→  }
+   170→
+   171→  // Trailing empty cells to fill 6 rows (42 cells) or at least complete last row
+   172→  const remaining = cells.length % 7 === 0 ? 0 : 7 - (cells.length % 7)
+   173→  for (let i = 0; i < remaining; i++) {
+   174→    cells.push(null)
+   175→  }
+   176→
+   177→  return cells
+   178→}
+   179→
+   180→function getInterviewsForDay(interviews: Interview[], day: Date): Interview[] {
+   181→  return interviews.filter((i) => isSameDay(new Date(i.date), day))
+   182→}
+   183→
+   184→// ===== Sub-components =====
+   185→
+   186→function InterviewBlock({ interview }: { interview: Interview }) {
+   187→  const startDate = new Date(interview.date)
+   188→  const startHour = startDate.getHours() + startDate.getMinutes() / 60
+   189→  const endHour = startHour + interview.duration / 60
+   190→
+   191→  const top = Math.max(0, (startHour - HOURS_START) * HOUR_HEIGHT)
+   192→  const height = Math.max(20, (endHour - startHour) * HOUR_HEIGHT - 2)
+   193→
+   194→  const borderClass = TYPE_BORDER_COLORS[interview.type] || 'border-l-gray-400'
+   195→  const bgClass = TYPE_BG_COLORS[interview.type] || 'bg-gray-50 dark:bg-gray-900'
+   196→
+   197→  return (
+   198→    <motion.div
+   199→      initial={{ opacity: 0, scale: 0.95 }}
+   200→      animate={{ opacity: 1, scale: 1 }}
+   201→      transition={{ duration: 0.2 }}
+   202→      className={`absolute left-1 right-1 overflow-hidden rounded-lg border-l-[3px] p-1.5 text-xs shadow-sm hover:scale-105 hover:shadow-md transition-transform cursor-default ${borderClass} ${bgClass}`}
+   203→      style={{ top: `${top}px`, height: `${height}px` }}
+   204→      title={`${interview.candidate.firstName} ${interview.candidate.lastName} - ${interview.type} at ${formatTime(startDate)}`}
+   205→    >
+   206→      <div className="truncate font-medium leading-tight">
+   207→        {interview.candidate.firstName} {interview.candidate.lastName}
+   208→      </div>
+   209→      {height > 40 && (
+   210→        <Badge className={`mt-0.5 text-[9px] px-1 py-0 ${TYPE_BADGE_COLORS[interview.type] || ''}`}>
+   211→          {interview.type}
+   212→        </Badge>
+   213→      )}
+   214→      {height > 60 && interview.interviewer && (
+   215→        <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+   216→          {interview.interviewer}
+   217→        </div>
+   218→      )}
+   219→    </motion.div>
+   220→  )
+   221→}
+   222→
+   223→function CurrentTimeIndicator() {
+   224→  const [now, setNow] = useState(() => new Date())
+   225→
+   226→  useEffect(() => {
+   227→    const interval = setInterval(() => setNow(new Date()), 60000)
+   228→    return () => clearInterval(interval)
+   229→  }, [])
+   230→
+   231→  const currentHour = now.getHours() + now.getMinutes() / 60
+   232→  if (currentHour < HOURS_START || currentHour > HOURS_END) return null
+   233→
+   234→  const top = (currentHour - HOURS_START) * HOUR_HEIGHT
+   235→
+   236→  return (
+   237→    <div
+   238→      className="pointer-events-none absolute left-0 right-0 z-10"
+   239→      style={{ top: `${top}px` }}
+   240→    >
+   241→      <div className="flex items-center">
+   242→        <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+   243→        <div className="h-[2px] flex-1 bg-red-500" />
+   244→      </div>
+   245→    </div>
+   246→  )
+   247→}
+   248→
+   249→function WeekView({ interviews }: { interviews: Interview[] }) {
+   250→  const [currentMonday, setCurrentMonday] = useState(() => getMonday(new Date()))
+   251→
+   252→  const weekDays = useMemo(() => getWeekDays(currentMonday), [currentMonday])
+   253→
+   254→  const goToPrevWeek = useCallback(() => {
+   255→    setCurrentMonday((prev) => {
+   256→      const d = new Date(prev)
+   257→      d.setDate(d.getDate() - 7)
+   258→      return d
+   259→    })
+   260→  }, [])
+   261→
+   262→  const goToNextWeek = useCallback(() => {
+   263→    setCurrentMonday((prev) => {
+   264→      const d = new Date(prev)
+   265→      d.setDate(d.getDate() + 7)
+   266→      return d
+   267→    })
+   268→  }, [])
+   269→
+   270→  const goToToday = useCallback(() => {
+   271→    setCurrentMonday(getMonday(new Date()))
+   272→  }, [])
+   273→
+   274→  const weekEndDate = new Date(currentMonday)
+   275→  weekEndDate.setDate(weekEndDate.getDate() + 6)
+   276→
+   277→  const headerLabel = `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+   278→
+   279→  const hours = useMemo(() => {
+   280→    const h = []
+   281→    for (let i = HOURS_START; i <= HOURS_END; i++) h.push(i)
+   282→    return h
+   283→  }, [])
+   284→
+   285→  return (
+   286→    <div className="flex flex-col gap-3">
+   287→      {/* Navigation Header */}
+   288→      <div className="flex items-center justify-between">
+   289→        <div className="flex items-center gap-1">
+   290→          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevWeek}>
+   291→            <ChevronsLeft className="h-4 w-4" />
+   292→          </Button>
+   293→          <Button variant="outline" size="sm" onClick={goToToday}>
+   294→            Today
+   295→          </Button>
+   296→          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextWeek}>
+   297→            <ChevronsRight className="h-4 w-4" />
+   298→          </Button>
+   299→        </div>
+   300→        <h3 className="text-sm font-semibold">{headerLabel}</h3>
+   301→      </div>
+   302→
+   303→      {/* Desktop Week Grid */}
+   304→      <div className="hidden md:block">
+   305→        <div className="rounded-lg border border-border/50 overflow-hidden">
+   306→          {/* Day headers */}
+   307→          <div className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-muted/50 bg-muted/30">
+   308→            <div className="p-2" />
+   309→            {weekDays.map((day, i) => (
+   310→              <div
+   311→                key={i}
+   312→                className={`p-2 text-center ${
+   313→                  isToday(day) ? 'bg-primary/10 font-bold text-primary' : 'text-muted-foreground'
+   314→                }`}
+   315→              >
+   316→                <div className="text-[10px] uppercase tracking-wide">{DAY_NAMES_SHORT[i]}</div>
+   317→                <div className={`text-lg font-bold leading-tight ${isToday(day) ? 'text-primary' : 'text-foreground'}`}>
+   318→                  {day.getDate()}
+   319→                </div>
+   320→              </div>
+   321→            ))}
+   322→          </div>
+   323→
+   324→          {/* Time grid */}
+   325→          <div className="grid grid-cols-[48px_repeat(7,1fr)]">
+   326→            {/* Time labels */}
+   327→            <div className="relative">
+   328→              {hours.map((hour) => (
+   329→                <div
+   330→                  key={hour}
+   331→                  className="flex items-start justify-end pr-2 pt-0 text-[11px] text-muted-foreground"
+   332→                  style={{ height: `${HOUR_HEIGHT}px` }}
+   333→                >
+   334→                  <span className="-translate-y-1/2">{formatHour(hour)}</span>
+   335→                </div>
+   336→              ))}
+   337→            </div>
+   338→
+   339→            {/* Day columns */}
+   340→            {weekDays.map((day, dayIdx) => {
+   341→              const dayInterviews = getInterviewsForDay(interviews, day).filter(
+   342→                (i) => i.status !== 'Cancelled'
+   343→              )
+   344→              return (
+   345→                <div
+   346→                  key={dayIdx}
+   347→                  className={`relative border-l border-muted/50 ${
+   348→                    isToday(day) ? 'bg-muted/30' : ''
+   349→                  }`}
+   350→                >
+   351→                  {/* Hour lines */}
+   352→                  {hours.map((hour) => (
+   353→                    <div
+   354→                      key={hour}
+   355→                      className="border-b border-muted/50"
+   356→                      style={{ height: `${HOUR_HEIGHT}px` }}
+   357→                    />
+   358→                  ))}
+   359→
+   360→                  {/* Interview blocks */}
+   361→                  {dayInterviews.map((interview) => (
+   362→                    <InterviewBlock key={interview.id} interview={interview} />
+   363→                  ))}
+   364→
+   365→                  {/* Current time indicator */}
+   366→                  {isToday(day) && <CurrentTimeIndicator />}
+   367→
+   368→                  {/* Empty state per column */}
+   369→                  {dayInterviews.length === 0 && isToday(day) && (
+   370→                    <div className="absolute inset-0 flex items-center justify-center">
+   371→                      <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
+   372→                        <CalendarX className="h-5 w-5" />
+   373→                        <span className="text-[10px]">No interviews</span>
+   374→                      </div>
+   375→                    </div>
+   376→                  )}
+   377→                </div>
+   378→              )
+   379→            })}
+   380→          </div>
+   381→        </div>
+   382→      </div>
+   383→
+   384→      {/* Mobile: List by day */}
+   385→      <div className="md:hidden flex flex-col gap-3">
+   386→        {weekDays.map((day, dayIdx) => {
+   387→          const dayInterviews = getInterviewsForDay(interviews, day).filter(
+   388→            (i) => i.status !== 'Cancelled'
+   389→          )
+   390→          const isTodayCol = isToday(day)
+   391→          return (
+   392→            <motion.div
+   393→              key={dayIdx}
+   394→              initial={{ opacity: 0, y: 10 }}
+   395→              animate={{ opacity: 1, y: 0 }}
+   396→              transition={{ delay: dayIdx * 0.04 }}
+   397→            >
+   398→              <div
+   399→                className={`flex items-center gap-2 mb-2 ${
+   400→                  isTodayCol
+   401→                    ? 'font-bold text-primary'
+   402→                    : 'font-medium text-muted-foreground'
+   403→                }`}
+   404→              >
+   405→                <span className="text-sm">
+   406→                  {DAY_NAMES_SHORT[dayIdx]}, {day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+   407→                </span>
+   408→                {isTodayCol && (
+   409→                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-primary border-primary/30">
+   410→                    Today
+   411→                  </Badge>
+   412→                )}
+   413→              </div>
+   414→              {dayInterviews.length === 0 ? (
+   415→                <div className={`flex items-center gap-2 rounded-lg border border-dashed p-3 ${isTodayCol ? 'border-primary/20 bg-primary/5' : 'border-muted-foreground/20 bg-muted/30'}`}>
+   416→                  <CalendarX className="h-4 w-4 text-muted-foreground/50" />
+   417→                  <span className="text-xs text-muted-foreground/60">No interviews</span>
+   418→                </div>
+   419→              ) : (
+   420→                <div className="flex flex-col gap-2">
+   421→                  {dayInterviews.map((interview) => {
+   422→                    const startDate = new Date(interview.date)
+   423→                    const borderClass = TYPE_BORDER_COLORS[interview.type] || 'border-l-gray-400'
+   424→                    const bgClass = TYPE_BG_COLORS[interview.type] || 'bg-gray-50 dark:bg-gray-900'
+   425→                    return (
+   426→                      <motion.div
+   427→                        key={interview.id}
+   428→                        initial={{ opacity: 0, x: -10 }}
+   429→                        animate={{ opacity: 1, x: 0 }}
+   430→                        className={`flex items-center gap-3 rounded-lg border-l-[3px] p-3 text-xs shadow-sm ${borderClass} ${bgClass}`}
+   431→                      >
+   432→                        <div className="flex-1 min-w-0">
+   433→                          <div className="font-medium truncate">
+   434→                            {interview.candidate.firstName} {interview.candidate.lastName}
+   435→                          </div>
+   436→                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+   437→                            <Badge className={`text-[9px] px-1.5 py-0 ${TYPE_BADGE_COLORS[interview.type] || ''}`}>
+   438→                              {interview.type}
+   439→                            </Badge>
+   440→                            {interview.interviewer && (
+   441→                              <span className="text-muted-foreground truncate">
+   442→                                <User className="inline h-3 w-3 mr-0.5" />
+   443→                                {interview.interviewer}
+   444→                              </span>
+   445→                            )}
+   446→                          </div>
+   447→                        </div>
+   448→                        <div className="text-right shrink-0">
+   449→                          <div className="font-medium">{formatTime(startDate)}</div>
+   450→                          <div className="text-[10px] text-muted-foreground">
+   451→                            {interview.duration}m
+   452→                          </div>
+   453→                        </div>
+   454→                      </motion.div>
+   455→                    )
+   456→                  })}
+   457→                </div>
+   458→              )}
+   459→            </motion.div>
+   460→          )
+   461→        })}
+   462→      </div>
+   463→    </div>
+   464→  )
+   465→}
+   466→
+   467→function DayInterviewsDialog({
+   468→  open,
+   469→  onOpenChange,
+   470→  day,
+   471→  interviews,
+   472→}: {
+   473→  open: boolean
+   474→  onOpenChange: (open: boolean) => void
+   475→  day: Date | null
+   476→  interviews: Interview[]
+   477→}) {
+   478→  if (!day) return null
+   479→
+   480→  const dayInterviews = getInterviewsForDay(interviews, day).sort(
+   481→    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+   482→  )
+   483→
+   484→  return (
+   485→    <Dialog open={open} onOpenChange={onOpenChange}>
+   486→      <DialogContent className="sm:max-w-md">
+   487→        <DialogHeader>
+   488→          <DialogTitle className="flex items-center gap-2">
+   489→            <CalendarDays className="h-4 w-4" />
+   490→            {day.toLocaleDateString('en-US', {
+   491→              weekday: 'long',
+   492→              month: 'long',
+   493→              day: 'numeric',
+   494→            })}
+   495→          </DialogTitle>
+   496→          <DialogDescription>
+   497→            {dayInterviews.length} interview{dayInterviews.length !== 1 ? 's' : ''} scheduled
+   498→          </DialogDescription>
+   499→        </DialogHeader>
+   500→        {dayInterviews.length === 0 ? (
+   501→          <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+   502→            <CalendarX className="h-8 w-8 text-muted-foreground/40" />
+   503→            <p className="text-sm">No interviews on this day</p>
+   504→          </div>
+   505→        ) : (
+   506→          <div className="max-h-80 overflow-y-auto flex flex-col gap-2 pr-1">
+   507→            {dayInterviews.map((interview) => {
+   508→              const startDate = new Date(interview.date)
+   509→              const borderClass = TYPE_BORDER_COLORS[interview.type] || 'border-l-gray-400'
+   510→              const bgClass = TYPE_BG_COLORS[interview.type] || 'bg-gray-50 dark:bg-gray-900'
+   511→              return (
+   512→                <div
+   513→                  key={interview.id}
+   514→                  className={`rounded-lg border-l-[3px] p-3 text-sm ${borderClass} ${bgClass}`}
+   515→                >
+   516→                  <div className="flex items-center justify-between">
+   517→                    <span className="font-semibold">
+   518→                      {interview.candidate.firstName} {interview.candidate.lastName}
+   519→                    </span>
+   520→                    <Badge className={`text-[10px] ${STATUS_COLORS[interview.status] || ''}`}>
+   521→                      {interview.status}
+   522→                    </Badge>
+   523→                  </div>
+   524→                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+   525→                    <span className="flex items-center gap-1">
+   526→                      <Clock className="h-3 w-3" />
+   527→                      {formatTime(startDate)} ({interview.duration}m)
+   528→                    </span>
+   529→                    <Badge className={`text-[10px] ${TYPE_BADGE_COLORS[interview.type] || ''}`}>
+   530→                      {interview.type}
+   531→                    </Badge>
+   532→                    {interview.interviewer && (
+   533→                      <span className="flex items-center gap-1">
+   534→                        <User className="h-3 w-3" />
+   535→                        {interview.interviewer}
+   536→                      </span>
+   537→                    )}
+   538→                  </div>
+   539→                  {interview.location && (
+   540→                    <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+   541→                      <MapPin className="h-3 w-3" />
+   542→                      {interview.location}
+   543→                    </div>
+   544→                  )}
+   545→                  {interview.meetingLink && (
+   546→                    <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+   547→                      <Video className="h-3 w-3" />
+   548→                      <span className="truncate">{interview.meetingLink}</span>
+   549→                    </div>
+   550→                  )}
+   551→                </div>
+   552→              )
+   553→            })}
+   554→          </div>
+   555→        )}
+   556→      </DialogContent>
+   557→    </Dialog>
+   558→  )
+   559→}
+   560→
+   561→function MonthView({ interviews }: { interviews: Interview[] }) {
+   562→  const today = useMemo(() => new Date(), [])
+   563→  const [currentYear, setCurrentYear] = useState(today.getFullYear())
+   564→  const [currentMonth, setCurrentMonth] = useState(today.getMonth())
+   565→  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+   566→  const [dialogOpen, setDialogOpen] = useState(false)
+   567→
+   568→  const grid = useMemo(
+   569→    () => getMonthGrid(currentYear, currentMonth),
+   570→    [currentYear, currentMonth]
+   571→  )
+   572→
+   573→  const goToPrevMonth = useCallback(() => {
+   574→    setCurrentMonth((prev) => {
+   575→      if (prev === 0) {
+   576→        setCurrentYear((y) => y - 1)
+   577→        return 11
+   578→      }
+   579→      return prev - 1
+   580→    })
+   581→  }, [])
+   582→
+   583→  const goToNextMonth = useCallback(() => {
+   584→    setCurrentMonth((prev) => {
+   585→      if (prev === 11) {
+   586→        setCurrentYear((y) => y + 1)
+   587→        return 0
+   588→      }
+   589→      return prev + 1
+   590→    })
+   591→  }, [])
+   592→
+   593→  const goToToday = useCallback(() => {
+   594→    const now = new Date()
+   595→    setCurrentYear(now.getFullYear())
+   596→    setCurrentMonth(now.getMonth())
+   597→  }, [])
+   598→
+   599→  const handleDayClick = useCallback(
+   600→    (day: Date) => {
+   601→      setSelectedDay(day)
+   602→      setDialogOpen(true)
+   603→    },
+   604→    []
+   605→  )
+   606→
+   607→  const headerLabel = `${MONTH_NAMES[currentMonth]} ${currentYear}`
+   608→
+   609→  return (
+   610→    <div className="flex flex-col gap-3">
+   611→      {/* Navigation Header */}
+   612→      <div className="flex items-center justify-between">
+   613→        <div className="flex items-center gap-1">
+   614→          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevMonth}>
+   615→            <ChevronsLeft className="h-4 w-4" />
+   616→          </Button>
+   617→          <Button variant="outline" size="sm" onClick={goToToday}>
+   618→            Today
+   619→          </Button>
+   620→          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
+   621→            <ChevronsRight className="h-4 w-4" />
+   622→          </Button>
+   623→        </div>
+   624→        <h3 className="text-sm font-semibold">{headerLabel}</h3>
+   625→      </div>
+   626→
+   627→      {/* Desktop Month Grid */}
+   628→      <div className="hidden sm:block">
+   629→        <div className="rounded-lg border border-border/50 overflow-hidden">
+   630→          {/* Day name headers */}
+   631→          <div className="grid grid-cols-7 border-b border-muted/50 bg-muted/30">
+   632→            {DAY_NAMES_SHORT.map((name, i) => (
+   633→              <div
+   634→                key={i}
+   635→                className="p-2 text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+   636→              >
+   637→                {name}
+   638→              </div>
+   639→            ))}
+   640→          </div>
+   641→
+   642→          {/* Calendar grid */}
+   643→          <div className="grid grid-cols-7">
+   644→            {grid.map((day, idx) => {
+   645→              if (!day) {
+   646→                return (
+   647→                  <div
+   648→                    key={`empty-${idx}`}
+   649→                    className="min-h-[100px] border-b border-r border-muted/50 bg-muted/10"
+   650→                  />
+   651→                )
+   652→              }
+   653→
+   654→              const dayInterviews = getInterviewsForDay(interviews, day).filter(
+   655→                (i) => i.status !== 'Cancelled'
+   656→              )
+   657→              const isTodayCell = isToday(day)
+   658→              const hasInterviews = dayInterviews.length > 0
+   659→              const isCurrentMonth = day.getMonth() === currentMonth
+   660→
+   661→              return (
+   662→                <motion.div
+   663→                  key={idx}
+   664→                  initial={{ opacity: 0 }}
+   665→                  animate={{ opacity: 1 }}
+   666→                  transition={{ delay: idx * 0.01, duration: 0.15 }}
+   667→                  className={`min-h-[100px] border-b border-r border-muted/50 p-1.5 transition-colors ${
+   668→                    isTodayCell
+   669→                      ? 'ring-2 ring-inset ring-primary/60 bg-primary/5'
+   670→                      : hasInterviews
+   671→                        ? 'bg-primary/5 hover:bg-primary/10'
+   672→                        : 'hover:bg-muted/30'
+   673→                  } ${!isCurrentMonth ? 'opacity-40' : ''} cursor-pointer`}
+   674→                  onClick={() => handleDayClick(day)}
+   675→                >
+   676→                  <div
+   677→                    className={`text-xs mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
+   678→                      isTodayCell
+   679→                        ? 'bg-primary text-primary-foreground font-bold'
+   680→                        : 'font-medium text-foreground'
+   681→                    }`}
+   682→                  >
+   683→                    {day.getDate()}
+   684→                  </div>
+   685→
+   686→                  {dayInterviews.length === 0 ? (
+   687→                    <div className="flex items-center justify-center h-12">
+   688→                      <CalendarX className="h-3.5 w-3.5 text-muted-foreground/30" />
+   689→                    </div>
+   690→                  ) : (
+   691→                    <div className="flex flex-col gap-0.5">
+   692→                      {dayInterviews.slice(0, 3).map((interview) => (
+   693→                        <div
+   694→                          key={interview.id}
+   695→                          className={`flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight truncate ${
+   696→                            TYPE_BG_COLORS[interview.type] || 'bg-gray-50 dark:bg-gray-900'
+   697→                          }`}
+   698→                        >
+   699→                          <span
+   700→                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+   701→                              TYPE_DOT_COLORS[interview.type] || 'bg-gray-400'
+   702→                            }`}
+   703→                          />
+   704→                          <span className="truncate">
+   705→                            {interview.candidate.firstName} {formatTime(new Date(interview.date))}
+   706→                          </span>
+   707→                        </div>
+   708→                      ))}
+   709→                      {dayInterviews.length > 3 && (
+   710→                        <div className="text-[10px] text-muted-foreground font-medium pl-1">
+   711→                          +{dayInterviews.length - 3} more
+   712→                        </div>
+   713→                      )}
+   714→                    </div>
+   715→                  )}
+   716→                </motion.div>
+   717→              )
+   718→            })}
+   719→          </div>
+   720→        </div>
+   721→      </div>
+   722→
+   723→      {/* Mobile: Compact grid */}
+   724→      <div className="sm:block hidden"> {/* Spacer - mobile grid below */} </div>
+   725→      <div className="sm:hidden">
+   726→        {/* Mobile day name headers */}
+   727→        <div className="grid grid-cols-7 mb-1">
+   728→          {DAY_NAMES_MINI.map((name, i) => (
+   729→            <div
+   730→              key={i}
+   731→              className="p-1 text-center text-[10px] font-medium text-muted-foreground"
+   732→            >
+   733→              {name}
+   734→            </div>
+   735→          ))}
+   736→        </div>
+   737→
+   738→        {/* Mobile calendar grid */}
+   739→        <div className="grid grid-cols-7 gap-0.5">
+   740→          {grid.map((day, idx) => {
+   741→            if (!day) {
+   742→              return <div key={`empty-${idx}`} className="aspect-square" />
+   743→            }
+   744→
+   745→            const dayInterviews = getInterviewsForDay(interviews, day).filter(
+   746→              (i) => i.status !== 'Cancelled'
+   747→            )
+   748→            const isTodayCell = isToday(day)
+   749→            const isCurrentMonth = day.getMonth() === currentMonth
+   750→
+   751→            return (
+   752→              <motion.button
+   753→                key={idx}
+   754→                initial={{ opacity: 0 }}
+   755→                animate={{ opacity: 1 }}
+   756→                transition={{ delay: idx * 0.008, duration: 0.1 }}
+   757→                className={`aspect-square flex flex-col items-center justify-center rounded-lg text-xs relative transition-colors ${
+   758→                  isTodayCell
+   759→                    ? 'ring-2 ring-primary bg-primary/10 font-bold text-primary'
+   760→                    : dayInterviews.length > 0
+   761→                      ? 'bg-primary/5 font-medium'
+   762→                      : 'text-foreground'
+   763→                } ${!isCurrentMonth ? 'opacity-30' : ''}`}
+   764→                onClick={() => handleDayClick(day)}
+   765→              >
+   766→                <span>{day.getDate()}</span>
+   767→                {dayInterviews.length > 0 && (
+   768→                  <div className="flex gap-0.5 mt-0.5">
+   769→                    {dayInterviews.slice(0, 3).map((interview) => (
+   770→                      <span
+   771→                        key={interview.id}
+   772→                        className={`h-1.5 w-1.5 rounded-full ${
+   773→                          TYPE_DOT_COLORS[interview.type] || 'bg-gray-400'
+   774→                        }`}
+   775→                      />
+   776→                    ))}
+   777→                  </div>
+   778→                )}
+   779→              </motion.button>
+   780→            )
+   781→          })}
+   782→        </div>
+   783→      </div>
+   784→
+   785→      {/* Day detail dialog */}
+   786→      <DayInterviewsDialog
+   787→        open={dialogOpen}
+   788→        onOpenChange={setDialogOpen}
+   789→        day={selectedDay}
+   790→        interviews={interviews}
+   791→      />
+   792→    </div>
+   793→  )
+   794→}
+   795→
+   796→// ===== Main Component =====
+   797→
+   798→export function InterviewCalendar() {
+   799→  const [view, setView] = useState<CalendarView>('week')
+   800→
+   801→  const { data, isLoading } = useQuery<{ data: Interview[] }>({
+   802→    queryKey: ['interviews-calendar'],
+   803→    queryFn: async () => {
+   804→      const res = await fetch('/api/interviews')
+   805→      if (!res.ok) throw new Error('Failed to fetch interviews')
+   806→      return res.json()
+   807→    },
+   808→  })
+   809→
+   810→  const interviews = data?.data || []
+   811→
+   812→  if (isLoading) {
+   813→    return (
+   814→      <Card>
+   815→        <CardContent className="flex items-center justify-center py-16">
+   816→          <div className="flex items-center gap-3">
+   817→            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   818→            <p className="text-sm text-muted-foreground">Loading calendar...</p>
+   819→          </div>
+   820→        </CardContent>
+   821→      </Card>
+   822→    )
+   823→  }
+   824→
+   825→  return (
+   826→    <div className="flex flex-col gap-4">
+   827→      {/* View Toggle + Navigation */}
+   828→      <div className="flex items-center justify-between">
+   829→        <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
+   830→          <Button
+   831→            variant={view === 'week' ? 'default' : 'ghost'}
+   832→            size="sm"
+   833→            className={`h-8 px-3 text-xs ${
+   834→              view === 'week'
+   835→                ? 'bg-primary text-primary-foreground shadow-sm'
+   836→                : 'hover:bg-muted text-muted-foreground'
+   837→            }`}
+   838→            onClick={() => setView('week')}
+   839→          >
+   840→            Week
+   841→          </Button>
+   842→          <Button
+   843→            variant={view === 'month' ? 'default' : 'ghost'}
+   844→            size="sm"
+   845→            className={`h-8 px-3 text-xs ${
+   846→              view === 'month'
+   847→                ? 'bg-primary text-primary-foreground shadow-sm'
+   848→                : 'hover:bg-muted text-muted-foreground'
+   849→            }`}
+   850→            onClick={() => setView('month')}
+   851→          >
+   852→            Month
+   853→          </Button>
+   854→        </div>
+   855→      </div>
+   856→
+   857→      {/* Calendar Views */}
+   858→      <AnimatePresence mode="wait">
+   859→        {view === 'week' ? (
+   860→          <motion.div
+   861→            key="week"
+   862→            initial={{ opacity: 0, y: 8 }}
+   863→            animate={{ opacity: 1, y: 0 }}
+   864→            exit={{ opacity: 0, y: -8 }}
+   865→            transition={{ duration: 0.2 }}
+   866→          >
+   867→            <WeekView interviews={interviews} />
+   868→          </motion.div>
+   869→        ) : (
+   870→          <motion.div
+   871→            key="month"
+   872→            initial={{ opacity: 0, y: 8 }}
+   873→            animate={{ opacity: 1, y: 0 }}
+   874→            exit={{ opacity: 0, y: -8 }}
+   875→            transition={{ duration: 0.2 }}
+   876→          >
+   877→            <MonthView interviews={interviews} />
+   878→          </motion.div>
+   879→        )}
+   880→      </AnimatePresence>
+   881→    </div>
+   882→  )
+   883→}
+   884→

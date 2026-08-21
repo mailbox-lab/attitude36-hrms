@@ -419,47 +419,47 @@ function AttendanceTab({
     <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
                 <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
-            <p className="mt-2 text-2xl font-bold">{summary.presentDays}</p>
+            <p className="mt-2 text-2xl font-bold animate-count-up">{summary.presentDays}</p>
             <p className="text-xs text-muted-foreground">Present Days</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
                 <AlertCircle className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
               </div>
             </div>
-            <p className="mt-2 text-2xl font-bold">{summary.lateDays}</p>
+            <p className="mt-2 text-2xl font-bold animate-count-up">{summary.lateDays}</p>
             <p className="text-xs text-muted-foreground">Late Days</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-950">
                 <Clock className="h-4.5 w-4.5 text-teal-600 dark:text-teal-400" />
               </div>
             </div>
-            <p className="mt-2 text-2xl font-bold">{summary.totalHours}h</p>
+            <p className="mt-2 text-2xl font-bold data-cell-number">{summary.totalHours}h</p>
             <p className="text-xs text-muted-foreground">Total Hours</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card-hover">
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-950">
                 <TrendingUp className="h-4.5 w-4.5 text-cyan-600 dark:text-cyan-400" />
               </div>
             </div>
-            <p className="mt-2 text-2xl font-bold">{summary.avgHoursPerDay}h</p>
+            <p className="mt-2 text-2xl font-bold data-cell-number">{summary.avgHoursPerDay}h</p>
             <p className="text-xs text-muted-foreground">Avg Hours/Day</p>
           </CardContent>
         </Card>
@@ -559,7 +559,7 @@ function LeaveTab({
             {balances.map((b) => {
               const circleColor = LEAVE_TYPE_COLORS[b.type] || 'bg-gray-500'
               return (
-                <Card key={b.id} className="overflow-hidden">
+                <Card key={b.id} className="overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
                   <div className="h-1" style={{ backgroundColor: undefined }}>
                     <div className={`h-full w-full ${circleColor}`} />
                   </div>
@@ -966,14 +966,14 @@ export function EmployeeDetail({ employeeId }: { employeeId: string }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.08 }}
             >
-              <Card className="relative overflow-hidden">
+              <Card className="stat-card-hover relative overflow-hidden">
                 <div
                   className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${stat.gradient}`}
                 />
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${stat.bgLight}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${stat.bgLight}`}
                     >
                       <Icon className={`h-5 w-5 ${stat.iconColor}`} />
                     </div>
@@ -1028,18 +1028,18 @@ export function EmployeeDetail({ employeeId }: { employeeId: string }) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="placements" className="mt-4">
+        <TabsContent value="placements" className="mt-4 tab-content-enter">
           <PlacementsTab placements={data.placements} />
         </TabsContent>
 
-        <TabsContent value="attendance" className="mt-4">
+        <TabsContent value="attendance" className="mt-4 tab-content-enter">
           <AttendanceTab
             records={data.attendance}
             summary={data.attendanceSummary}
           />
         </TabsContent>
 
-        <TabsContent value="leave" className="mt-4">
+        <TabsContent value="leave" className="mt-4 tab-content-enter">
           <LeaveTab
             balances={data.leaveBalances}
             requests={data.leaveRequests}
@@ -1053,7 +1053,7 @@ export function EmployeeDetail({ employeeId }: { employeeId: string }) {
           />
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-4">
+        <TabsContent value="activity" className="mt-4 tab-content-enter">
           <ActivityTab activities={data.activities} />
         </TabsContent>
       </Tabs>

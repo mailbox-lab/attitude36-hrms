@@ -1,0 +1,1131 @@
+    35→  Cell,
+    36→} from 'recharts'
+    37→
+    38→// ===== Types =====
+    39→
+    40→type DashboardStats = {
+    41→  totalCandidates: number
+    42→  openPositions: number
+    43→  activeClients: number
+    44→  interviewsThisWeek: number
+    45→  placementsThisMonth: number
+    46→  todaysAttendance: number
+    47→  pendingLeaves: number
+    48→  monthlyRevenue: number
+    49→  // percentage changes
+    50→  totalCandidatesChange: number
+    51→  openPositionsChange: number
+    52→  activeClientsChange: number
+    53→  interviewsThisWeekChange: number
+    54→  placementsThisMonthChange: number
+    55→  todaysAttendanceChange: number
+    56→  pendingLeavesChange: number
+    57→  monthlyRevenueChange: number
+    58→}
+    59→
+    60→type PipelineData = {
+    61→  status: string
+    62→  count: number
+    63→}[]
+    64→
+    65→type PriorityData = {
+    66→  priority: string
+    67→  count: number
+    68→}[]
+    69→
+    70→type RecentActivity = {
+    71→  id: string
+    72→  action: string
+    73→  entityType: string
+    74→  details: string
+    75→  employeeName: string
+    76→  createdAt: string
+    77→}
+    78→
+    79→type UpcomingInterview = {
+    80→  id: string
+    81→  candidateName: string
+    82→  jobTitle: string
+    83→  type: string
+    84→  date: string
+    85→  time: string
+    86→  status: string
+    87→}
+    88→
+    89→type DashboardData = {
+    90→  stats: DashboardStats
+    91→  pipeline: PipelineData
+    92→  priorityDistribution: PriorityData
+    93→  recentActivities: RecentActivity[]
+    94→  upcomingInterviews: UpcomingInterview[]
+    95→}
+    96→
+    97→// ===== Constants =====
+    98→
+    99→const PIPELINE_COLORS: Record<string, string> = {
+   100→  New: '#10b981',
+   101→  Screening: '#3b82f6',
+   102→  Interview: '#f59e0b',
+   103→  Offer: '#8b5cf6',
+   104→  Hired: '#ef4444',
+   105→  Rejected: '#6b7280',
+   106→}
+   107→
+   108→const PRIORITY_COLORS: Record<string, string> = {
+   109→  Low: '#22c55e',
+   110→  Medium: '#3b82f6',
+   111→  High: '#f59e0b',
+   112→  Urgent: '#ef4444',
+   113→}
+   114→
+   115→const ENTITY_TYPE_COLORS: Record<string, string> = {
+   116→  Candidate: 'border-l-emerald-400',
+   117→  Job: 'border-l-amber-400',
+   118→  Client: 'border-l-violet-400',
+   119→  Interview: 'border-l-cyan-400',
+   120→  Placement: 'border-l-rose-400',
+   121→  Employee: 'border-l-teal-400',
+   122→  Leave: 'border-l-orange-400',
+   123→  Attendance: 'border-l-teal-400',
+   124→}
+   125→
+   126→const ENTITY_TYPE_ICONS: Record<string, React.ElementType> = {
+   127→  Candidate: Users,
+   128→  Client: Building2,
+   129→  Job: Briefcase,
+   130→  Placement: Award,
+   131→  Interview: Video,
+   132→  Employee: Users,
+   133→  Leave: CalendarOff,
+   134→  Attendance: UserCheck,
+   135→}
+   136→
+   137→const ENTITY_ICON_COLORS: Record<string, string> = {
+   138→  Candidate: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+   139→  Client: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
+   140→  Job: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
+   141→  Placement: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
+   142→  Interview: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400',
+   143→  Employee: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+   144→  Leave: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
+   145→  Attendance: 'bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400',
+   146→}
+   147→
+   148→const INTERVIEW_TYPE_COLORS: Record<string, string> = {
+   149→  Phone: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   150→  Technical: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   151→  HR: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   152→  Managerial: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+   153→  Final: 'bg-primary/10 text-primary',
+   154→}
+   155→
+   156→// ===== Stat Card Config =====
+   157→
+   158→type StatCardConfig = {
+   159→  key: keyof DashboardStats
+   160→  label: string
+   161→  icon: React.ElementType
+   162→  iconBg: string
+   163→  iconColor: string
+   164→  gradientFrom: string
+   165→  gradientTo: string
+   166→  accentColor: string
+   167→  sparklineColor: string
+   168→  format?: (value: number) => string
+   169→  changeKey: keyof DashboardStats
+   170→  viewKey: string
+   171→  hoverAccentColor: string
+   172→}
+   173→
+   174→const STAT_CARDS: StatCardConfig[] = [
+   175→  {
+   176→    key: 'totalCandidates',
+   177→    label: 'Total Candidates',
+   178→    icon: Users,
+   179→    iconBg: 'bg-emerald-100 dark:bg-emerald-950',
+   180→    iconColor: 'text-emerald-600 dark:text-emerald-400',
+   181→    gradientFrom: 'from-emerald-50/80 dark:from-emerald-950/50',
+   182→    gradientTo: 'to-transparent',
+   183→    accentColor: 'border-l-emerald-400',
+   184→    sparklineColor: '#10b981',
+   185→    changeKey: 'totalCandidatesChange',
+   186→    viewKey: 'candidates',
+   187→    hoverAccentColor: 'hover:border-b-2 hover:border-b-emerald-400',
+   188→  },
+   189→  {
+   190→    key: 'openPositions',
+   191→    label: 'Open Positions',
+   192→    icon: Briefcase,
+   193→    iconBg: 'bg-amber-100 dark:bg-amber-950',
+   194→    iconColor: 'text-amber-600 dark:text-amber-400',
+   195→    gradientFrom: 'from-amber-50/80 dark:from-amber-950/50',
+   196→    gradientTo: 'to-transparent',
+   197→    accentColor: 'border-l-amber-400',
+   198→    sparklineColor: '#f59e0b',
+   199→    changeKey: 'openPositionsChange',
+   200→    viewKey: 'jobs',
+   201→    hoverAccentColor: 'hover:border-b-2 hover:border-b-amber-400',
+   202→  },
+   203→  {
+   204→    key: 'activeClients',
+   205→    label: 'Active Clients',
+   206→    icon: Building2,
+   207→    iconBg: 'bg-violet-100 dark:bg-violet-950',
+   208→    iconColor: 'text-violet-600 dark:text-violet-400',
+   209→    gradientFrom: 'from-violet-50/80 dark:from-violet-950/50',
+   210→    gradientTo: 'to-transparent',
+   211→    accentColor: 'border-l-violet-400',
+   212→    sparklineColor: '#8b5cf6',
+   213→    changeKey: 'activeClientsChange',
+   214→    viewKey: 'clients',
+   215→    hoverAccentColor: 'hover:border-b-2 hover:border-b-violet-400',
+   216→  },
+   217→  {
+   218→    key: 'interviewsThisWeek',
+   219→    label: 'Interviews This Week',
+   220→    icon: Video,
+   221→    iconBg: 'bg-cyan-100 dark:bg-cyan-950',
+   222→    iconColor: 'text-cyan-600 dark:text-cyan-400',
+   223→    gradientFrom: 'from-cyan-50/80 dark:from-cyan-950/50',
+   224→    gradientTo: 'to-transparent',
+   225→    accentColor: 'border-l-cyan-400',
+   226→    sparklineColor: '#06b6d4',
+   227→    changeKey: 'interviewsThisWeekChange',
+   228→    viewKey: 'interviews',
+   229→    hoverAccentColor: 'hover:border-b-2 hover:border-b-cyan-400',
+   230→  },
+   231→  {
+   232→    key: 'placementsThisMonth',
+   233→    label: 'Placements This Month',
+   234→    icon: Award,
+   235→    iconBg: 'bg-rose-100 dark:bg-rose-950',
+   236→    iconColor: 'text-rose-600 dark:text-rose-400',
+   237→    gradientFrom: 'from-rose-50/80 dark:from-rose-950/50',
+   238→    gradientTo: 'to-transparent',
+   239→    accentColor: 'border-l-rose-400',
+   240→    sparklineColor: '#f43f5e',
+   241→    changeKey: 'placementsThisMonthChange',
+   242→    viewKey: 'placements',
+   243→    hoverAccentColor: 'hover:border-b-2 hover:border-b-rose-400',
+   244→  },
+   245→  {
+   246→    key: 'todaysAttendance',
+   247→    label: "Today's Attendance",
+   248→    icon: UserCheck,
+   249→    iconBg: 'bg-teal-100 dark:bg-teal-950',
+   250→    iconColor: 'text-teal-600 dark:text-teal-400',
+   251→    gradientFrom: 'from-teal-50/80 dark:from-teal-950/50',
+   252→    gradientTo: 'to-transparent',
+   253→    accentColor: 'border-l-teal-400',
+   254→    sparklineColor: '#14b8a6',
+   255→    changeKey: 'todaysAttendanceChange',
+   256→    viewKey: 'attendance',
+   257→    hoverAccentColor: 'hover:border-b-2 hover:border-b-teal-400',
+   258→  },
+   259→  {
+   260→    key: 'pendingLeaves',
+   261→    label: 'Pending Leaves',
+   262→    icon: CalendarOff,
+   263→    iconBg: 'bg-orange-100 dark:bg-orange-950',
+   264→    iconColor: 'text-orange-600 dark:text-orange-400',
+   265→    gradientFrom: 'from-orange-50/80 dark:from-orange-950/50',
+   266→    gradientTo: 'to-transparent',
+   267→    accentColor: 'border-l-orange-400',
+   268→    sparklineColor: '#f97316',
+   269→    changeKey: 'pendingLeavesChange',
+   270→    viewKey: 'leave',
+   271→    hoverAccentColor: 'hover:border-b-2 hover:border-b-orange-400',
+   272→  },
+   273→  {
+   274→    key: 'monthlyRevenue',
+   275→    label: 'Monthly Revenue',
+   276→    icon: IndianRupee,
+   277→    iconBg: 'bg-green-100 dark:bg-green-950',
+   278→    iconColor: 'text-green-600 dark:text-green-400',
+   279→    gradientFrom: 'from-green-50/80 dark:from-green-950/50',
+   280→    gradientTo: 'to-transparent',
+   281→    accentColor: 'border-l-green-400',
+   282→    sparklineColor: '#22c55e',
+   283→    format: (v) => `\u20b9${(v / 100000).toFixed(1)}L`,
+   284→    changeKey: 'monthlyRevenueChange',
+   285→    viewKey: 'analytics',
+   286→    hoverAccentColor: 'hover:border-b-2 hover:border-b-green-400',
+   287→  },
+   288→]
+   289→
+   290→// ===== Sub-components =====
+   291→
+   292→function Sparkline({ color }: { color: string }) {
+   293→  return (
+   294→    <svg
+   295→      className="ml-auto h-8 w-16 opacity-40"
+   296→      viewBox="0 0 64 32"
+   297→      fill="none"
+   298→      xmlns="http://www.w3.org/2000/svg"
+   299→    >
+   300→      <path
+   301→        d="M2 28 C10 24, 16 20, 22 18 C28 16, 32 22, 38 14 C44 6, 52 8, 62 4"
+   302→        stroke={color}
+   303→        strokeWidth="2"
+   304→        strokeLinecap="round"
+   305→        fill="none"
+   306→      />
+   307→      <path
+   308→        d="M2 28 C10 24, 16 20, 22 18 C28 16, 32 22, 38 14 C44 6, 52 8, 62 4 L62 32 L2 32 Z"
+   309→        fill={color}
+   310→        opacity="0.08"
+   311→      />
+   312→    </svg>
+   313→  )
+   314→}
+   315→
+   316→function getGreeting(): string {
+   317→  const hour = new Date().getHours()
+   318→  if (hour < 12) return 'Good Morning'
+   319→  if (hour < 17) return 'Good Afternoon'
+   320→  return 'Good Evening'
+   321→}
+   322→
+   323→function formatInterviewTimeIndicator(dateStr: string, timeStr: string): { text: string; colorClass: string } {
+   324→  const now = new Date()
+   325→  const [hours, minutes] = timeStr.split(':').map(Number)
+   326→  const interviewDate = new Date(dateStr)
+   327→  interviewDate.setHours(hours, minutes, 0, 0)
+   328→  const diffMs = interviewDate.getTime() - now.getTime()
+   329→  const diffHours = diffMs / 3600000
+   330→  if (diffMs < 0) return { text: 'Started', colorClass: 'text-red-500' }
+   331→  if (diffHours < 2) return { text: `Starts in ${Math.ceil(diffHours)}h`, colorClass: 'text-amber-500' }
+   332→  const isToday = interviewDate.toDateString() === now.toDateString()
+   333→  if (isToday) return { text: `Today at ${timeStr}`, colorClass: 'text-emerald-500' }
+   334→  return { text: `Starts in ${Math.ceil(diffHours)}h`, colorClass: 'text-emerald-500' }
+   335→}
+   336→
+   337→function ChangeIndicator({ value }: { value: number }) {
+   338→  if (value === 0) return null
+   339→  const isPositive = value > 0
+   340→  return (
+   341→    <span
+   342→      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium ${
+   343→        isPositive
+   344→          ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+   345→          : 'bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400'
+   346→      }`}
+   347→    >
+   348→      {isPositive ? (
+   349→        <TrendingUp className="h-3 w-3" />
+   350→      ) : (
+   351→        <TrendingDown className="h-3 w-3" />
+   352→      )}
+   353→      {Math.abs(value).toFixed(1)}%
+   354→    </span>
+   355→  )
+   356→}
+   357→
+   358→function StatCard({
+   359→  config,
+   360→  stats,
+   361→  isLoading,
+   362→  index,
+   363→}: {
+   364→  config: StatCardConfig
+   365→  stats: DashboardStats | null
+   366→  isLoading: boolean
+   367→  index: number
+   368→}) {
+   369→  const Icon = config.icon
+   370→  const { navigate } = useCRMStore((s) => s.navigate)
+   371→
+   372→  if (isLoading || !stats) {
+   373→    return (
+   374→      <Card className="rounded-xl shadow-sm">
+   375→        <CardContent className="flex items-center gap-4 p-4">
+   376→          <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+   377→          <div className="flex flex-col gap-2">
+   378→            <Skeleton className="h-3 w-24" />
+   379→            <Skeleton className="h-7 w-16" />
+   380→            <Skeleton className="h-3 w-14" />
+   381→          </div>
+   382→        </CardContent>
+   383→      </Card>
+   384→    )
+   385→  }
+   386→
+   387→  const value = stats[config.key] as number
+   388→  const change = stats[config.changeKey] as number
+   389→  const displayValue = config.format ? config.format(value) : value.toLocaleString('en-IN')
+   390→
+   391→  return (
+   392→    <motion.div
+   393→      initial={{ opacity: 0, y: 16 }}
+   394→      animate={{ opacity: 1, y: 0 }}
+   395→      transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
+   396→    >
+   397→      <Card
+   398→        className={`stat-card-hover relative overflow-hidden rounded-xl border-l-2 border-b-0 ${config.accentColor} ${config.hoverAccentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+   399→      >
+   400→        <CardContent className="relative flex flex-col gap-1 p-4">
+   401→          <div className="flex items-center gap-4">
+   402→            <div
+   403→              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+   404→            >
+   405→              <Icon className={`h-6 w-6 ${config.iconColor}`} />
+   406→            </div>
+   407→            <div className="min-w-0 flex-1">
+   408→              <p className="truncate text-sm text-muted-foreground">{config.label}</p>
+   409→              <div className="flex items-center gap-2">
+   410→                <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
+   411→              </div>
+   412→              <ChangeIndicator value={change} />
+   413→            </div>
+   414→            <Sparkline color={config.sparklineColor} />
+   415→          </div>
+   416→          <button
+   417→            onClick={() => navigate(config.viewKey as CRMView)}
+   418→            className="mt-1 self-start text-xs text-primary hover:underline cursor-pointer"
+   419→          >
+   420→            View Details →
+   421→          </button>
+   422→        </CardContent>
+   423→      </Card>
+   424→    </motion.div>
+   425→  )
+   426→}
+   427→
+   428→function CustomTooltip({
+   429→  active,
+   430→  payload,
+   431→  label,
+   432→}: {
+   433→  active?: boolean
+   434→  payload?: Array<{ value: number; name: string; color: string }>
+   435→  label?: string
+   436→}) {
+   437→  if (!active || !payload || payload.length === 0) return null
+   438→  return (
+   439→    <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-md">
+   440→      <p className="font-medium">{label}</p>
+   441→      {payload.map((entry, idx) => (
+   442→        <p key={idx} style={{ color: entry.color }} className="text-sm">
+   443→          {entry.name}: {entry.value}
+   444→        </p>
+   445→      ))}
+   446→    </div>
+   447→  )
+   448→}
+   449→
+   450→function CandidatePipelineChart({
+   451→  data,
+   452→  isLoading,
+   453→}: {
+   454→  data: PipelineData
+   455→  isLoading: boolean
+   456→}) {
+   457→  const navigate = useCRMStore((s) => s.navigate)
+   458→
+   459→  if (isLoading) {
+   460→    return (
+   461→      <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5">
+   462→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   463→          <div className="flex items-center gap-2">
+   464→            <BarChart3 className="h-4 w-4 text-emerald-500" />
+   465→            <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   466→          </div>
+   467→        </CardHeader>
+   468→        <CardContent>
+   469→          <Skeleton className="h-[300px] w-full" />
+   470→        </CardContent>
+   471→      </Card>
+   472→    )
+   473→  }
+   474→
+   475→  if (data.every((d) => d.count === 0)) {
+   476→    return (
+   477→      <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5">
+   478→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   479→          <div className="flex items-center gap-2">
+   480→            <BarChart3 className="h-4 w-4 text-emerald-500" />
+   481→            <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   482→          </div>
+   483→          <button
+   484→            onClick={() => navigate('candidates')}
+   485→            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   486→          >
+   487→            View All <ArrowRight className="h-3.5 w-3.5" />
+   488→          </button>
+   489→        </CardHeader>
+   490→        <CardContent>
+   491→          <div className="flex h-[300px] items-center justify-center">
+   492→            <div className="text-center">
+   493→              <BarChart3 className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
+   494→              <p className="text-sm text-muted-foreground">No pipeline data yet</p>
+   495→            </div>
+   496→          </div>
+   497→        </CardContent>
+   498→      </Card>
+   499→    )
+   500→  }
+   501→
+   502→  return (
+   503→    <motion.div
+   504→      initial={{ opacity: 0, y: 20 }}
+   505→      whileInView={{ opacity: 1, y: 0 }}
+   506→      viewport={{ once: true, margin: '-50px' }}
+   507→      transition={{ duration: 0.5, ease: 'easeOut' }}
+   508→    >
+   509→    <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
+   510→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   511→        <div className="flex items-center gap-2">
+   512→          <BarChart3 className="h-4 w-4 text-emerald-500" />
+   513→          <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   514→        </div>
+   515→        <button
+   516→          onClick={() => navigate('candidates')}
+   517→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   518→        >
+   519→          View All <ArrowRight className="h-3.5 w-3.5" />
+   520→        </button>
+   521→      </CardHeader>
+   522→      <CardContent>
+   523→        <div className="h-[300px] w-full">
+   524→          <ResponsiveContainer width="100%" height="100%">
+   525→            <BarChart
+   526→              data={data}
+   527→              layout="vertical"
+   528→              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+   529→            >
+   530→              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+   531→              <XAxis type="number" tick={{ fontSize: 12 }} />
+   532→              <YAxis
+   533→                type="category"
+   534→                dataKey="status"
+   535→                tick={{ fontSize: 12 }}
+   536→                width={80}
+   537→              />
+   538→              <Tooltip content={<CustomTooltip />} />
+   539→              <Bar
+   540→                dataKey="count"
+   541→                name="Candidates"
+   542→                radius={[0, 6, 6, 0]}
+   543→                barSize={28}
+   544→              >
+   545→                {data.map((entry, index) => (
+   546→                  <Cell
+   547→                    key={`cell-${index}`}
+   548→                    fill={PIPELINE_COLORS[entry.status] || '#6b7280'}
+   549→                  />
+   550→                ))}
+   551→              </Bar>
+   552→            </BarChart>
+   553→          </ResponsiveContainer>
+   554→        </div>
+   555→      </CardContent>
+   556→    </Card>
+   557→    </motion.div>
+   558→  )
+   559→}
+   560→
+   561→function JobPriorityChart({
+   562→  data,
+   563→  isLoading,
+   564→}: {
+   565→  data: PriorityData
+   566→  isLoading: boolean
+   567→}) {
+   568→  const navigate = useCRMStore((s) => s.navigate)
+   569→
+   570→  if (isLoading) {
+   571→    return (
+   572→      <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5">
+   573→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   574→          <div className="flex items-center gap-2">
+   575→            <Activity className="h-4 w-4 text-amber-500" />
+   576→            <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   577→          </div>
+   578→        </CardHeader>
+   579→        <CardContent>
+   580→          <Skeleton className="h-[300px] w-full" />
+   581→        </CardContent>
+   582→      </Card>
+   583→    )
+   584→  }
+   585→
+   586→  if (data.every((d) => d.count === 0)) {
+   587→    return (
+   588→      <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5">
+   589→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   590→          <div className="flex items-center gap-2">
+   591→            <Activity className="h-4 w-4 text-amber-500" />
+   592→            <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   593→          </div>
+   594→          <button
+   595→            onClick={() => navigate('jobs')}
+   596→            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   597→          >
+   598→            View All <ArrowRight className="h-3.5 w-3.5" />
+   599→          </button>
+   600→        </CardHeader>
+   601→        <CardContent>
+   602→          <div className="flex h-[300px] items-center justify-center">
+   603→            <div className="text-center">
+   604→              <Activity className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
+   605→              <p className="text-sm text-muted-foreground">No priority data yet</p>
+   606→            </div>
+   607→          </div>
+   608→        </CardContent>
+   609→      </Card>
+   610→    )
+   611→  }
+   612→
+   613→  return (
+   614→    <motion.div
+   615→      initial={{ opacity: 0, y: 20 }}
+   616→      whileInView={{ opacity: 1, y: 0 }}
+   617→      viewport={{ once: true, margin: '-50px' }}
+   618→      transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+   619→    >
+   620→    <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
+   621→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   622→        <div className="flex items-center gap-2">
+   623→          <Activity className="h-4 w-4 text-amber-500" />
+   624→          <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   625→        </div>
+   626→        <button
+   627→          onClick={() => navigate('jobs')}
+   628→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   629→        >
+   630→          View All <ArrowRight className="h-3.5 w-3.5" />
+   631→        </button>
+   632→      </CardHeader>
+   633→      <CardContent>
+   634→        <div className="flex flex-col items-center gap-4 lg:flex-row">
+   635→          <div className="h-[280px] w-full max-w-[280px]">
+   636→            <ResponsiveContainer width="100%" height="100%">
+   637→              <PieChart>
+   638→                <Pie
+   639→                  data={data}
+   640→                  cx="50%"
+   641→                  cy="50%"
+   642→                  innerRadius={60}
+   643→                  outerRadius={100}
+   644→                  paddingAngle={3}
+   645→                  dataKey="count"
+   646→                  nameKey="priority"
+   647→                  stroke="none"
+   648→                >
+   649→                  {data.map((entry, index) => (
+   650→                    <Cell
+   651→                      key={`cell-${index}`}
+   652→                      fill={PRIORITY_COLORS[entry.priority] || '#6b7280'}
+   653→                    />
+   654→                  ))}
+   655→                </Pie>
+   656→                <Tooltip content={<CustomTooltip />} />
+   657→              </PieChart>
+   658→            </ResponsiveContainer>
+   659→          </div>
+   660→          <div className="flex flex-wrap justify-center gap-3 lg:flex-col lg:justify-start lg:gap-2">
+   661→            {data.map((entry) => (
+   662→              <div key={entry.priority} className="flex items-center gap-2 text-sm">
+   663→                <span
+   664→                  className="h-3 w-3 shrink-0 rounded-full"
+   665→                  style={{ backgroundColor: PRIORITY_COLORS[entry.priority] || '#6b7280' }}
+   666→                />
+   667→                <span className="text-muted-foreground">{entry.priority}</span>
+   668→                <span className="font-semibold">{entry.count}</span>
+   669→              </div>
+   670→            ))}
+   671→          </div>
+   672→        </div>
+   673→      </CardContent>
+   674→    </Card>
+   675→    </motion.div>
+   676→  )
+   677→}
+   678→
+   679→function formatRelativeTime(dateStr: string): string {
+   680→  const now = new Date()
+   681→  const date = new Date(dateStr)
+   682→  const diffMs = now.getTime() - date.getTime()
+   683→  const diffMins = Math.floor(diffMs / 60000)
+   684→  const diffHours = Math.floor(diffMs / 3600000)
+   685→  const diffDays = Math.floor(diffMs / 86400000)
+   686→
+   687→  if (diffMins < 1) return 'Just now'
+   688→  if (diffMins < 60) return `${diffMins}m ago`
+   689→  if (diffHours < 24) return `${diffHours}h ago`
+   690→  if (diffDays < 7) return `${diffDays}d ago`
+   691→  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+   692→}
+   693→
+   694→function formatInterviewDate(dateStr: string): { day: string; date: string; weekday: string } {
+   695→  const date = new Date(dateStr)
+   696→  return {
+   697→    day: date.toLocaleDateString('en-IN', { month: 'short' }),
+   698→    date: date.getDate().toString(),
+   699→    weekday: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+   700→  }
+   701→}
+   702→
+   703→function RecentActivities({
+   704→  activities,
+   705→  isLoading,
+   706→}: {
+   707→  activities: RecentActivity[]
+   708→  isLoading: boolean
+   709→}) {
+   710→  if (isLoading) {
+   711→    return (
+   712→      <Card className="rounded-xl shadow-sm">
+   713→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   714→        <CardHeader className="pb-2">
+   715→          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   716→        </CardHeader>
+   717→        <CardContent>
+   718→          <div className="space-y-4">
+   719→            {Array.from({ length: 5 }).map((_, i) => (
+   720→              <div key={i} className="flex items-start gap-3">
+   721→                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+   722→                <div className="flex-1 space-y-2">
+   723→                  <Skeleton className="h-4 w-3/4" />
+   724→                  <Skeleton className="h-3 w-1/2" />
+   725→                </div>
+   726→              </div>
+   727→            ))}
+   728→          </div>
+   729→        </CardContent>
+   730→      </Card>
+   731→    )
+   732→  }
+   733→
+   734→  if (activities.length === 0) {
+   735→    return (
+   736→      <Card className="rounded-xl shadow-sm">
+   737→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   738→        <CardHeader className="pb-2">
+   739→          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   740→        </CardHeader>
+   741→        <CardContent>
+   742→          <div className="flex flex-col items-center gap-3 py-8">
+   743→            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-50 dark:bg-cyan-950/50">
+   744→              <Activity className="h-6 w-6 text-cyan-400" />
+   745→            </div>
+   746→            <div className="text-center">
+   747→              <p className="text-sm font-medium text-muted-foreground">No recent activities</p>
+   748→              <p className="mt-1 text-xs text-muted-foreground/70">Actions like adding candidates and scheduling interviews will appear here</p>
+   749→            </div>
+   750→          </div>
+   751→        </CardContent>
+   752→      </Card>
+   753→    )
+   754→  }
+   755→
+   756→  return (
+   757→    <Card className="rounded-xl shadow-sm">
+   758→      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   759→      <CardHeader className="pb-2">
+   760→        <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   761→      </CardHeader>
+   762→      <CardContent>
+   763→        <div className="custom-scrollbar max-h-96 space-y-1 overflow-y-auto pr-1">
+   764→          {activities.map((activity) => {
+   765→            const EntityIcon = ENTITY_TYPE_ICONS[activity.entityType] || Activity
+   766→            const iconColorClass = ENTITY_ICON_COLORS[activity.entityType] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+   767→            return (
+   768→              <div
+   769→                key={activity.id}
+   770→                className="flex items-start gap-3 rounded-lg bg-muted/20 px-3 py-3 transition-colors duration-200 hover:bg-muted/50"
+   771→              >
+   772→                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconColorClass}`}>
+   773→                  <EntityIcon className="h-4 w-4" />
+   774→                </div>
+   775→                <div className="min-w-0 flex-1">
+   776→                  <p className="text-sm leading-snug">
+   777→                    <span className="font-medium">{activity.employeeName}</span>{' '}
+   778→                    <span className="text-muted-foreground">{activity.action.toLowerCase()}</span>{' '}
+   779→                    <Badge variant="secondary" className="badge-transition mx-0.5 text-xs font-normal">
+   780→                      {activity.entityType}
+   781→                    </Badge>
+   782→                  </p>
+   783→                  {activity.details && (
+   784→                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+   785→                      {activity.details}
+   786→                    </p>
+   787→                  )}
+   788→                  <p className="mt-1 text-xs text-muted-foreground/70">
+   789→                    {formatRelativeTime(activity.createdAt)}
+   790→                  </p>
+   791→                </div>
+   792→              </div>
+   793→            )
+   794→          })}
+   795→        </div>
+   796→      </CardContent>
+   797→    </Card>
+   798→  )
+   799→}
+   800→
+   801→function UpcomingInterviewsList({
+   802→  interviews,
+   803→  isLoading,
+   804→}: {
+   805→  interviews: UpcomingInterview[]
+   806→  isLoading: boolean
+   807→}) {
+   808→  const navigate = useCRMStore((s) => s.navigate)
+   809→
+   810→  if (isLoading) {
+   811→    return (
+   812→      <Card className="rounded-xl shadow-sm">
+   813→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
+   814→        <CardHeader className="pb-2">
+   815→          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   816→        </CardHeader>
+   817→        <CardContent>
+   818→          <div className="space-y-3">
+   819→            {Array.from({ length: 4 }).map((_, i) => (
+   820→              <div key={i} className="flex items-center gap-3">
+   821→                <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+   822→                <div className="flex-1 space-y-2">
+   823→                  <Skeleton className="h-4 w-2/3" />
+   824→                  <Skeleton className="h-3 w-1/3" />
+   825→                </div>
+   826→              </div>
+   827→            ))}
+   828→          </div>
+   829→        </CardContent>
+   830→      </Card>
+   831→    )
+   832→  }
+   833→
+   834→  if (interviews.length === 0) {
+   835→    return (
+   836→      <Card className="rounded-xl shadow-sm">
+   837→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
+   838→        <CardHeader className="pb-2">
+   839→          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   840→        </CardHeader>
+   841→        <CardContent>
+   842→          <p className="py-8 text-center text-sm text-muted-foreground">
+   843→            No upcoming interviews scheduled.
+   844→          </p>
+   845→        </CardContent>
+   846→      </Card>
+   847→    )
+   848→  }
+   849→
+   850→  const statusVariant = (status: string) => {
+   851→    switch (status) {
+   852→      case 'Scheduled':
+   853→        return 'default' as const
+   854→      case 'Confirmed':
+   855→        return 'secondary' as const
+   856→      case 'Rescheduled':
+   857→        return 'outline' as const
+   858→      default:
+   859→        return 'secondary' as const
+   860→    }
+   861→  }
+   862→
+   863→  return (
+   864→    <Card className="rounded-xl shadow-sm">
+   865→      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
+   866→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   867→        <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   868→        <button
+   869→          onClick={() => navigate('interviews')}
+   870→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   871→        >
+   872→          View all
+   873→          <ArrowRight className="h-3.5 w-3.5" />
+   874→        </button>
+   875→      </CardHeader>
+   876→      <CardContent>
+   877→        <div className="custom-scrollbar max-h-96 space-y-2 overflow-y-auto pr-1">
+   878→          {interviews.map((interview) => {
+   879→            const dateInfo = interview.date ? formatInterviewDate(interview.date) : null
+   880→            const timeIndicator = interview.date && interview.time
+   881→              ? formatInterviewTimeIndicator(interview.date, interview.time)
+   882→              : null
+   883→            const typeColorClass = INTERVIEW_TYPE_COLORS[interview.type] || 'bg-muted text-muted-foreground'
+   884→            return (
+   885→              <div
+   886→                key={interview.id}
+   887→                className={`flex items-center gap-3 rounded-lg border-l-[3px] border p-3 transition-all duration-200 hover:bg-muted/30 ${interview.type === 'Technical' ? 'border-l-cyan-400' : interview.type === 'HR' ? 'border-l-violet-400' : interview.type === 'Screening' ? 'border-l-teal-400' : interview.type === 'Final' ? 'border-l-rose-400' : 'border-l-cyan-400'}`}
+   888→              >
+   889→                <div className="relative flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-cyan-100 to-cyan-50 text-cyan-700 dark:from-cyan-950 dark:to-cyan-900/50 dark:text-cyan-400">
+   890→                  {dateInfo && (
+   891→                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-500 text-[8px] font-bold text-white animate-pulse">
+   892→                      {dateInfo.weekday.charAt(0)}
+   893→                    </span>
+   894→                  )}
+   895→                  <span className="text-[10px] font-medium uppercase leading-none">
+   896→                    {dateInfo?.day ?? ''}
+   897→                  </span>
+   898→                  <span className="text-sm font-bold leading-tight">{dateInfo?.date ?? ''}</span>
+   899→                </div>
+   900→                <div className="min-w-0 flex-1">
+   901→                  <p className="truncate text-sm font-medium">{interview.candidateName}</p>
+   902→                  <p className="truncate text-xs text-muted-foreground">{interview.jobTitle}</p>
+   903→                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+   904→                    <Badge variant="secondary" className={`badge-transition text-[10px] font-normal ${typeColorClass}`}>
+   905→                      {interview.type}
+   906→                    </Badge>
+   907→                    {timeIndicator && (
+   908→                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${timeIndicator.colorClass}`}>
+   909→                        {interview.date && new Date(interview.date).toDateString() === new Date().toDateString() && (
+   910→                          <span className="animate-dot-pulse inline-block h-1.5 w-1.5 rounded-full bg-current" />
+   911→                        )}
+   912→                        {timeIndicator.text}
+   913→                      </span>
+   914→                    )}
+   915→                  </div>
+   916→                </div>
+   917→                <Badge variant={statusVariant(interview.status)} className="badge-transition shrink-0 text-xs">
+   918→                  {interview.status}
+   919→                </Badge>
+   920→              </div>
+   921→            )
+   922→          })}
+   923→        </div>
+   924→      </CardContent>
+   925→    </Card>
+   926→  )
+   927→}
+   928→
+   929→// ===== Quick Action Button =====
+   930→
+   931→function QuickActionButton({
+   932→  icon: Icon,
+   933→  label,
+   934→  description,
+   935→  colorClass,
+   936→  bgClass,
+   937→  onClick,
+   938→}: {
+   939→  icon: React.ElementType
+   940→  label: string
+   941→  description: string
+   942→  colorClass: string
+   943→  bgClass: string
+   944→  onClick: () => void
+   945→}) {
+   946→  return (
+   947→    <button
+   948→      onClick={onClick}
+   949→      className={`card-glass group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-border/50`}
+   950→    >
+   951→      <div
+   952→        className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(16,185,129,0.2)] ${colorClass}`}
+   953→      >
+   954→        <Icon className="h-5 w-5" />
+   955→      </div>
+   956→      <div className="text-center">
+   957→        <span className="block text-xs font-medium text-muted-foreground transition-colors duration-200 group-hover:text-foreground">
+   958→          {label}
+   959→        </span>
+   960→        <span className="mt-0.5 block text-[10px] text-muted-foreground/60">
+   961→          {description}
+   962→        </span>
+   963→      </div>
+   964→    </button>
+   965→  )
+   966→}
+   967→
+   968→// ===== Main Dashboard Page =====
+   969→
+   970→export function DashboardPage() {
+   971→  const [data, setData] = useState<DashboardData | null>(null)
+   972→  const [isLoading, setIsLoading] = useState(true)
+   973→  const [error, setError] = useState<string | null>(null)
+   974→  const navigate = useCRMStore((s) => s.navigate)
+   975→
+   976→  const formattedDate = useMemo(() => {
+   977→    return new Date().toLocaleDateString('en-US', {
+   978→      weekday: 'long',
+   979→      year: 'numeric',
+   980→      month: 'long',
+   981→      day: 'numeric',
+   982→    })
+   983→  }, [])
+   984→
+   985→  useEffect(() => {
+   986→    async function fetchDashboardData() {
+   987→      try {
+   988→        setIsLoading(true)
+   989→        setError(null)
+   990→        const res = await fetch('/api/dashboard')
+   991→        if (!res.ok) {
+   992→          throw new Error(`Failed to fetch dashboard data: ${res.status}`)
+   993→        }
+   994→        const json = await res.json()
+   995→        setData(json)
+   996→      } catch (err) {
+   997→        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+   998→      } finally {
+   999→        setIsLoading(false)
+  1000→      }
+  1001→    }
+  1002→    fetchDashboardData()
+  1003→  }, [])
+  1004→
+  1005→  if (error) {
+  1006→    return (
+  1007→      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+  1008→        <p className="text-lg font-medium text-destructive">Failed to load dashboard</p>
+  1009→        <p className="text-sm text-muted-foreground">{error}</p>
+  1010→      </div>
+  1011→    )
+  1012→  }
+  1013→
+  1014→  // Build pipeline data array ensuring all statuses are present
+  1015→  const pipelineData: PipelineData =
+  1016→    data?.pipeline ??
+  1017→    ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'].map((status) => ({
+  1018→      status,
+  1019→      count: 0,
+  1020→    }))
+  1021→
+  1022→  // Build priority data array ensuring all priorities are present
+  1023→  const priorityData: PriorityData =
+  1024→    data?.priorityDistribution ??
+  1025→    ['Low', 'Medium', 'High', 'Urgent'].map((priority) => ({
+  1026→      priority,
+  1027→      count: 0,
+  1028→    }))
+  1029→
+  1030→  return (
+  1031→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+  1032→      <style dangerouslySetInnerHTML={{ __html: `
+  1033→        @keyframes gradient {
+  1034→          0% { background-position: 0% 50%; }
+  1035→          50% { background-position: 100% 50%; }
+  1036→          100% { background-position: 0% 50%; }
+  1037→        }
+  1038→        @keyframes shimmer {
+  1039→          0% { background-position: -200% center; }
+  1040→          100% { background-position: 200% center; }
+  1041→        }
+  1042→        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+  1043→        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  1044→        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  1045→        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: hsl(var(--border)); border-radius: 9999px; }
+  1046→      ` }} />
+  1047→      {/* Welcome Banner */}
+  1048→      <motion.div
+  1049→        initial={{ opacity: 0, y: -10 }}
+  1050→        animate={{ opacity: 1, y: 0 }}
+  1051→        transition={{ duration: 0.5, ease: 'easeOut' }}
+  1052→      >
+  1053→        <div className="card-glass relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 backdrop-blur-xl border border-white/20 dark:border-white/10 p-5 shadow-sm">
+  1054→          {/* Floating decorative circles */}
+  1055→          <div className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-400/10 animate-bounce [animation-delay:0s] [animation-duration:3s]" />
+  1056→          <div className="pointer-events-none absolute right-1/4 top-2 h-16 w-16 rounded-full bg-teal-400/8 animate-bounce [animation-delay:1s] [animation-duration:4s]" />
+  1057→          <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/10 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
+  1058→          <div className="relative z-10">
+  1059→            <h1 className="gradient-text text-2xl font-bold tracking-tight md:text-3xl bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.15)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.12)_50%,transparent_75%)]">
+  1060→              {getGreeting()}, Admin
+  1061→            </h1>
+  1062→            <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
+  1063→          </div>
+  1064→          {/* Decorative chart pattern on right */}
+  1065→          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.12] dark:opacity-[0.08]">
+  1066→            <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  1067→              <rect x="10" y="30" width="14" height="40" rx="4" fill="currentColor" className="text-emerald-600" />
+  1068→              <rect x="30" y="20" width="14" height="50" rx="4" fill="currentColor" className="text-teal-600" />
+  1069→              <rect x="50" y="35" width="14" height="35" rx="4" fill="currentColor" className="text-cyan-600" />
+  1070→              <rect x="70" y="10" width="14" height="60" rx="4" fill="currentColor" className="text-emerald-600" />
+  1071→              <rect x="90" y="25" width="14" height="45" rx="4" fill="currentColor" className="text-teal-600" />
+  1072→              <path d="M17 28 L37 18 L57 33 L77 8 L97 23" stroke="currentColor" className="text-emerald-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  1073→              <circle cx="17" cy="28" r="3" fill="currentColor" className="text-emerald-500" />
+  1074→              <circle cx="37" cy="18" r="3" fill="currentColor" className="text-emerald-500" />
+  1075→              <circle cx="57" cy="33" r="3" fill="currentColor" className="text-emerald-500" />
+  1076→              <circle cx="77" cy="8" r="3" fill="currentColor" className="text-emerald-500" />
+  1077→              <circle cx="97" cy="23" r="3" fill="currentColor" className="text-emerald-500" />
+  1078→            </svg>
+  1079→          </div>
+  1080→        </div>
+  1081→      </motion.div>
+  1082→
+  1083→      {/* Quick Actions Bar */}
+  1084→      <motion.div
+  1085→        initial={{ opacity: 0, y: 10 }}
+  1086→        animate={{ opacity: 1, y: 0 }}
+  1087→        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+  1088→      >
+  1089→        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+  1090→          <QuickActionButton
+  1091→            icon={Users}
+  1092→            label="Add Candidate"
+  1093→            description="Add new candidate to pipeline"
+  1094→            colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+  1095→            bgClass="from-emerald-50/60 to-transparent dark:from-emerald-950/20"
+  1096→            onClick={() => navigate('candidates')}
+  1097→          />
+  1098→          <QuickActionButton
+  1099→            icon={Briefcase}
+  1100→            label="Post Job"
+  1101→            description="Create a new job opening"
+  1102→            colorClass="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+  1103→            bgClass="from-amber-50/60 to-transparent dark:from-amber-950/20"
+  1104→            onClick={() => navigate('jobs')}
+  1105→          />
+  1106→          <QuickActionButton
+  1107→            icon={Video}
+  1108→            label="Schedule Interview"
+  1109→            description="Set up an interview slot"
+  1110→            colorClass="bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
+  1111→            bgClass="from-violet-50/60 to-transparent dark:from-violet-950/20"
+  1112→            onClick={() => navigate('interviews')}
+  1113→          />
+  1114→          <QuickActionButton
+  1115→            icon={BarChart3}
+  1116→            label="View Reports"
+  1117→            description="View analytics dashboard"
+  1118→            colorClass="bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400"
+  1119→            bgClass="from-rose-50/60 to-transparent dark:from-rose-950/20"
+  1120→            onClick={() => navigate('analytics')}
+  1121→          />
+  1122→        </div>
+  1123→      </motion.div>
+  1124→
+  1125→      {/* Stat Cards Grid */}
+  1126→      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+  1127→        {STAT_CARDS.map((config, index) => (
+  1128→          <StatCard
+  1129→            key={config.key}
+  1130→            config={config}
+  1131→            stats={data?.stats ?? null}
+  1132→            isLoading={isLoading}
+  1133→            index={index}
+  1134→          />
+  1135→        ))}
+  1136→      </div>
+  1137→
+  1138→      {/* Charts Section */}
+  1139→      <section>
+  1140→        <div className="mb-4 flex items-center gap-3">
+  1141→          <Activity className="h-5 w-5 text-muted-foreground" />
+  1142→          <h2 className="text-lg font-semibold tracking-tight">Analytics Overview</h2>
+  1143→          <div className="h-px flex-1 bg-border" />
+  1144→        </div>
+  1145→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  1146→          <CandidatePipelineChart data={pipelineData} isLoading={isLoading} />
+  1147→          <JobPriorityChart data={priorityData} isLoading={isLoading} />
+  1148→        </div>
+  1149→      </section>
+  1150→
+  1151→      {/* Bottom Section: Recent Activities + Upcoming Interviews */}
+  1152→      <section>
+  1153→        <div className="mb-4 flex items-center gap-3">
+  1154→          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+  1155→          <h2 className="text-lg font-semibold tracking-tight">Activity & Schedule</h2>
+  1156→          <div className="h-px flex-1 bg-border" />
+  1157→        </div>
+  1158→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  1159→          <RecentActivities activities={data?.recentActivities ?? []} isLoading={isLoading} />
+  1160→          <UpcomingInterviewsList interviews={data?.upcomingInterviews ?? []} isLoading={isLoading} />
+  1161→        </div>
+  1162→      </section>
+  1163→    </div>
+  1164→  )
+  1165→}
