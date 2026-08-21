@@ -23,8 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Clock, LogIn, LogOut, CalendarDays } from 'lucide-react'
+import { Clock, LogIn, LogOut, CalendarDays, Download } from 'lucide-react'
 import { toast } from 'sonner'
+import { exportToCSV } from '@/lib/export-csv'
 
 // ===== Types =====
 
@@ -63,7 +64,21 @@ const STATUS_COLORS: Record<string, string> = {
   Present: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
   Absent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'Half-Day': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  'Work-From-Home': 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  'Work-From-Home': 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+}
+
+const STATUS_BORDER_COLORS: Record<string, string> = {
+  Present: 'border-l-emerald-500',
+  Absent: 'border-l-red-500',
+  'Half-Day': 'border-l-amber-500',
+  'Work-From-Home': 'border-l-sky-500',
+}
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  Present: 'bg-emerald-500',
+  Absent: 'bg-red-500',
+  'Half-Day': 'bg-amber-500',
+  'Work-From-Home': 'bg-sky-500',
 }
 
 // ===== Helpers =====
@@ -118,10 +133,10 @@ function LiveClock() {
 
   return (
     <div className="flex flex-col items-center">
-      <span className="text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
+      <span className="text-5xl font-extrabold tracking-tight tabular-nums sm:text-6xl">
         {timeStr}
       </span>
-      <span className="mt-1 text-sm text-muted-foreground">{dateStr}</span>
+      <span className="mt-1.5 text-sm text-muted-foreground">{dateStr}</span>
     </div>
   )
 }
@@ -144,8 +159,10 @@ function ClockCard({
   isLoading: boolean
 }) {
   return (
-    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5">
-      <CardContent className="flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start sm:gap-8">
+    <Card className="relative overflow-hidden rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 shadow-lg">
+      {/* Gradient border glow effect */}
+      <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-primary/10" />
+      <CardContent className="relative flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start sm:gap-8">
         {/* Clock Icon + Live Time */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -155,16 +172,25 @@ function ClockCard({
         </div>
 
         {/* Divider */}
-        <div className="hidden h-24 w-px bg-border sm:block" />
+        <div className="hidden h-28 w-px bg-border sm:block" />
         <div className="h-px w-full bg-border sm:hidden" />
 
         {/* Employee Info + Actions */}
         <div className="flex flex-1 flex-col items-center gap-4 sm:items-start">
           <div className="text-center sm:text-left">
             <p className="text-sm text-muted-foreground">Current Employee</p>
-            <p className="mt-0.5 text-lg font-semibold">
-              {employee ? employee.name : 'Loading...'}
-            </p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <p className="text-lg font-semibold">
+                {employee ? employee.name : 'Loading...'}
+              </p>
+              {/* Pulsing green dot when clocked in */}
+              {clockState === 'clocked-in' && (
+                <span className="relative flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+                </span>
+              )}
+            </div>
             {employee && employee.department && (
               <p className="mt-0.5 text-xs text-muted-foreground">{employee.department} · {employee.role}</p>
             )}
@@ -225,7 +251,8 @@ function ClockCard({
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <Badge className={`text-xs font-medium ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+    <Badge className={`gap-1.5 text-xs font-medium ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`} />
       {status}
     </Badge>
   )
@@ -242,7 +269,7 @@ function AttendanceTable({
 }) {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-xl shadow-md">
         <CardContent className="p-4">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -263,7 +290,7 @@ function AttendanceTable({
 
   if (records.length === 0) {
     return (
-      <Card>
+      <Card className="rounded-xl shadow-md">
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm font-medium text-muted-foreground">No attendance records found</p>
@@ -276,7 +303,7 @@ function AttendanceTable({
   }
 
   return (
-    <Card>
+    <Card className="rounded-xl shadow-md">
       <div className="max-h-96 overflow-y-auto">
         <Table>
           <TableHeader>
@@ -291,8 +318,11 @@ function AttendanceTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {records.map((record) => (
-              <TableRow key={record.id} className="transition-colors hover:bg-muted/50">
+            {records.map((record, index) => (
+              <TableRow
+                key={record.id}
+                className={`border-l-4 transition-colors hover:bg-muted/50 ${STATUS_BORDER_COLORS[record.status] || 'border-l-gray-300'} ${index % 2 === 1 ? 'bg-muted/30' : ''}`}
+              >
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
@@ -356,7 +386,7 @@ export function AttendancePage() {
       params.set('date', todayStr)
       params.set('employeeId', currentEmployee.id)
       const res = await fetch(`/api/attendance?${params.toString()}`)
-      if (!res.ok) throw new Error('Failed to fetch today\'s attendance')
+      if (!res.ok) throw new Error("Failed to fetch today's attendance")
       return res.json()
     },
     enabled: !!currentEmployee,
@@ -461,6 +491,28 @@ export function AttendancePage() {
             )}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => {
+            const csvData = records.map((r) => ({
+              'Employee Name': r.employee.name,
+              Role: r.employee.role,
+              Department: r.employee.department || '',
+              Date: formatDate(r.date),
+              'Clock In': formatTime(r.clockIn),
+              'Clock Out': formatTime(r.clockOut),
+              'Total Hours': formatHours(r.totalHours),
+              Status: r.status,
+              Notes: r.notes || '',
+            }))
+            exportToCSV(csvData, 'attendance')
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Clock In/Out Card */}

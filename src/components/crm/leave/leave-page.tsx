@@ -25,14 +25,16 @@ import {
 import {
   Plus,
   CalendarOff,
-  CheckCircle2,
-  XCircle,
   Coffee,
   HeartPulse,
   Award,
   Baby,
+  Download,
+  Check,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { exportToCSV } from '@/lib/export-csv'
 import { AddLeaveDialog } from './add-leave-dialog'
 
 // ===== Types =====
@@ -88,11 +90,25 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const BALANCE_CARD_CONFIG = [
-  { type: 'Casual Leave', label: 'Casual', icon: Coffee, color: 'text-orange-600 bg-orange-100 dark:bg-orange-950 dark:text-orange-400', accent: 'bg-orange-500' },
-  { type: 'Sick Leave', label: 'Sick', icon: HeartPulse, color: 'text-rose-600 bg-rose-100 dark:bg-rose-950 dark:text-rose-400', accent: 'bg-rose-500' },
-  { type: 'Earned Leave', label: 'Earned', icon: Award, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400', accent: 'bg-emerald-500' },
-  { type: 'Maternity Leave', label: 'Maternity', icon: Baby, color: 'text-pink-600 bg-pink-100 dark:bg-pink-950 dark:text-pink-400', accent: 'bg-pink-500' },
+  { type: 'Casual Leave', label: 'Casual', icon: Coffee, color: 'text-orange-600 bg-orange-100 dark:bg-orange-950 dark:text-orange-400', accent: 'bg-orange-500', accentText: 'text-orange-500', accentStroke: 'stroke-orange-500', gradient: 'from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/30', ringColor: 'ring-orange-500/20' },
+  { type: 'Sick Leave', label: 'Sick', icon: HeartPulse, color: 'text-rose-600 bg-rose-100 dark:bg-rose-950 dark:text-rose-400', accent: 'bg-rose-500', accentText: 'text-rose-500', accentStroke: 'stroke-rose-500', gradient: 'from-rose-50 to-pink-50 dark:from-rose-950/40 dark:to-pink-950/30', ringColor: 'ring-rose-500/20' },
+  { type: 'Earned Leave', label: 'Earned', icon: Award, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400', accent: 'bg-emerald-500', accentText: 'text-emerald-500', accentStroke: 'stroke-emerald-500', gradient: 'from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30', ringColor: 'ring-emerald-500/20' },
+  { type: 'Maternity Leave', label: 'Maternity', icon: Baby, color: 'text-pink-600 bg-pink-100 dark:bg-pink-950 dark:text-pink-400', accent: 'bg-pink-500', accentText: 'text-pink-500', accentStroke: 'stroke-pink-500', gradient: 'from-pink-50 to-fuchsia-50 dark:from-pink-950/40 dark:to-fuchsia-950/30', ringColor: 'ring-pink-500/20' },
 ]
+
+const STATUS_BORDER_COLORS: Record<string, string> = {
+  Pending: 'border-l-amber-500',
+  Approved: 'border-l-emerald-500',
+  Rejected: 'border-l-red-500',
+  Cancelled: 'border-l-gray-400',
+}
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  Pending: 'bg-amber-500',
+  Approved: 'bg-emerald-500',
+  Rejected: 'bg-red-500',
+  Cancelled: 'bg-gray-400',
+}
 
 // ===== Helpers =====
 
@@ -125,35 +141,71 @@ function BalanceCard({
   const remaining = balance?.remaining ?? 0
   const percentage = total > 0 ? (used / total) * 100 : 0
 
+  // SVG circular progress: radius=18, circumference ≈ 113.1
+  const radius = 18
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference * (1 - (isLoading ? 0 : percentage) / 100)
+
   return (
-    <Card className="relative overflow-hidden">
+    <Card className={`relative overflow-hidden rounded-xl shadow-md ring-1 ${config.ringColor} bg-gradient-to-br ${config.gradient}`}>
       <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${config.color}`}>
-            <Icon className="h-5 w-5" />
-          </div>
+        <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-muted-foreground">{config.label}</p>
+            <div className="flex items-center gap-2.5">
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${config.color}`}>
+                <Icon className="h-4.5 w-4.5" />
+              </div>
+              <p className="text-sm font-semibold text-muted-foreground">{config.label}</p>
+            </div>
             {isLoading ? (
-              <Skeleton className="mt-1 h-5 w-16" />
+              <Skeleton className="mt-2 h-7 w-20" />
             ) : (
-              <p className="text-lg font-bold tabular-nums">
+              <p className="mt-1.5 text-2xl font-extrabold tabular-nums tracking-tight">
                 {remaining}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">/ {total} days</span>
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">/ {total} days</span>
               </p>
             )}
+            <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span>{used} used</span>
+              <span className="text-border">·</span>
+              <span>{remaining} remaining</span>
+            </div>
           </div>
-        </div>
-        {/* Progress bar */}
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${config.accent}`}
-            style={{ width: `${isLoading ? 0 : percentage}%` }}
-          />
-        </div>
-        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-          <span>{used} used</span>
-          <span>{remaining} remaining</span>
+          {/* Circular progress indicator */}
+          <div className="relative h-14 w-14 shrink-0">
+            <svg className="h-14 w-14 -rotate-90" viewBox="0 0 48 48">
+              {/* Track circle */}
+              <circle
+                cx="24"
+                cy="24"
+                r={radius}
+                fill="none"
+                strokeWidth="4"
+                className="stroke-muted"
+              />
+              {/* Progress circle */}
+              <circle
+                cx="24"
+                cy="24"
+                r={radius}
+                fill="none"
+                strokeWidth="4"
+                strokeLinecap="round"
+                className={config.accentStroke}
+                style={{
+                  strokeDasharray: circumference,
+                  strokeDashoffset,
+                  transition: 'stroke-dashoffset 0.6s ease',
+                }}
+              />
+            </svg>
+            {/* Center percentage text */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-xs font-bold tabular-nums ${config.accentText}`}>
+                {isLoading ? '—' : `${Math.round(percentage)}%`}
+              </span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -164,7 +216,8 @@ function BalanceCard({
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <Badge className={`text-xs font-medium ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+    <Badge className={`gap-1.5 text-xs font-medium ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`} />
       {status}
     </Badge>
   )
@@ -187,7 +240,7 @@ function LeaveTable({
 }) {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-xl shadow-md">
         <CardContent className="p-4">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -210,7 +263,7 @@ function LeaveTable({
 
   if (requests.length === 0) {
     return (
-      <Card>
+      <Card className="rounded-xl shadow-md">
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <CalendarOff className="h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm font-medium text-muted-foreground">No leave requests found</p>
@@ -223,7 +276,7 @@ function LeaveTable({
   }
 
   return (
-    <Card>
+    <Card className="rounded-xl shadow-md">
       <div className="max-h-96 overflow-y-auto">
         <Table>
           <TableHeader>
@@ -239,8 +292,8 @@ function LeaveTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {requests.map((req) => (
-              <TableRow key={req.id} className="transition-colors hover:bg-muted/50">
+            {requests.map((req, index) => (
+              <TableRow key={req.id} className={`border-l-4 transition-colors hover:bg-muted/50 ${STATUS_BORDER_COLORS[req.status] || 'border-l-gray-300'} ${index % 2 === 1 ? 'bg-muted/30' : ''}`}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
@@ -274,7 +327,7 @@ function LeaveTable({
                         disabled={isActionPending}
                         onClick={() => onApprove(req.id)}
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <Check className="h-3.5 w-3.5" />
                         Approve
                       </Button>
                       <Button
@@ -284,7 +337,7 @@ function LeaveTable({
                         disabled={isActionPending}
                         onClick={() => onReject(req.id)}
                       >
-                        <XCircle className="h-3.5 w-3.5" />
+                        <X className="h-3.5 w-3.5" />
                         Reject
                       </Button>
                     </div>
@@ -420,15 +473,41 @@ export function LeavePage() {
             )}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Apply for Leave
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              const csvData = requests.map((r) => ({
+                'Employee Name': r.employee.name,
+                Role: r.employee.role,
+                Department: r.employee.department || '',
+                'Leave Type': r.type,
+                From: formatDate(r.startDate),
+                To: formatDate(r.endDate),
+                'Total Days': r.totalDays,
+                Reason: r.reason || '',
+                Status: r.status,
+                'Approved By': r.approvedBy || '',
+                'Approved At': r.approvedAt ? formatDate(r.approvedAt) : '',
+              }))
+              exportToCSV(csvData, 'leave-requests')
+            }}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Apply for Leave
+          </Button>
+        </div>
       </div>
 
       {/* My Leave Balance Cards */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           My Leave Balance
           {firstEmployee && (
             <span className="ml-2 text-xs font-normal normal-case">

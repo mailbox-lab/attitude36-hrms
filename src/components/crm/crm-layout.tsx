@@ -30,6 +30,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { CommandPalette } from '@/components/crm/command-palette'
+import { NotificationBell } from '@/components/crm/notification-bell'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
@@ -162,7 +164,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4" style={{ borderBottom: '1px solid transparent', backgroundImage: 'linear-gradient(to right, hsl(var(--border) / 0.6), hsl(var(--primary) / 0.15), hsl(var(--border) / 0.6))', backgroundSize: '100% 1px', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom' }}>
           <Button
             variant="ghost"
             size="icon"
@@ -177,6 +179,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
               {navItems.find((i) => i.view === currentView)?.label ?? 'Dashboard'}
             </h2>
           </div>
+          <NotificationBell />
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -208,6 +211,8 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      <CommandPalette />
     </div>
   )
 }

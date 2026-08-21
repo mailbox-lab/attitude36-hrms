@@ -43,7 +43,9 @@ import {
   Eye,
   Users,
   MapPin,
+  Download,
 } from 'lucide-react'
+import { exportToCSV } from '@/lib/export-csv'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
 
@@ -141,7 +143,7 @@ function KanbanCard({
 
   return (
     <div
-      className={`group rounded-lg border border-l-4 bg-card p-3 shadow-sm transition-all hover:shadow-md ${
+      className={`group rounded-lg border border-l-4 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
         STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-500'
       }`}
     >
@@ -254,11 +256,26 @@ function KanbanColumn({
           />
           <span className="text-sm font-semibold">{status}</span>
         </div>
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
           {candidates.length}
         </span>
       </div>
-      <div className="flex max-h-[calc(100vh-320px)] min-h-[120px] flex-col gap-2 overflow-y-auto rounded-lg bg-muted/30 p-2">
+      <div className="rounded-t-lg border-t-2 flex max-h-[calc(100vh-320px)] min-h-[120px] flex-col gap-2.5 overflow-y-auto rounded-b-lg bg-muted/30 p-2.5" style={{
+        borderTopColor:
+          status === 'New'
+            ? '#10b981'
+            : status === 'Screening'
+              ? '#3b82f6'
+              : status === 'Interview'
+                ? '#f59e0b'
+                : status === 'Offer'
+                  ? '#8b5cf6'
+                  : status === 'Hired'
+                    ? '#22c55e'
+                    : status === 'Rejected'
+                      ? '#ef4444'
+                      : '#6b7280',
+      }}>
         {candidates.length === 0 ? (
           <div className="flex flex-1 items-center justify-center py-8">
             <p className="text-xs text-muted-foreground/60">No candidates</p>
@@ -378,19 +395,47 @@ export function CandidatesPage() {
             )}
           </p>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Candidate
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              const csvData = candidates.map((c) => ({
+                Name: `${c.firstName} ${c.lastName}`,
+                Email: c.email || '',
+                Phone: c.phone || '',
+                Title: c.title || '',
+                Status: c.status,
+                Source: c.source || '',
+                Experience: c.experience ?? '',
+                Location: c.location || '',
+                Skills: c.skills,
+                'Current CTC': c.currentCTC ?? '',
+                'Expected CTC': c.expectedCTC ?? '',
+                'Notice Period': c.noticePeriod ?? '',
+                'Job Title': c.job?.title || '',
+              }))
+              exportToCSV(csvData, 'candidates')
+            }}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-to-r from-primary to-primary/80 shadow-md hover:shadow-lg">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Candidate
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-lg bg-muted/50 p-2 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search candidates..."
-            className="pl-9"
+            className="border-0 bg-background pl-9 shadow-sm"
             value={candidateFilter.search}
             onChange={(e) => setCandidateFilter({ search: e.target.value })}
           />
@@ -399,7 +444,7 @@ export function CandidatesPage() {
           value={candidateFilter.status}
           onValueChange={(val) => setCandidateFilter({ status: val })}
         >
-          <SelectTrigger className="w-full sm:w-[160px]">
+          <SelectTrigger className="w-full border-0 bg-background shadow-sm sm:w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -415,7 +460,7 @@ export function CandidatesPage() {
           value={candidateFilter.source}
           onValueChange={(val) => setCandidateFilter({ source: val })}
         >
-          <SelectTrigger className="w-full sm:w-[160px]">
+          <SelectTrigger className="w-full border-0 bg-background shadow-sm sm:w-[160px]">
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
@@ -491,7 +536,7 @@ export function CandidatesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {candidates.map((candidate) => {
+                    {candidates.map((candidate, index) => {
                       const initials = getInitials(
                         candidate.firstName,
                         candidate.lastName
@@ -499,13 +544,15 @@ export function CandidatesPage() {
                       return (
                         <TableRow
                           key={candidate.id}
-                          className="cursor-pointer transition-colors"
+                          className={`cursor-pointer border-l-4 transition-colors hover:bg-muted/50 ${
+                            STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-400'
+                          } ${index % 2 === 1 ? 'bg-muted/30' : ''}`}
                           onClick={() => handleViewCandidate(candidate.id)}
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8 shrink-0 text-xs">
-                                <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+                              <Avatar className="h-9 w-9 shrink-0 text-xs">
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                                   {initials}
                                 </AvatarFallback>
                               </Avatar>

@@ -111,6 +111,13 @@ const STATUS_COLORS: Record<string, string> = {
   'Backed-Out': 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
 }
 
+const STATUS_BORDER_COLORS: Record<string, string> = {
+  Offered: 'border-l-blue-500',
+  Accepted: 'border-l-amber-500',
+  Joined: 'border-l-green-500',
+  'Backed-Out': 'border-l-red-500',
+}
+
 // ===== Schema =====
 
 const placementSchema = z.object({
@@ -130,6 +137,9 @@ type PlacementFormData = z.infer<typeof placementSchema>
 
 function formatCurrency(amount: number | null | undefined) {
   if (amount == null) return '—'
+  if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(2)} LPA`
+  }
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
@@ -511,37 +521,37 @@ export function PlacementsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 dark:from-blue-950/40 dark:to-blue-900/20 dark:border-blue-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-950">
-                <Trophy className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-200 dark:bg-blue-800">
+                <Trophy className="h-5 w-5 text-blue-700 dark:text-blue-300" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{placements.length}</p>
-                <p className="text-xs text-muted-foreground">Total Placements</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">Total Placements</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 dark:from-green-950/40 dark:to-green-900/20 dark:border-green-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-950">
-                <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-200 dark:bg-green-800">
+                <Users className="h-5 w-5 text-green-700 dark:text-green-300" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{joinedCount}</p>
-                <p className="text-xs text-muted-foreground">Joined</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Joined</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 dark:from-amber-950/40 dark:to-amber-900/20 dark:border-amber-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
-                <IndianRupee className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800">
+                <IndianRupee className="h-5 w-5 text-amber-700 dark:text-amber-300" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -549,16 +559,16 @@ export function PlacementsPage() {
                     ? `₹${(totalCommission / 1000).toFixed(1)}K`
                     : '₹0'}
                 </p>
-                <p className="text-xs text-muted-foreground">Total Commission</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">Total Commission</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200 dark:from-emerald-950/40 dark:to-emerald-900/20 dark:border-emerald-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
-                <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-200 dark:bg-emerald-800">
+                <Trophy className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -566,7 +576,7 @@ export function PlacementsPage() {
                     ? `${((joinedCount / placements.length) * 100).toFixed(0)}%`
                     : '0%'}
                 </p>
-                <p className="text-xs text-muted-foreground">Success Rate</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">Success Rate</p>
               </div>
             </div>
           </CardContent>
@@ -574,8 +584,9 @@ export function PlacementsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+      <div className="rounded-lg bg-muted/50 p-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -587,6 +598,7 @@ export function PlacementsPage() {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {/* Table */}
@@ -637,8 +649,8 @@ export function PlacementsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {placements.map((placement) => (
-                  <TableRow key={placement.id} className="transition-colors">
+                {placements.map((placement, idx) => (
+                  <TableRow key={placement.id} className={`border-l-4 ${STATUS_BORDER_COLORS[placement.status] || 'border-l-gray-300'} ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}>
                     <TableCell>
                       <span className="truncate text-sm font-medium">
                         {placement.candidate.firstName} {placement.candidate.lastName}

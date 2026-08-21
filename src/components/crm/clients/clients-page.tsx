@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Plus, Building2, MapPin, Mail, Phone, Briefcase, UserCheck } from 'lucide-react'
+import { Search, Plus, Building2, MapPin, Mail, Phone, Briefcase, UserCheck, Cpu, Heart, GraduationCap, Factory, ShoppingBag, Landmark, Radio, Tv, Lightbulb, Truck, Car, Pill, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ===== Types =====
@@ -72,10 +72,27 @@ const STATUS_COLORS: Record<string, string> = {
   Prospect: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
 }
 
-const STATUS_BORDER: Record<string, string> = {
-  Active: 'border-t-emerald-500',
-  Inactive: 'border-t-red-500',
-  Prospect: 'border-t-amber-500',
+const STATUS_GRADIENT: Record<string, string> = {
+  Active: 'from-emerald-400 to-emerald-600',
+  Inactive: 'from-red-400 to-red-600',
+  Prospect: 'from-amber-400 to-amber-600',
+}
+
+const INDUSTRY_ICONS: Record<string, { icon: typeof Cpu; color: string }> = {
+  'Information Technology': { icon: Cpu, color: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400' },
+  'Healthcare': { icon: Heart, color: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
+  'Finance & Banking': { icon: Landmark, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
+  'Education': { icon: GraduationCap, color: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
+  'Manufacturing': { icon: Factory, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400' },
+  'Retail & E-commerce': { icon: ShoppingBag, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
+  'Real Estate': { icon: Building2, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  'Telecommunications': { icon: Radio, color: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400' },
+  'Media & Entertainment': { icon: Tv, color: 'bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-950 dark:text-fuchsia-400' },
+  'Consulting': { icon: Lightbulb, color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400' },
+  'Logistics & Supply Chain': { icon: Truck, color: 'bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400' },
+  'Automotive': { icon: Car, color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
+  'Pharmaceuticals': { icon: Pill, color: 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400' },
+  'Energy & Utilities': { icon: Zap, color: 'bg-lime-100 text-lime-600 dark:bg-lime-950 dark:text-lime-400' },
 }
 
 // ===== Client Card =====
@@ -88,18 +105,22 @@ function ClientCard({
   onClick: () => void
 }) {
   const location = [client.city, client.state].filter(Boolean).join(', ')
+  const industryInfo = client.industry ? INDUSTRY_ICONS[client.industry] : null
+  const IndustryIcon = industryInfo?.icon || Building2
 
   return (
     <Card
-      className={`group cursor-pointer border-t-4 transition-all hover:shadow-md ${STATUS_BORDER[client.status] || 'border-t-gray-400'}`}
+      className={`group cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1`}
       onClick={onClick}
     >
+      {/* Gradient top border */}
+      <div className={`h-[3px] bg-gradient-to-r ${STATUS_GRADIENT[client.status] || 'from-gray-400 to-gray-500'}`} />
       <CardContent className="p-4">
         {/* Company Name & Status */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <Building2 className="h-5 w-5 text-primary" />
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${industryInfo?.color || 'bg-primary/10 text-primary'}`}>
+              <IndustryIcon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold leading-tight group-hover:underline">
@@ -108,7 +129,7 @@ function ClientCard({
               {client.industry && (
                 <Badge
                   variant="secondary"
-                  className="mt-1 text-[10px] font-medium"
+                  className={`mt-1 text-[10px] font-medium ${industryInfo?.color || ''}`}
                 >
                   {client.industry}
                 </Badge>
@@ -152,20 +173,20 @@ function ClientCard({
         </div>
 
         {/* Stats Row */}
-        <div className="mt-3 flex items-center gap-4 border-t pt-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Briefcase className="h-3.5 w-3.5" />
-            <span className="font-medium text-foreground">
+        <div className="mt-3 flex items-center gap-3 border-t pt-3">
+          <div className="flex items-center gap-1.5 rounded-md bg-primary/5 px-2 py-1 text-xs">
+            <Briefcase className="h-3.5 w-3.5 text-primary/70" />
+            <span className="font-semibold text-foreground">
               {client._count.jobs}
             </span>
-            <span>Jobs</span>
+            <span className="text-muted-foreground">Jobs</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <UserCheck className="h-3.5 w-3.5" />
-            <span className="font-medium text-foreground">
+          <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs dark:bg-emerald-950/30">
+            <UserCheck className="h-3.5 w-3.5 text-emerald-600/70 dark:text-emerald-400/70" />
+            <span className="font-semibold text-foreground">
               {client._count.placements}
             </span>
-            <span>Placements</span>
+            <span className="text-muted-foreground">Placements</span>
           </div>
         </div>
       </CardContent>
@@ -247,40 +268,42 @@ export function ClientsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search clients..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="rounded-lg bg-muted/50 p-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search clients..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === 'All' ? 'All Statuses' : status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={industryFilter} onValueChange={setIndustryFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Industry" />
+            </SelectTrigger>
+            <SelectContent>
+              {INDUSTRY_OPTIONS.map((industry) => (
+                <SelectItem key={industry} value={industry}>
+                  {industry === 'All' ? 'All Industries' : industry}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === 'All' ? 'All Statuses' : status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={industryFilter} onValueChange={setIndustryFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Industry" />
-          </SelectTrigger>
-          <SelectContent>
-            {INDUSTRY_OPTIONS.map((industry) => (
-              <SelectItem key={industry} value={industry}>
-                {industry === 'All' ? 'All Industries' : industry}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Client Grid */}
@@ -314,7 +337,7 @@ export function ClientsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-h-[600px] overflow-y-auto">
           {clients.map((client) => (
             <ClientCard
               key={client.id}

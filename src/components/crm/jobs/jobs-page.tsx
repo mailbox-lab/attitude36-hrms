@@ -81,6 +81,28 @@ const PRIORITY_COLORS: Record<string, string> = {
   Urgent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
 }
 
+const PRIORITY_DOT_COLORS: Record<string, string> = {
+  Low: 'bg-green-500',
+  Medium: 'bg-blue-500',
+  High: 'bg-amber-500',
+  Urgent: 'bg-red-500',
+}
+
+const PRIORITY_BORDER_COLORS: Record<string, string> = {
+  Low: 'border-l-green-500',
+  Medium: 'border-l-blue-500',
+  High: 'border-l-amber-500',
+  Urgent: 'border-l-red-500',
+}
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  Open: 'bg-emerald-500',
+  Closed: 'bg-gray-400',
+  Paused: 'bg-amber-500',
+  Filled: 'bg-violet-500',
+  Cancelled: 'bg-red-500',
+}
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: '₹',
   USD: '$',
@@ -152,53 +174,55 @@ export function JobsPage() {
             )}
           </p>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
+        <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm hover:from-primary/90 hover:to-primary/70">
           <Plus className="mr-2 h-4 w-4" />
           Add Job
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search jobs..."
-            className="pl-9"
-            value={jobFilter.search}
-            onChange={(e) => setJobFilter({ search: e.target.value })}
-          />
+      <div className="rounded-lg bg-muted/50 p-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search jobs..."
+              className="pl-9"
+              value={jobFilter.search}
+              onChange={(e) => setJobFilter({ search: e.target.value })}
+            />
+          </div>
+          <Select
+            value={jobFilter.status}
+            onValueChange={(val) => setJobFilter({ status: val })}
+          >
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === 'All' ? 'All Statuses' : status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={jobFilter.priority}
+            onValueChange={(val) => setJobFilter({ priority: val })}
+          >
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {priority === 'All' ? 'All Priorities' : priority}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select
-          value={jobFilter.status}
-          onValueChange={(val) => setJobFilter({ status: val })}
-        >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === 'All' ? 'All Statuses' : status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={jobFilter.priority}
-          onValueChange={(val) => setJobFilter({ priority: val })}
-        >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            {PRIORITY_OPTIONS.map((priority) => (
-              <SelectItem key={priority} value={priority}>
-                {priority === 'All' ? 'All Priorities' : priority}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Jobs Table */}
@@ -260,7 +284,7 @@ export function JobsPage() {
                     return (
                       <TableRow
                         key={job.id}
-                        className="cursor-pointer"
+                        className={`cursor-pointer border-l-4 ${PRIORITY_BORDER_COLORS[job.priority] || 'border-l-gray-300'} ${jobs.indexOf(job) % 2 === 1 ? 'bg-muted/30' : ''}`}
                         onClick={() => handleViewJob(job.id)}
                       >
                         <TableCell>
@@ -286,14 +310,20 @@ export function JobsPage() {
                           {salaryRange}
                         </TableCell>
                         <TableCell>
-                          <Badge className={`text-[10px] ${PRIORITY_COLORS[job.priority] || ''}`}>
-                            {job.priority}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT_COLORS[job.priority] || 'bg-gray-400'}`} />
+                            <Badge className={`text-[10px] ${PRIORITY_COLORS[job.priority] || ''}`}>
+                              {job.priority}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={`text-[10px] ${STATUS_COLORS[job.status] || ''}`}>
-                            {job.status}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[job.status] || 'bg-gray-400'}`} />
+                            <Badge className={`text-[10px] ${STATUS_COLORS[job.status] || ''}`}>
+                              {job.status}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="hidden text-xs sm:table-cell">
                           <span className="font-medium">{job._count.candidates}</span>

@@ -82,15 +82,22 @@ const EMPLOYEE_ROLES = ['Admin', 'Manager', 'Recruiter', 'HR']
 const ACTIVE_OPTIONS = ['All', 'Active', 'Inactive']
 
 const ROLE_COLORS: Record<string, string> = {
-  Admin: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400',
-  Manager: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  Admin: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+  Manager: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
   Recruiter: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-  HR: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  HR: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
 }
 
 const STATUS_COLORS: Record<string, string> = {
   Active: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   Inactive: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+}
+
+const AVATAR_GRADIENTS: Record<string, string> = {
+  Admin: 'bg-gradient-to-br from-rose-400 to-rose-600',
+  Manager: 'bg-gradient-to-br from-amber-400 to-amber-600',
+  Recruiter: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+  HR: 'bg-gradient-to-br from-violet-400 to-violet-600',
 }
 
 // ===== Schema =====
@@ -332,25 +339,30 @@ function EmployeeCard({
   const initials = getInitials(employee.name)
 
   return (
-    <Card className="group relative transition-all hover:shadow-md">
+    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
               {employee.avatar && <AvatarImage src={employee.avatar} alt={employee.name} />}
-              <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+              <AvatarFallback className={`${AVATAR_GRADIENTS[employee.role] || 'bg-gradient-to-br from-gray-400 to-gray-600'} text-sm font-semibold text-white`}>
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold">{employee.name}</h3>
-              <Badge
-                className={`mt-1 text-[10px] ${
-                  ROLE_COLORS[employee.role] || ''
-                }`}
-              >
-                {employee.role}
-              </Badge>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Badge
+                  className={`text-[10px] ${ROLE_COLORS[employee.role] || ''}`}
+                >
+                  {employee.role}
+                </Badge>
+                {employee.department && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {employee.department}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -578,17 +590,18 @@ export function EmployeesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search employees..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
+      <div className="rounded-lg bg-muted/50 p-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search employees..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Role" />
           </SelectTrigger>
@@ -612,6 +625,7 @@ export function EmployeesPage() {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {/* Cards Grid */}

@@ -62,6 +62,7 @@ import {
   MapPin,
   Clock,
   User,
+  CalendarDays,
 } from 'lucide-react'
 
 // ===== Types =====
@@ -108,6 +109,29 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'No-Show': 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+}
+
+const STATUS_BORDER_COLORS: Record<string, string> = {
+  Scheduled: 'border-l-blue-500',
+  Completed: 'border-l-green-500',
+  Cancelled: 'border-l-red-500',
+  'No-Show': 'border-l-orange-500',
+}
+
+const TYPE_DOT_COLORS: Record<string, string> = {
+  Phone: 'bg-sky-500',
+  Technical: 'bg-violet-500',
+  HR: 'bg-amber-500',
+  Managerial: 'bg-emerald-500',
+  Final: 'bg-rose-500',
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  Phone: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  Technical: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  HR: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  Managerial: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  Final: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
 }
 
 // ===== Schema =====
@@ -586,17 +610,18 @@ export function InterviewsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search interviews..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+      <div className="rounded-lg bg-muted/50 p-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search interviews..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -620,7 +645,35 @@ export function InterviewsPage() {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
+
+      {/* Today's Interviews Highlight */}
+      {interviews.length > 0 && (() => {
+        const today = new Date().toDateString()
+        const todayInterviews = interviews.filter(
+          (i) => new Date(i.date).toDateString() === today
+        )
+        if (todayInterviews.length === 0) return null
+        return (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarDays className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300">Today's Interviews ({todayInterviews.length})</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {todayInterviews.map((i) => (
+                <div key={i.id} className="flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs shadow-sm dark:bg-blue-950/50">
+                  <span className="font-medium">{i.candidate.firstName} {i.candidate.lastName}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <Badge className={`text-[10px] ${TYPE_COLORS[i.type] || ''}`}>{i.type}</Badge>
+                  <span className="text-muted-foreground">{formatTime(i.date)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Table */}
       {isLoading ? (
@@ -669,8 +722,8 @@ export function InterviewsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {interviews.map((interview) => (
-                  <TableRow key={interview.id} className="transition-colors">
+                {interviews.map((interview, idx) => (
+                  <TableRow key={interview.id} className={`border-l-4 ${STATUS_BORDER_COLORS[interview.status] || 'border-l-gray-300'} ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -683,9 +736,12 @@ export function InterviewsPage() {
                       {interview.job?.title || '—'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-[10px] font-medium">
-                        {interview.type}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${TYPE_DOT_COLORS[interview.type] || 'bg-gray-400'}`} />
+                        <Badge className={`text-[10px] ${TYPE_COLORS[interview.type] || ''}`}>
+                          {interview.type}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="hidden text-xs md:table-cell">
                       <div className="flex items-center gap-1.5">

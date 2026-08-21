@@ -1,20 +1,38 @@
 'use client'
 
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useCRMStore } from '@/stores/crm-store'
 import { CRMLayout } from '@/components/crm/crm-layout'
-import { DashboardPage } from '@/components/crm/dashboard/dashboard-page'
-import { CandidatesPage } from '@/components/crm/candidates/candidates-page'
-import { CandidateDetail } from '@/components/crm/candidates/candidate-detail'
-import { ClientsPage } from '@/components/crm/clients/clients-page'
-import { ClientDetail } from '@/components/crm/clients/client-detail'
-import { JobsPage } from '@/components/crm/jobs/jobs-page'
-import { JobDetail } from '@/components/crm/jobs/job-detail'
-import { AttendancePage } from '@/components/crm/attendance/attendance-page'
-import { LeavePage } from '@/components/crm/leave/leave-page'
-import { InterviewsPage } from '@/components/crm/interviews-page'
-import { PlacementsPage } from '@/components/crm/placements-page'
-import { EmployeesPage } from '@/components/crm/employees-page'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// Lazy load all page components to avoid OOM during compilation
+const DashboardPage = lazy(() => import('@/components/crm/dashboard/dashboard-page').then(m => ({ default: m.DashboardPage })))
+const CandidatesPage = lazy(() => import('@/components/crm/candidates/candidates-page').then(m => ({ default: m.CandidatesPage })))
+const CandidateDetail = lazy(() => import('@/components/crm/candidates/candidate-detail').then(m => ({ default: m.CandidateDetail })))
+const ClientsPage = lazy(() => import('@/components/crm/clients/clients-page').then(m => ({ default: m.ClientsPage })))
+const ClientDetail = lazy(() => import('@/components/crm/clients/client-detail').then(m => ({ default: m.ClientDetail })))
+const JobsPage = lazy(() => import('@/components/crm/jobs/jobs-page').then(m => ({ default: m.JobsPage })))
+const JobDetail = lazy(() => import('@/components/crm/jobs/job-detail').then(m => ({ default: m.JobDetail })))
+const AttendancePage = lazy(() => import('@/components/crm/attendance/attendance-page').then(m => ({ default: m.AttendancePage })))
+const LeavePage = lazy(() => import('@/components/crm/leave/leave-page').then(m => ({ default: m.LeavePage })))
+const InterviewsPage = lazy(() => import('@/components/crm/interviews-page').then(m => ({ default: m.InterviewsPage })))
+const PlacementsPage = lazy(() => import('@/components/crm/placements-page').then(m => ({ default: m.PlacementsPage })))
+const EmployeesPage = lazy(() => import('@/components/crm/employees-page').then(m => ({ default: m.EmployeesPage })))
+
+function PageLoader() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-64 rounded-xl" />
+      <Skeleton className="h-48 rounded-xl" />
+    </div>
+  )
+}
 
 export default function CRMPage() {
   const { currentView, selectedId } = useCRMStore()
@@ -25,11 +43,9 @@ export default function CRMPage() {
       try {
         const res = await fetch('/api/dashboard')
         if (!res.ok) {
-          // Dashboard failed, try seeding
           await fetch('/api/seed', { method: 'POST' })
         }
       } catch {
-        // Silently seed
         try {
           await fetch('/api/seed', { method: 'POST' })
         } catch {
@@ -73,7 +89,9 @@ export default function CRMPage() {
 
   return (
     <CRMLayout>
-      {renderView()}
+      <Suspense fallback={<PageLoader />}>
+        {renderView()}
+      </Suspense>
     </CRMLayout>
   )
 }

@@ -214,29 +214,30 @@ export function ClientDetail({
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('clients')}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{client.name}</h1>
-              <Badge className={`text-xs ${STATUS_COLORS[client.status] || ''}`}>
-                {client.status}
-              </Badge>
+      {/* Header with gradient banner */}
+      <div className="rounded-lg bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate('clients')}
+              className="shrink-0 rounded-full"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{client.name}</h1>
+                <Badge className={`text-xs ${STATUS_COLORS[client.status] || ''}`}>
+                  {client.status}
+                </Badge>
+              </div>
+              {client.industry && (
+                <p className="mt-1 text-sm text-muted-foreground">{client.industry}</p>
+              )}
             </div>
-            {client.industry && (
-              <p className="mt-1 text-sm text-muted-foreground">{client.industry}</p>
-            )}
           </div>
-        </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -253,10 +254,11 @@ export function ClientDetail({
           </Button>
         </div>
       </div>
+      </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="border-l-4 border-l-emerald-500">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
               <Briefcase className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -267,7 +269,7 @@ export function ClientDetail({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-violet-500">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
               <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
@@ -278,7 +280,7 @@ export function ClientDetail({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-amber-500">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
               <UserCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -296,7 +298,7 @@ export function ClientDetail({
         {/* Left Column: Company Info */}
         <div className="flex flex-col gap-6 lg:col-span-1">
           {/* Company Info Card */}
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Building2 className="h-4 w-4" />
@@ -353,7 +355,7 @@ export function ClientDetail({
           </Card>
 
           {/* Contact Person Card */}
-          <Card>
+          <Card className="border-l-4 border-l-sky-500">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <User className="h-4 w-4" />
@@ -401,7 +403,7 @@ export function ClientDetail({
 
           {/* Description Card */}
           {client.description && (
-            <Card>
+            <Card className="border-l-4 border-l-amber-500">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">About</CardTitle>
               </CardHeader>
@@ -436,7 +438,7 @@ export function ClientDetail({
         {/* Right Column: Jobs & Placements */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Related Jobs Card */}
-          <Card>
+          <Card className="border-l-4 border-l-emerald-500">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Briefcase className="h-4 w-4" />
@@ -492,7 +494,7 @@ export function ClientDetail({
           </Card>
 
           {/* Related Placements Card */}
-          <Card>
+          <Card className="border-l-4 border-l-violet-500">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <UserCheck className="h-4 w-4" />

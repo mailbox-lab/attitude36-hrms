@@ -1,0 +1,799 @@
+     1→'use client'
+     2→
+     3→import { useState } from 'react'
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     5→import { useForm } from 'react-hook-form'
+     6→import { z } from 'zod'
+     7→import { zodResolver } from '@hookform/resolvers/zod'
+     8→import { toast } from 'sonner'
+     9→import { Card, CardContent } from '@/components/ui/card'
+    10→import { Button } from '@/components/ui/button'
+    11→import { Badge } from '@/components/ui/badge'
+    12→import { Input } from '@/components/ui/input'
+    13→import { Textarea } from '@/components/ui/textarea'
+    14→import {
+    15→  Select,
+    16→  SelectContent,
+    17→  SelectItem,
+    18→  SelectTrigger,
+    19→  SelectValue,
+    20→} from '@/components/ui/select'
+    21→import {
+    22→  Table,
+    23→  TableBody,
+    24→  TableCell,
+    25→  TableHead,
+    26→  TableHeader,
+    27→  TableRow,
+    28→} from '@/components/ui/table'
+    29→import {
+    30→  Dialog,
+    31→  DialogContent,
+    32→  DialogHeader,
+    33→  DialogTitle,
+    34→  DialogDescription,
+    35→  DialogFooter,
+    36→} from '@/components/ui/dialog'
+    37→import {
+    38→  Form,
+    39→  FormField,
+    40→  FormItem,
+    41→  FormLabel,
+    42→  FormControl,
+    43→  FormMessage,
+    44→} from '@/components/ui/form'
+    45→import {
+    46→  DropdownMenu,
+    47→  DropdownMenuContent,
+    48→  DropdownMenuItem,
+    49→  DropdownMenuLabel,
+    50→  DropdownMenuSeparator,
+    51→  DropdownMenuTrigger,
+    52→} from '@/components/ui/dropdown-menu'
+    53→import {
+    54→  Plus,
+    55→  Search,
+    56→  CalendarClock,
+    57→  MoreHorizontal,
+    58→  MessageSquare,
+    59→  Pencil,
+    60→  Loader2,
+    61→  Video,
+    62→  MapPin,
+    63→  Clock,
+    64→  User,
+    65→} from 'lucide-react'
+    66→
+    67→// ===== Types =====
+    68→
+    69→type Interview = {
+    70→  id: string
+    71→  candidateId: string
+    72→  candidate: { id: string; firstName: string; lastName: string }
+    73→  jobId: string | null
+    74→  job: { id: string; title: string } | null
+    75→  type: string
+    76→  interviewer: string | null
+    77→  date: string
+    78→  duration: number
+    79→  location: string | null
+    80→  meetingLink: string | null
+    81→  status: string
+    82→  feedback: string | null
+    83→  rating: number | null
+    84→  createdAt: string
+    85→  updatedAt: string
+    86→}
+    87→
+    88→type CandidateOption = {
+    89→  id: string
+    90→  firstName: string
+    91→  lastName: string
+    92→}
+    93→
+    94→type JobOption = {
+    95→  id: string
+    96→  title: string
+    97→}
+    98→
+    99→// ===== Constants =====
+   100→
+   101→const STATUS_OPTIONS = ['All', 'Scheduled', 'Completed', 'Cancelled', 'No-Show']
+   102→const TYPE_OPTIONS = ['All', 'Phone', 'Technical', 'HR', 'Managerial', 'Final']
+   103→const INTERVIEW_TYPES = ['Phone', 'Technical', 'HR', 'Managerial', 'Final']
+   104→const EDITABLE_STATUSES = ['Scheduled', 'Completed', 'Cancelled', 'No-Show']
+   105→
+   106→const STATUS_COLORS: Record<string, string> = {
+   107→  Scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+   108→  Completed: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   109→  Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   110→  'No-Show': 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+   111→}
+   112→
+   113→// ===== Schema =====
+   114→
+   115→const interviewSchema = z.object({
+   116→  candidateId: z.string().min(1, 'Candidate is required'),
+   117→  jobId: z.string().optional(),
+   118→  type: z.string().min(1, 'Interview type is required'),
+   119→  interviewer: z.string().min(1, 'Interviewer name is required'),
+   120→  date: z.string().min(1, 'Date and time is required'),
+   121→  duration: z.coerce.number().min(15, 'Min 15 minutes').max(480, 'Max 8 hours'),
+   122→  location: z.string().optional(),
+   123→  meetingLink: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+   124→})
+   125→
+   126→type InterviewFormData = z.infer<typeof interviewSchema>
+   127→
+   128→const feedbackSchema = z.object({
+   129→  feedback: z.string().min(1, 'Feedback is required'),
+   130→  rating: z.coerce.number().min(1).max(5),
+   131→})
+   132→
+   133→type FeedbackFormData = z.infer<typeof feedbackSchema>
+   134→
+   135→// ===== Helpers =====
+   136→
+   137→function formatDate(dateStr: string) {
+   138→  const date = new Date(dateStr)
+   139→  return date.toLocaleDateString('en-IN', {
+   140→    day: '2-digit',
+   141→    month: 'short',
+   142→    year: 'numeric',
+   143→  })
+   144→}
+   145→
+   146→function formatTime(dateStr: string) {
+   147→  const date = new Date(dateStr)
+   148→  return date.toLocaleTimeString('en-IN', {
+   149→    hour: '2-digit',
+   150→    minute: '2-digit',
+   151→    hour12: true,
+   152→  })
+   153→}
+   154→
+   155→function formatDuration(minutes: number) {
+   156→  if (minutes < 60) return `${minutes}m`
+   157→  const h = Math.floor(minutes / 60)
+   158→  const m = minutes % 60
+   159→  return m > 0 ? `${h}h ${m}m` : `${h}h`
+   160→}
+   161→
+   162→// ===== Schedule Interview Dialog =====
+   163→
+   164→function ScheduleInterviewDialog({
+   165→  open,
+   166→  onOpenChange,
+   167→}: {
+   168→  open: boolean
+   169→  onOpenChange: (open: boolean) => void
+   170→}) {
+   171→  const queryClient = useQueryClient()
+   172→
+   173→  const form = useForm<InterviewFormData>({
+   174→    resolver: zodResolver(interviewSchema),
+   175→    defaultValues: {
+   176→      candidateId: '',
+   177→      jobId: '',
+   178→      type: 'Technical',
+   179→      interviewer: '',
+   180→      date: '',
+   181→      duration: 60,
+   182→      location: '',
+   183→      meetingLink: '',
+   184→    },
+   185→  })
+   186→
+   187→  const { data: candidates } = useQuery<{ data: CandidateOption[] }>({
+   188→    queryKey: ['candidates-list'],
+   189→    queryFn: async () => {
+   190→      const res = await fetch('/api/candidates')
+   191→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   192→      return res.json()
+   193→    },
+   194→    enabled: open,
+   195→  })
+   196→
+   197→  const { data: jobs } = useQuery<{ data: JobOption[] }>({
+   198→    queryKey: ['jobs-list'],
+   199→    queryFn: async () => {
+   200→      const res = await fetch('/api/jobs')
+   201→      if (!res.ok) throw new Error('Failed to fetch jobs')
+   202→      return res.json()
+   203→    },
+   204→    enabled: open,
+   205→  })
+   206→
+   207→  const mutation = useMutation({
+   208→    mutationFn: async (data: InterviewFormData) => {
+   209→      const res = await fetch('/api/interviews', {
+   210→        method: 'POST',
+   211→        headers: { 'Content-Type': 'application/json' },
+   212→        body: JSON.stringify(data),
+   213→      })
+   214→      if (!res.ok) throw new Error('Failed to schedule interview')
+   215→      return res.json()
+   216→    },
+   217→    onSuccess: () => {
+   218→      queryClient.invalidateQueries({ queryKey: ['interviews'] })
+   219→      toast.success('Interview scheduled successfully')
+   220→      onOpenChange(false)
+   221→      form.reset()
+   222→    },
+   223→    onError: () => {
+   224→      toast.error('Failed to schedule interview')
+   225→    },
+   226→  })
+   227→
+   228→  function onSubmit(data: InterviewFormData) {
+   229→    mutation.mutate(data)
+   230→  }
+   231→
+   232→  return (
+   233→    <Dialog open={open} onOpenChange={onOpenChange}>
+   234→      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+   235→        <DialogHeader>
+   236→          <DialogTitle>Schedule Interview</DialogTitle>
+   237→          <DialogDescription>
+   238→            Fill in the details to schedule a new interview.
+   239→          </DialogDescription>
+   240→        </DialogHeader>
+   241→        <Form {...form}>
+   242→          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+   243→            <FormField
+   244→              control={form.control}
+   245→              name="candidateId"
+   246→              render={({ field }) => (
+   247→                <FormItem>
+   248→                  <FormLabel>Candidate *</FormLabel>
+   249→                  <Select onValueChange={field.onChange} value={field.value}>
+   250→                    <FormControl>
+   251→                      <SelectTrigger>
+   252→                        <SelectValue placeholder="Select candidate" />
+   253→                      </SelectTrigger>
+   254→                    </FormControl>
+   255→                    <SelectContent>
+   256→                      {(candidates?.data || []).map((c) => (
+   257→                        <SelectItem key={c.id} value={c.id}>
+   258→                          {c.firstName} {c.lastName}
+   259→                        </SelectItem>
+   260→                      ))}
+   261→                    </SelectContent>
+   262→                  </Select>
+   263→                  <FormMessage />
+   264→                </FormItem>
+   265→              )}
+   266→            />
+   267→
+   268→            <FormField
+   269→              control={form.control}
+   270→              name="jobId"
+   271→              render={({ field }) => (
+   272→                <FormItem>
+   273→                  <FormLabel>Job Opening</FormLabel>
+   274→                  <Select onValueChange={field.onChange} value={field.value || ''}>
+   275→                    <FormControl>
+   276→                      <SelectTrigger>
+   277→                        <SelectValue placeholder="Select job (optional)" />
+   278→                      </SelectTrigger>
+   279→                    </FormControl>
+   280→                    <SelectContent>
+   281→                      {(jobs?.data || []).map((j) => (
+   282→                        <SelectItem key={j.id} value={j.id}>
+   283→                          {j.title}
+   284→                        </SelectItem>
+   285→                      ))}
+   286→                    </SelectContent>
+   287→                  </Select>
+   288→                  <FormMessage />
+   289→                </FormItem>
+   290→              )}
+   291→            />
+   292→
+   293→            <FormField
+   294→              control={form.control}
+   295→              name="type"
+   296→              render={({ field }) => (
+   297→                <FormItem>
+   298→                  <FormLabel>Interview Type *</FormLabel>
+   299→                  <Select onValueChange={field.onChange} value={field.value}>
+   300→                    <FormControl>
+   301→                      <SelectTrigger>
+   302→                        <SelectValue placeholder="Select type" />
+   303→                      </SelectTrigger>
+   304→                    </FormControl>
+   305→                    <SelectContent>
+   306→                      {INTERVIEW_TYPES.map((t) => (
+   307→                        <SelectItem key={t} value={t}>
+   308→                          {t}
+   309→                        </SelectItem>
+   310→                      ))}
+   311→                    </SelectContent>
+   312→                  </Select>
+   313→                  <FormMessage />
+   314→                </FormItem>
+   315→              )}
+   316→            />
+   317→
+   318→            <FormField
+   319→              control={form.control}
+   320→              name="interviewer"
+   321→              render={({ field }) => (
+   322→                <FormItem>
+   323→                  <FormLabel>Interviewer *</FormLabel>
+   324→                  <FormControl>
+   325→                    <Input placeholder="Interviewer name" {...field} />
+   326→                  </FormControl>
+   327→                  <FormMessage />
+   328→                </FormItem>
+   329→              )}
+   330→            />
+   331→
+   332→            <div className="grid grid-cols-2 gap-4">
+   333→              <FormField
+   334→                control={form.control}
+   335→                name="date"
+   336→                render={({ field }) => (
+   337→                  <FormItem>
+   338→                    <FormLabel>Date & Time *</FormLabel>
+   339→                    <FormControl>
+   340→                      <Input type="datetime-local" {...field} />
+   341→                    </FormControl>
+   342→                    <FormMessage />
+   343→                  </FormItem>
+   344→                )}
+   345→              />
+   346→
+   347→              <FormField
+   348→                control={form.control}
+   349→                name="duration"
+   350→                render={({ field }) => (
+   351→                  <FormItem>
+   352→                    <FormLabel>Duration (min) *</FormLabel>
+   353→                    <FormControl>
+   354→                      <Input type="number" min={15} max={480} {...field} />
+   355→                    </FormControl>
+   356→                    <FormMessage />
+   357→                  </FormItem>
+   358→                )}
+   359→              />
+   360→            </div>
+   361→
+   362→            <FormField
+   363→              control={form.control}
+   364→              name="location"
+   365→              render={({ field }) => (
+   366→                <FormItem>
+   367→                  <FormLabel>Location</FormLabel>
+   368→                  <FormControl>
+   369→                    <Input placeholder="Interview location" {...field} />
+   370→                  </FormControl>
+   371→                  <FormMessage />
+   372→                </FormItem>
+   373→              )}
+   374→            />
+   375→
+   376→            <FormField
+   377→              control={form.control}
+   378→              name="meetingLink"
+   379→              render={({ field }) => (
+   380→                <FormItem>
+   381→                  <FormLabel>Meeting Link</FormLabel>
+   382→                  <FormControl>
+   383→                    <Input placeholder="https://meet.google.com/..." {...field} />
+   384→                  </FormControl>
+   385→                  <FormMessage />
+   386→                </FormItem>
+   387→              )}
+   388→            />
+   389→
+   390→            <DialogFooter className="pt-2">
+   391→              <Button
+   392→                type="button"
+   393→                variant="outline"
+   394→                onClick={() => onOpenChange(false)}
+   395→              >
+   396→                Cancel
+   397→              </Button>
+   398→              <Button type="submit" disabled={mutation.isPending}>
+   399→                {mutation.isPending && (
+   400→                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   401→                )}
+   402→                Schedule Interview
+   403→              </Button>
+   404→            </DialogFooter>
+   405→          </form>
+   406→        </Form>
+   407→      </DialogContent>
+   408→    </Dialog>
+   409→  )
+   410→}
+   411→
+   412→// ===== Feedback Dialog =====
+   413→
+   414→function FeedbackDialog({
+   415→  open,
+   416→  onOpenChange,
+   417→  interview,
+   418→}: {
+   419→  open: boolean
+   420→  onOpenChange: (open: boolean) => void
+   421→  interview: Interview | null
+   422→}) {
+   423→  const queryClient = useQueryClient()
+   424→
+   425→  const form = useForm<FeedbackFormData>({
+   426→    resolver: zodResolver(feedbackSchema),
+   427→    defaultValues: {
+   428→      feedback: '',
+   429→      rating: 3,
+   430→    },
+   431→  })
+   432→
+   433→  const mutation = useMutation({
+   434→    mutationFn: async (data: FeedbackFormData) => {
+   435→      const res = await fetch(`/api/interviews/${interview?.id}`, {
+   436→        method: 'PUT',
+   437→        headers: { 'Content-Type': 'application/json' },
+   438→        body: JSON.stringify({ feedback: data.feedback, rating: data.rating }),
+   439→      })
+   440→      if (!res.ok) throw new Error('Failed to save feedback')
+   441→      return res.json()
+   442→    },
+   443→    onSuccess: () => {
+   444→      queryClient.invalidateQueries({ queryKey: ['interviews'] })
+   445→      toast.success('Feedback saved successfully')
+   446→      onOpenChange(false)
+   447→      form.reset()
+   448→    },
+   449→    onError: () => {
+   450→      toast.error('Failed to save feedback')
+   451→    },
+   452→  })
+   453→
+   454→  function onSubmit(data: FeedbackFormData) {
+   455→    mutation.mutate(data)
+   456→  }
+   457→
+   458→  return (
+   459→    <Dialog open={open} onOpenChange={onOpenChange}>
+   460→      <DialogContent className="sm:max-w-md">
+   461→        <DialogHeader>
+   462→          <DialogTitle>Add Feedback</DialogTitle>
+   463→          <DialogDescription>
+   464→            {interview
+   465→              ? `Feedback for ${interview.candidate.firstName} ${interview.candidate.lastName} — ${interview.type} interview`
+   466→              : ''}
+   467→          </DialogDescription>
+   468→        </DialogHeader>
+   469→        <Form {...form}>
+   470→          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+   471→            <FormField
+   472→              control={form.control}
+   473→              name="feedback"
+   474→              render={({ field }) => (
+   475→                <FormItem>
+   476→                  <FormLabel>Feedback *</FormLabel>
+   477→                  <FormControl>
+   478→                    <Textarea
+   479→                      placeholder="Enter interview feedback..."
+   480→                      rows={4}
+   481→                      {...field}
+   482→                    />
+   483→                  </FormControl>
+   484→                  <FormMessage />
+   485→                </FormItem>
+   486→              )}
+   487→            />
+   488→            <FormField
+   489→              control={form.control}
+   490→              name="rating"
+   491→              render={({ field }) => (
+   492→                <FormItem>
+   493→                  <FormLabel>Rating (1-5) *</FormLabel>
+   494→                  <FormControl>
+   495→                    <Input type="number" min={1} max={5} {...field} />
+   496→                  </FormControl>
+   497→                  <FormMessage />
+   498→                </FormItem>
+   499→              )}
+   500→            />
+   501→            <DialogFooter className="pt-2">
+   502→              <Button
+   503→                type="button"
+   504→                variant="outline"
+   505→                onClick={() => onOpenChange(false)}
+   506→              >
+   507→                Cancel
+   508→              </Button>
+   509→              <Button type="submit" disabled={mutation.isPending}>
+   510→                {mutation.isPending && (
+   511→                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   512→                )}
+   513→                Save Feedback
+   514→              </Button>
+   515→            </DialogFooter>
+   516→          </form>
+   517→        </Form>
+   518→      </DialogContent>
+   519→    </Dialog>
+   520→  )
+   521→}
+   522→
+   523→// ===== Main Component =====
+   524→
+   525→export function InterviewsPage() {
+   526→  const queryClient = useQueryClient()
+   527→  const [search, setSearch] = useState('')
+   528→  const [statusFilter, setStatusFilter] = useState('All')
+   529→  const [typeFilter, setTypeFilter] = useState('All')
+   530→  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+   531→  const [feedbackInterview, setFeedbackInterview] = useState<Interview | null>(null)
+   532→
+   533→  const { data, isLoading, error } = useQuery<{ data: Interview[] }>({
+   534→    queryKey: ['interviews', statusFilter, typeFilter, search],
+   535→    queryFn: async () => {
+   536→      const params = new URLSearchParams()
+   537→      if (statusFilter !== 'All') params.set('status', statusFilter)
+   538→      if (typeFilter !== 'All') params.set('type', typeFilter)
+   539→      if (search) params.set('search', search)
+   540→      const res = await fetch(`/api/interviews?${params.toString()}`)
+   541→      if (!res.ok) throw new Error('Failed to fetch interviews')
+   542→      return res.json()
+   543→    },
+   544→  })
+   545→
+   546→  const interviews = data?.data || []
+   547→
+   548→  const updateStatusMutation = useMutation({
+   549→    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+   550→      const res = await fetch(`/api/interviews/${id}`, {
+   551→        method: 'PUT',
+   552→        headers: { 'Content-Type': 'application/json' },
+   553→        body: JSON.stringify({ status }),
+   554→      })
+   555→      if (!res.ok) throw new Error('Failed to update status')
+   556→      return res.json()
+   557→    },
+   558→    onSuccess: () => {
+   559→      queryClient.invalidateQueries({ queryKey: ['interviews'] })
+   560→      toast.success('Interview status updated')
+   561→    },
+   562→    onError: () => {
+   563→      toast.error('Failed to update status')
+   564→    },
+   565→  })
+   566→
+   567→  return (
+   568→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+   569→      {/* Header */}
+   570→      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   571→        <div>
+   572→          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Interviews</h1>
+   573→          <p className="mt-1 text-sm text-muted-foreground">
+   574→            Schedule and manage candidate interviews
+   575→            {data && (
+   576→              <span className="ml-1 font-medium text-foreground">
+   577→                ({interviews.length} interviews)
+   578→              </span>
+   579→            )}
+   580→          </p>
+   581→        </div>
+   582→        <Button onClick={() => setScheduleDialogOpen(true)}>
+   583→          <Plus className="mr-2 h-4 w-4" />
+   584→          Schedule Interview
+   585→        </Button>
+   586→      </div>
+   587→
+   588→      {/* Filters */}
+   589→      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   590→        <div className="relative flex-1 sm:max-w-xs">
+   591→          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   592→          <Input
+   593→            placeholder="Search interviews..."
+   594→            className="pl-9"
+   595→            value={search}
+   596→            onChange={(e) => setSearch(e.target.value)}
+   597→          />
+   598→        </div>
+   599→        <Select value={statusFilter} onValueChange={setStatusFilter}>
+   600→          <SelectTrigger className="w-full sm:w-[160px]">
+   601→            <SelectValue placeholder="Status" />
+   602→          </SelectTrigger>
+   603→          <SelectContent>
+   604→            {STATUS_OPTIONS.map((status) => (
+   605→              <SelectItem key={status} value={status}>
+   606→                {status}
+   607→              </SelectItem>
+   608→            ))}
+   609→          </SelectContent>
+   610→        </Select>
+   611→        <Select value={typeFilter} onValueChange={setTypeFilter}>
+   612→          <SelectTrigger className="w-full sm:w-[160px]">
+   613→            <SelectValue placeholder="Type" />
+   614→          </SelectTrigger>
+   615→          <SelectContent>
+   616→            {TYPE_OPTIONS.map((type) => (
+   617→              <SelectItem key={type} value={type}>
+   618→                {type}
+   619→              </SelectItem>
+   620→            ))}
+   621→          </SelectContent>
+   622→        </Select>
+   623→      </div>
+   624→
+   625→      {/* Table */}
+   626→      {isLoading ? (
+   627→        <Card>
+   628→          <CardContent className="p-6">
+   629→            <div className="flex items-center justify-center gap-3">
+   630→              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   631→              <p className="text-sm text-muted-foreground">Loading interviews...</p>
+   632→            </div>
+   633→          </CardContent>
+   634→        </Card>
+   635→      ) : error ? (
+   636→        <Card>
+   637→          <CardContent className="p-6">
+   638→            <p className="text-center text-sm text-destructive">
+   639→              Failed to load interviews. Please try again.
+   640→            </p>
+   641→          </CardContent>
+   642→        </Card>
+   643→      ) : interviews.length === 0 ? (
+   644→        <Card>
+   645→          <CardContent className="flex flex-col items-center gap-3 py-12">
+   646→            <CalendarClock className="h-10 w-10 text-muted-foreground/40" />
+   647→            <p className="text-sm font-medium text-muted-foreground">No interviews found</p>
+   648→            <p className="text-xs text-muted-foreground/70">
+   649→              {search || statusFilter !== 'All' || typeFilter !== 'All'
+   650→                ? 'Try adjusting your filters'
+   651→                : 'Click "Schedule Interview" to get started'}
+   652→            </p>
+   653→          </CardContent>
+   654→        </Card>
+   655→      ) : (
+   656→        <Card>
+   657→          <div className="max-h-96 overflow-y-auto">
+   658→            <Table>
+   659→              <TableHeader>
+   660→                <TableRow className="hover:bg-transparent">
+   661→                  <TableHead className="text-xs">Candidate</TableHead>
+   662→                  <TableHead className="hidden text-xs sm:table-cell">Job Title</TableHead>
+   663→                  <TableHead className="text-xs">Type</TableHead>
+   664→                  <TableHead className="hidden text-xs md:table-cell">Interviewer</TableHead>
+   665→                  <TableHead className="hidden text-xs lg:table-cell">Date</TableHead>
+   666→                  <TableHead className="hidden text-xs md:table-cell">Duration</TableHead>
+   667→                  <TableHead className="text-xs">Status</TableHead>
+   668→                  <TableHead className="w-12 text-xs">Actions</TableHead>
+   669→                </TableRow>
+   670→              </TableHeader>
+   671→              <TableBody>
+   672→                {interviews.map((interview) => (
+   673→                  <TableRow key={interview.id} className="transition-colors">
+   674→                    <TableCell>
+   675→                      <div className="flex items-center gap-2">
+   676→                        <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+   677→                        <span className="truncate text-sm font-medium">
+   678→                          {interview.candidate.firstName} {interview.candidate.lastName}
+   679→                        </span>
+   680→                      </div>
+   681→                    </TableCell>
+   682→                    <TableCell className="hidden max-w-[180px] truncate text-xs sm:table-cell">
+   683→                      {interview.job?.title || '—'}
+   684→                    </TableCell>
+   685→                    <TableCell>
+   686→                      <Badge variant="outline" className="text-[10px] font-medium">
+   687→                        {interview.type}
+   688→                      </Badge>
+   689→                    </TableCell>
+   690→                    <TableCell className="hidden text-xs md:table-cell">
+   691→                      <div className="flex items-center gap-1.5">
+   692→                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+   693→                        {interview.interviewer || '—'}
+   694→                      </div>
+   695→                    </TableCell>
+   696→                    <TableCell className="hidden lg:table-cell">
+   697→                      <div className="text-xs">
+   698→                        <div className="flex items-center gap-1.5">
+   699→                          <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+   700→                          {formatDate(interview.date)}
+   701→                        </div>
+   702→                        <div className="mt-0.5 text-muted-foreground">
+   703→                          {formatTime(interview.date)}
+   704→                        </div>
+   705→                      </div>
+   706→                    </TableCell>
+   707→                    <TableCell className="hidden md:table-cell">
+   708→                      <div className="flex items-center gap-1.5 text-xs">
+   709→                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+   710→                        {formatDuration(interview.duration)}
+   711→                      </div>
+   712→                    </TableCell>
+   713→                    <TableCell>
+   714→                      <Badge
+   715→                        className={`text-[10px] ${
+   716→                          STATUS_COLORS[interview.status] || ''
+   717→                        }`}
+   718→                      >
+   719→                        {interview.status}
+   720→                      </Badge>
+   721→                    </TableCell>
+   722→                    <TableCell>
+   723→                      <DropdownMenu>
+   724→                        <DropdownMenuTrigger asChild>
+   725→                          <Button variant="ghost" size="icon" className="h-8 w-8">
+   726→                            <MoreHorizontal className="h-4 w-4" />
+   727→                          </Button>
+   728→                        </DropdownMenuTrigger>
+   729→                        <DropdownMenuContent align="end">
+   730→                          <DropdownMenuLabel className="text-xs text-muted-foreground">
+   731→                            Update Status
+   732→                          </DropdownMenuLabel>
+   733→                          {EDITABLE_STATUSES.map((status) => (
+   734→                            <DropdownMenuItem
+   735→                              key={status}
+   736→                              onClick={() =>
+   737→                                updateStatusMutation.mutate({
+   738→                                  id: interview.id,
+   739→                                  status,
+   740→                                })
+   741→                              }
+   742→                              disabled={interview.status === status}
+   743→                            >
+   744→                              <Pencil className="mr-2 h-3.5 w-3.5" />
+   745→                              Mark as {status}
+   746→                            </DropdownMenuItem>
+   747→                          ))}
+   748→                          <DropdownMenuSeparator />
+   749→                          <DropdownMenuItem
+   750→                            onClick={() => setFeedbackInterview(interview)}
+   751→                          >
+   752→                            <MessageSquare className="mr-2 h-3.5 w-3.5" />
+   753→                            Add Feedback
+   754→                          </DropdownMenuItem>
+   755→                          {interview.meetingLink && (
+   756→                            <DropdownMenuItem asChild>
+   757→                              <a
+   758→                                href={interview.meetingLink}
+   759→                                target="_blank"
+   760→                                rel="noopener noreferrer"
+   761→                              >
+   762→                                <Video className="mr-2 h-3.5 w-3.5" />
+   763→                                Open Meeting Link
+   764→                              </a>
+   765→                            </DropdownMenuItem>
+   766→                          )}
+   767→                          {interview.location && (
+   768→                            <DropdownMenuItem disabled>
+   769→                              <MapPin className="mr-2 h-3.5 w-3.5" />
+   770→                              {interview.location}
+   771→                            </DropdownMenuItem>
+   772→                          )}
+   773→                        </DropdownMenuContent>
+   774→                      </DropdownMenu>
+   775→                    </TableCell>
+   776→                  </TableRow>
+   777→                ))}
+   778→              </TableBody>
+   779→            </Table>
+   780→          </div>
+   781→        </Card>
+   782→      )}
+   783→
+   784→      {/* Dialogs */}
+   785→      <ScheduleInterviewDialog
+   786→        open={scheduleDialogOpen}
+   787→        onOpenChange={setScheduleDialogOpen}
+   788→      />
+   789→      <FeedbackDialog
+   790→        open={!!feedbackInterview}
+   791→        onOpenChange={(open) => {
+   792→          if (!open) setFeedbackInterview(null)
+   793→        }}
+   794→        interview={feedbackInterview}
+   795→      />
+   796→    </div>
+   797→  )
+   798→}
+   799→

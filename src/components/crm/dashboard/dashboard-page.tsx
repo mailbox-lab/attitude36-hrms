@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
   Users,
   Briefcase,
@@ -13,11 +13,14 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  BarChart3,
+  Activity,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCRMStore } from '@/stores/crm-store'
+import { motion } from 'framer-motion'
 import {
   BarChart,
   Bar,
@@ -108,6 +111,17 @@ const PRIORITY_COLORS: Record<string, string> = {
   Urgent: '#ef4444',
 }
 
+const ENTITY_TYPE_COLORS: Record<string, string> = {
+  Candidate: 'border-l-emerald-400',
+  Job: 'border-l-amber-400',
+  Client: 'border-l-violet-400',
+  Interview: 'border-l-cyan-400',
+  Placement: 'border-l-rose-400',
+  Employee: 'border-l-blue-400',
+  Leave: 'border-l-orange-400',
+  Attendance: 'border-l-teal-400',
+}
+
 // ===== Stat Card Config =====
 
 type StatCardConfig = {
@@ -116,6 +130,10 @@ type StatCardConfig = {
   icon: React.ElementType
   iconBg: string
   iconColor: string
+  gradientFrom: string
+  gradientTo: string
+  accentColor: string
+  sparklineColor: string
   format?: (value: number) => string
   changeKey: keyof DashboardStats
 }
@@ -127,6 +145,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: Users,
     iconBg: 'bg-emerald-100 dark:bg-emerald-950',
     iconColor: 'text-emerald-600 dark:text-emerald-400',
+    gradientFrom: 'from-emerald-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-emerald-400',
+    sparklineColor: '#10b981',
     changeKey: 'totalCandidatesChange',
   },
   {
@@ -135,6 +157,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: Briefcase,
     iconBg: 'bg-amber-100 dark:bg-amber-950',
     iconColor: 'text-amber-600 dark:text-amber-400',
+    gradientFrom: 'from-amber-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-amber-400',
+    sparklineColor: '#f59e0b',
     changeKey: 'openPositionsChange',
   },
   {
@@ -143,6 +169,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: Building2,
     iconBg: 'bg-violet-100 dark:bg-violet-950',
     iconColor: 'text-violet-600 dark:text-violet-400',
+    gradientFrom: 'from-violet-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-violet-400',
+    sparklineColor: '#8b5cf6',
     changeKey: 'activeClientsChange',
   },
   {
@@ -151,6 +181,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: Video,
     iconBg: 'bg-cyan-100 dark:bg-cyan-950',
     iconColor: 'text-cyan-600 dark:text-cyan-400',
+    gradientFrom: 'from-cyan-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-cyan-400',
+    sparklineColor: '#06b6d4',
     changeKey: 'interviewsThisWeekChange',
   },
   {
@@ -159,6 +193,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: Award,
     iconBg: 'bg-rose-100 dark:bg-rose-950',
     iconColor: 'text-rose-600 dark:text-rose-400',
+    gradientFrom: 'from-rose-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-rose-400',
+    sparklineColor: '#f43f5e',
     changeKey: 'placementsThisMonthChange',
   },
   {
@@ -167,6 +205,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: UserCheck,
     iconBg: 'bg-blue-100 dark:bg-blue-950',
     iconColor: 'text-blue-600 dark:text-blue-400',
+    gradientFrom: 'from-blue-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-blue-400',
+    sparklineColor: '#3b82f6',
     changeKey: 'todaysAttendanceChange',
   },
   {
@@ -175,6 +217,10 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: CalendarOff,
     iconBg: 'bg-orange-100 dark:bg-orange-950',
     iconColor: 'text-orange-600 dark:text-orange-400',
+    gradientFrom: 'from-orange-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-orange-400',
+    sparklineColor: '#f97316',
     changeKey: 'pendingLeavesChange',
   },
   {
@@ -183,12 +229,40 @@ const STAT_CARDS: StatCardConfig[] = [
     icon: IndianRupee,
     iconBg: 'bg-green-100 dark:bg-green-950',
     iconColor: 'text-green-600 dark:text-green-400',
-    format: (v) => `₹${(v / 100000).toFixed(1)}L`,
+    gradientFrom: 'from-green-50/80',
+    gradientTo: 'to-transparent',
+    accentColor: 'border-l-green-400',
+    sparklineColor: '#22c55e',
+    format: (v) => `\u20b9${(v / 100000).toFixed(1)}L`,
     changeKey: 'monthlyRevenueChange',
   },
 ]
 
 // ===== Sub-components =====
+
+function Sparkline({ color }: { color: string }) {
+  return (
+    <svg
+      className="ml-auto h-8 w-16 opacity-40"
+      viewBox="0 0 64 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M2 28 C10 24, 16 20, 22 18 C28 16, 32 22, 38 14 C44 6, 52 8, 62 4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M2 28 C10 24, 16 20, 22 18 C28 16, 32 22, 38 14 C44 6, 52 8, 62 4 L62 32 L2 32 Z"
+        fill={color}
+        opacity="0.08"
+      />
+    </svg>
+  )
+}
 
 function ChangeIndicator({ value }: { value: number }) {
   if (value === 0) return null
@@ -209,11 +283,21 @@ function ChangeIndicator({ value }: { value: number }) {
   )
 }
 
-function StatCard({ config, stats, isLoading }: { config: StatCardConfig; stats: DashboardStats | null; isLoading: boolean }) {
+function StatCard({
+  config,
+  stats,
+  isLoading,
+  index,
+}: {
+  config: StatCardConfig
+  stats: DashboardStats | null
+  isLoading: boolean
+  index: number
+}) {
   const Icon = config.icon
   if (isLoading || !stats) {
     return (
-      <Card>
+      <Card className="rounded-xl shadow-sm">
         <CardContent className="flex items-center gap-4 p-4">
           <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
           <div className="flex flex-col gap-2">
@@ -231,24 +315,41 @@ function StatCard({ config, stats, isLoading }: { config: StatCardConfig; stats:
   const displayValue = config.format ? config.format(value) : value.toLocaleString('en-IN')
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
-      <CardContent className="flex items-center gap-4 p-4">
-        <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
-        >
-          <Icon className={`h-6 w-6 ${config.iconColor}`} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-muted-foreground">{config.label}</p>
-          <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
-          <ChangeIndicator value={change} />
-        </div>
-      </CardContent>
-    </Card>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
+    >
+      <Card
+        className={`relative overflow-hidden rounded-xl border-l-2 ${config.accentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+      >
+        <CardContent className="relative flex items-center gap-4 p-4">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+          >
+            <Icon className={`h-6 w-6 ${config.iconColor}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm text-muted-foreground">{config.label}</p>
+            <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
+            <ChangeIndicator value={change} />
+          </div>
+          <Sparkline color={config.sparklineColor} />
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: Array<{ value: number; name: string; color: string }>
+  label?: string
+}) {
   if (!active || !payload || payload.length === 0) return null
   return (
     <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-md">
@@ -271,9 +372,9 @@ function CandidatePipelineChart({
 }) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Candidate Pipeline</CardTitle>
+      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[300px] w-full" />
@@ -283,9 +384,9 @@ function CandidatePipelineChart({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Candidate Pipeline</CardTitle>
+    <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -334,9 +435,9 @@ function JobPriorityChart({
 }) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Job Priority Distribution</CardTitle>
+      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[300px] w-full" />
@@ -346,9 +447,9 @@ function JobPriorityChart({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Job Priority Distribution</CardTitle>
+    <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center gap-4 lg:flex-row">
@@ -410,6 +511,15 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
+function formatInterviewDate(dateStr: string): { day: string; date: string; weekday: string } {
+  const date = new Date(dateStr)
+  return {
+    day: date.toLocaleDateString('en-IN', { month: 'short' }),
+    date: date.getDate().toString(),
+    weekday: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+  }
+}
+
 function RecentActivities({
   activities,
   isLoading,
@@ -419,9 +529,10 @@ function RecentActivities({
 }) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activities</CardTitle>
+      <Card className="rounded-xl shadow-sm">
+        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -442,12 +553,13 @@ function RecentActivities({
 
   if (activities.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activities</CardTitle>
+      <Card className="rounded-xl shadow-sm">
+        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-sm text-muted-foreground py-8">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             No recent activities to show.
           </p>
         </CardContent>
@@ -456,16 +568,19 @@ function RecentActivities({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Activities</CardTitle>
+    <Card className="rounded-xl shadow-sm">
+      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="max-h-[360px] space-y-1 overflow-y-auto pr-1">
+        <div className="custom-scrollbar max-h-[360px] space-y-1 overflow-y-auto pr-1">
           {activities.map((activity) => (
             <div
               key={activity.id}
-              className="flex items-start gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-muted/50"
+              className={`flex items-start gap-3 rounded-lg border-l-2 ${
+                ENTITY_TYPE_COLORS[activity.entityType] || 'border-l-gray-300'
+              } bg-muted/20 px-3 py-3 transition-colors duration-200 hover:bg-muted/50`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                 {activity.employeeName?.charAt(0)?.toUpperCase() || '?'}
@@ -506,9 +621,10 @@ function UpcomingInterviewsList({
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Interviews</CardTitle>
+      <Card className="rounded-xl shadow-sm">
+        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -529,12 +645,13 @@ function UpcomingInterviewsList({
 
   if (interviews.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Interviews</CardTitle>
+      <Card className="rounded-xl shadow-sm">
+        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-sm text-muted-foreground py-8">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             No upcoming interviews scheduled.
           </p>
         </CardContent>
@@ -556,59 +673,88 @@ function UpcomingInterviewsList({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Upcoming Interviews</CardTitle>
+    <Card className="rounded-xl shadow-sm">
+      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
         <button
           onClick={() => navigate('interviews')}
-          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
+          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
         >
           View all
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </CardHeader>
       <CardContent>
-        <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-          {interviews.map((interview) => (
-            <div
-              key={interview.id}
-              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-            >
-              <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400">
-                <span className="text-[10px] font-medium uppercase leading-none">
-                  {interview.date
-                    ? new Date(interview.date).toLocaleDateString('en-IN', {
-                        month: 'short',
-                      })
-                    : ''}
-                </span>
-                <span className="text-sm font-bold leading-tight">
-                  {interview.date
-                    ? new Date(interview.date).getDate()
-                    : ''}
-                </span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
-                  {interview.candidateName}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {interview.jobTitle}
-                </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {interview.time} · {interview.type}
+        <div className="custom-scrollbar max-h-[360px] space-y-2 overflow-y-auto pr-1">
+          {interviews.map((interview) => {
+            const dateInfo = interview.date ? formatInterviewDate(interview.date) : null
+            return (
+              <div
+                key={interview.id}
+                className="flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+              >
+                <div className="relative flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-cyan-100 to-cyan-50 text-cyan-700 dark:from-cyan-950 dark:to-cyan-900/50 dark:text-cyan-400">
+                  {dateInfo && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-500 text-[8px] font-bold text-white animate-pulse">
+                      {dateInfo.weekday.charAt(0)}
+                    </span>
+                  )}
+                  <span className="text-[10px] font-medium uppercase leading-none">
+                    {dateInfo?.day ?? ''}
                   </span>
+                  <span className="text-sm font-bold leading-tight">{dateInfo?.date ?? ''}</span>
                 </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{interview.candidateName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{interview.jobTitle}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {interview.time} · {interview.type}
+                    </span>
+                  </div>
+                </div>
+                <Badge variant={statusVariant(interview.status)} className="shrink-0 text-xs">
+                  {interview.status}
+                </Badge>
               </div>
-              <Badge variant={statusVariant(interview.status)} className="shrink-0 text-xs">
-                {interview.status}
-              </Badge>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ===== Quick Action Button =====
+
+function QuickActionButton({
+  icon: Icon,
+  label,
+  colorClass,
+  bgClass,
+  onClick,
+}: {
+  icon: React.ElementType
+  label: string
+  colorClass: string
+  bgClass: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}
+    >
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${colorClass}`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <span className="text-xs font-medium text-muted-foreground transition-colors duration-200 group-hover:text-foreground">
+        {label}
+      </span>
+    </button>
   )
 }
 
@@ -618,6 +764,16 @@ export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const navigate = useCRMStore((s) => s.navigate)
+
+  const formattedDate = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }, [])
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -649,14 +805,16 @@ export function DashboardPage() {
   }
 
   // Build pipeline data array ensuring all statuses are present
-  const pipelineData: PipelineData = data?.pipeline ??
+  const pipelineData: PipelineData =
+    data?.pipeline ??
     ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'].map((status) => ({
       status,
       count: 0,
     }))
 
   // Build priority data array ensuring all priorities are present
-  const priorityData: PriorityData = data?.priorityDistribution ??
+  const priorityData: PriorityData =
+    data?.priorityDistribution ??
     ['Low', 'Medium', 'High', 'Urgent'].map((priority) => ({
       priority,
       count: 0,
@@ -664,43 +822,114 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Overview of your recruitment operations
-        </p>
-      </div>
+      {/* Welcome Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-cyan-950/40">
+          <div className="relative z-10">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              Welcome back, Admin
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
+          </div>
+          {/* Decorative chart pattern on right */}
+          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.12] dark:opacity-[0.08]">
+            <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="10" y="30" width="14" height="40" rx="4" fill="currentColor" className="text-emerald-600" />
+              <rect x="30" y="20" width="14" height="50" rx="4" fill="currentColor" className="text-teal-600" />
+              <rect x="50" y="35" width="14" height="35" rx="4" fill="currentColor" className="text-cyan-600" />
+              <rect x="70" y="10" width="14" height="60" rx="4" fill="currentColor" className="text-emerald-600" />
+              <rect x="90" y="25" width="14" height="45" rx="4" fill="currentColor" className="text-teal-600" />
+              <path d="M17 28 L37 18 L57 33 L77 8 L97 23" stroke="currentColor" className="text-emerald-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <circle cx="17" cy="28" r="3" fill="currentColor" className="text-emerald-500" />
+              <circle cx="37" cy="18" r="3" fill="currentColor" className="text-emerald-500" />
+              <circle cx="57" cy="33" r="3" fill="currentColor" className="text-emerald-500" />
+              <circle cx="77" cy="8" r="3" fill="currentColor" className="text-emerald-500" />
+              <circle cx="97" cy="23" r="3" fill="currentColor" className="text-emerald-500" />
+            </svg>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Quick Actions Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+      >
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <QuickActionButton
+            icon={Users}
+            label="Add Candidate"
+            colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+            bgClass="from-emerald-50/60 to-transparent dark:from-emerald-950/20"
+            onClick={() => navigate('candidates')}
+          />
+          <QuickActionButton
+            icon={Briefcase}
+            label="Post Job"
+            colorClass="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+            bgClass="from-amber-50/60 to-transparent dark:from-amber-950/20"
+            onClick={() => navigate('jobs')}
+          />
+          <QuickActionButton
+            icon={Video}
+            label="Schedule Interview"
+            colorClass="bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
+            bgClass="from-violet-50/60 to-transparent dark:from-violet-950/20"
+            onClick={() => navigate('interviews')}
+          />
+          <QuickActionButton
+            icon={BarChart3}
+            label="View Reports"
+            colorClass="bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400"
+            bgClass="from-rose-50/60 to-transparent dark:from-rose-950/20"
+            onClick={() => navigate('dashboard')}
+          />
+        </div>
+      </motion.div>
 
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {STAT_CARDS.map((config) => (
+        {STAT_CARDS.map((config, index) => (
           <StatCard
             key={config.key}
             config={config}
             stats={data?.stats ?? null}
             isLoading={isLoading}
+            index={index}
           />
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <CandidatePipelineChart data={pipelineData} isLoading={isLoading} />
-        <JobPriorityChart data={priorityData} isLoading={isLoading} />
-      </div>
+      {/* Charts Section */}
+      <section>
+        <div className="mb-4 flex items-center gap-3">
+          <Activity className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold tracking-tight">Analytics Overview</h2>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <CandidatePipelineChart data={pipelineData} isLoading={isLoading} />
+          <JobPriorityChart data={priorityData} isLoading={isLoading} />
+        </div>
+      </section>
 
       {/* Bottom Section: Recent Activities + Upcoming Interviews */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <RecentActivities
-          activities={data?.recentActivities ?? []}
-          isLoading={isLoading}
-        />
-        <UpcomingInterviewsList
-          interviews={data?.upcomingInterviews ?? []}
-          isLoading={isLoading}
-        />
-      </div>
+      <section>
+        <div className="mb-4 flex items-center gap-3">
+          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold tracking-tight">Activity & Schedule</h2>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <RecentActivities activities={data?.recentActivities ?? []} isLoading={isLoading} />
+          <UpcomingInterviewsList interviews={data?.upcomingInterviews ?? []} isLoading={isLoading} />
+        </div>
+      </section>
     </div>
   )
 }

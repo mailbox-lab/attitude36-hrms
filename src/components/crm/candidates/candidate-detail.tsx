@@ -117,6 +117,23 @@ const INTERVIEW_STATUS_COLORS: Record<string, string> = {
   'No Show': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
 }
 
+// ===== Skill Color Helper =====
+
+const SKILL_COLORS = [
+  'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+  'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400',
+  'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+  'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-400',
+]
+
+function getSkillColor(index: number): string {
+  return SKILL_COLORS[index % SKILL_COLORS.length]
+}
+
 // ===== Star Rating =====
 
 function StarRating({ rating }: { rating: number }) {
@@ -144,23 +161,24 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
   const isTerminal = currentStatus === 'Hired' || currentStatus === 'Rejected'
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-2">
+    <div className="flex items-center gap-0 overflow-x-auto pb-2">
       {STATUS_PIPELINE.map((status, idx) => {
         const isCompleted = !isTerminal && idx < currentIndex
         const isCurrent = status === currentStatus
         const isFuture = idx > currentIndex && !isTerminal
         const isTerminalDone = isTerminal && (status === currentStatus || idx < STATUS_PIPELINE.indexOf(currentStatus))
+        const dotColor = STATUS_DOT_COLORS[status]
 
         return (
           <div key={status} className="flex items-center">
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1.5">
               <div
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-semibold transition-colors ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all ${
                   isCurrent || isTerminalDone
-                    ? `${STATUS_DOT_COLORS[status]} border-transparent text-white`
+                    ? `${dotColor} text-white ring-4 ring-white shadow-md dark:ring-background`
                     : isFuture
-                      ? 'border-muted-foreground/30 text-muted-foreground/40'
-                      : 'border-emerald-500 bg-emerald-500 text-white'
+                      ? 'border-2 border-dashed border-muted-foreground/25 text-muted-foreground/40'
+                      : `${dotColor} text-white ring-2 ring-white/60 dark:ring-background/60`
                 }`}
               >
                 {isCompleted || isTerminalDone ? '✓' : idx + 1}
@@ -175,10 +193,10 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
             </div>
             {idx < STATUS_PIPELINE.length - 1 && (
               <div
-                className={`mx-1 h-0.5 w-4 sm:w-6 ${
+                className={`mx-0.5 h-1 w-5 rounded-full sm:w-8 ${
                   (isCompleted && !isTerminal) || isTerminalDone
-                    ? 'bg-emerald-500'
-                    : 'bg-muted-foreground/20'
+                    ? dotColor.replace('bg-', 'bg-')
+                    : 'bg-muted-foreground/15'
                 }`}
               />
             )}
@@ -316,13 +334,16 @@ export function CandidateDetail({
         {/* Left Column: Profile Card + Skills + Status */}
         <div className="flex flex-col gap-6 lg:col-span-1">
           {/* Profile Card */}
-          <Card>
-            <CardContent className="flex flex-col items-center gap-4 p-6">
-              <Avatar className="h-20 w-20 text-2xl font-bold">
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+          <Card className="overflow-hidden">
+            <div className="h-24 bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 dark:from-emerald-500/10 dark:via-teal-500/10 dark:to-cyan-500/10" />
+            <CardContent className="relative flex flex-col items-center gap-4 px-6 pb-6 pt-0">
+              <div className="-mt-10">
+                <Avatar className="h-20 w-20 text-2xl font-bold ring-4 ring-background">
+                  <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <div className="text-center">
                 <h2 className="text-lg font-semibold">{fullName}</h2>
                 <p className="text-sm text-muted-foreground">{candidate.title || '—'}</p>
@@ -335,11 +356,11 @@ export function CandidateDetail({
           </Card>
 
           {/* Contact Info Card */}
-          <Card>
+          <Card className="border-l-4 border-l-emerald-500/40">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Contact Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3.5">
               {candidate.email && (
                 <div className="flex items-center gap-3 text-sm">
                   <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -373,11 +394,11 @@ export function CandidateDetail({
           </Card>
 
           {/* Experience & CTC Card */}
-          <Card>
+          <Card className="border-l-4 border-l-amber-500/40">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Experience & Compensation</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3.5">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Briefcase className="h-4 w-4" /> Experience
@@ -418,15 +439,15 @@ export function CandidateDetail({
           </Card>
 
           {/* Skills Card */}
-          <Card>
+          <Card className="border-l-4 border-l-violet-500/40">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Skills</CardTitle>
             </CardHeader>
             <CardContent>
               {skills.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="text-xs">
+                  {skills.map((skill, index) => (
+                    <Badge key={skill} className={`text-xs border-0 ${getSkillColor(index)}`}>
                       {skill}
                     </Badge>
                   ))}
