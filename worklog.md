@@ -1,18 +1,20 @@
-# RecruitPro CRM - Work Log
+# Attitude360 HRMS - Work Log
 
-## Current Project Status (Updated: Round 9 - 2025-08-21)
+## Current Project Status (Updated: Round 10 - 2025-08-21)
 
-RecruitPro is a comprehensive Recruitment CRM application built with Next.js 16, TypeScript, Prisma ORM (SQLite), Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand, Framer Motion, and next-themes. The application is a single-page app (SPA) with client-side navigation via Zustand store and lazy-loaded modules.
+Attitude360 is a comprehensive HRMS (Human Resource Management System) application built with Next.js 16, TypeScript, Prisma ORM (SQLite), Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand, Framer Motion, NextAuth.js v4, and next-themes. The application is a single-page app (SPA) with client-side navigation via Zustand store and lazy-loaded modules, with **full authentication and role-based access control**.
 
 ### Architecture
 - **Framework**: Next.js 16 App Router (single page at /) with React.lazy for code splitting
-- **Database**: SQLite via Prisma ORM (10 models)
+- **Authentication**: NextAuth.js v4 with Credentials provider, JWT strategy, bcrypt password hashing
+- **Authorization**: 4-tier role system (FOUNDER, COFOUNDER, HR, EMPLOYEE) with permission-based navigation
+- **Database**: SQLite via Prisma ORM (10 models, employees have password + role fields)
 - **State Management**: Zustand for navigation/UI state, TanStack Query for server state
 - **UI Components**: shadcn/ui (New York style) with Lucide icons
 - **Charts**: Recharts (area, bar, pie/donut charts)
 - **Animations**: Framer Motion for page transitions, staggered effects, micro-interactions
 - **Theming**: Dark mode via next-themes with class strategy, CSS variable system
-- **Styling**: Tailwind CSS 4 with gradient accents, consistent design language
+- **Styling**: Tailwind CSS 4 with gradient accents, glassmorphism, consistent design language
 
 ### Modules (14 pages + detail views + dialogs)
 1. **Dashboard** - Animated gradient welcome banner with floating circles, dynamic greeting, 8 KPI stat cards with sparklines & gradient hover borders, "View Details" navigation links, enhanced quick actions (2x2 grid with icon containers & descriptions), **Weekly Summary card** (glassmorphism, 4 mini stats with colored icons), candidate pipeline bar chart with section headers, job priority pie chart, recent activities with entity-specific colored icons & scrollable list, upcoming interviews with time indicators & type badges
@@ -1245,3 +1247,179 @@ Stage Summary:
 9. Jobs date-range filter, Employees date-range filter
 10. Advanced Kanban drag-and-drop for Jobs (between status columns)
 11. API endpoint testing with proper integration tests
+
+## Task 2 - Auth Backend (2025-08-21)
+
+### Files Created
+- \`src/lib/auth.ts\` - NextAuth v4 configuration with CredentialsProvider, JWT strategy, extended session types (role, employeeId)
+- \`src/app/api/auth/[...nextauth]/route.ts\` - NextAuth catch-all API route handler
+- \`src/app/api/auth/register/route.ts\` - Registration endpoint with validation, bcrypt hashing, invite code protection for FOUNDER/COFOUNDER roles
+- \`src/app/api/auth/me/route.ts\` - Get current user endpoint returning employee with leave balances and recent attendance
+- \`src/lib/auth-utils.ts\` - Auth utilities: UserRole type, ROLE_LABELS, ROLE_COLORS (amber/orange/teal/emerald), canAccess() permission checker, isAdmin() helper
+
+### Files Modified
+- \`.env\` - Added NEXTAUTH_SECRET and INVITE_CODE
+- \`src/app/api/seed/route.ts\` - Updated employee seed data with 6 auth-enabled accounts (Arjun Mehta/FOUNDER, Priya Sharma/COFOUNDER, Rahul Verma/HR, Sneha Patel/HR, Vikram Singh/EMPLOYEE, Anita Desai/EMPLOYEE) with bcrypt hashed passwords; updated interviewer names and approvedBy references
+
+### Seed Accounts
+| Name | Email | Role | Password |
+|------|-------|------|----------|
+| Arjun Mehta | arjun@attitude360.com | FOUNDER | founder123 |
+| Priya Sharma | priya@attitude360.com | COFOUNDER | founder123 |
+| Rahul Verma | rahul@attitude360.com | HR | hr123 |
+| Sneha Patel | sneha@attitude360.com | HR | hr123 |
+| Vikram Singh | vikram@attitude360.com | EMPLOYEE | emp123 |
+| Anita Desai | anita@attitude360.com | EMPLOYEE | emp123 |
+
+---
+
+## Task 3 - Auth UI Components & Role-Based Navigation (2025-08-21)
+
+### What was built
+Complete authentication UI layer with login/signup forms, session management, and role-based navigation filtering.
+
+### Files Created
+1. **`src/components/auth/session-provider.tsx`** - Client-side SessionProvider wrapper for next-auth
+2. **`src/components/auth/auth-page.tsx`** - Full-screen auth page with:
+   - Split layout: left branding panel (emerald→teal→cyan gradient, A360 logo, feature bullets) + right form panel
+   - Login form: email/password with show/hide toggle, remember me, error shake animation, framer-motion entrance
+   - Signup form: name, email, department select, password/confirm with toggles, invite code expansion, role selector (Employee/HR Manager), terms checkbox
+   - Demo accounts card showing 4 seeded accounts with role badges (ROLE_COLORS) and credentials
+   - Auto-login after successful registration
+   - AnimatePresence transitions between login/signup
+3. **`src/lib/use-auth.ts`** - Convenience hook wrapping `useSession()` exposing `user`, `role`, `employeeId`, `isAuthenticated`, `isLoading`
+
+### Files Modified
+4. **`src/stores/crm-store.ts`** - Added 4 new CRMView types: `my-dashboard`, `my-attendance`, `my-leave`, `my-profile`
+5. **`src/app/page.tsx`** - Auth gate: wraps in AuthProvider, checks session, shows loading spinner / AuthPage / CRMLayout+content based on auth state. Maps new view types to existing page components.
+6. **`src/components/crm/crm-layout.tsx`** - Major changes:
+   - Replaced hardcoded `navItems` with `allNavItems` (20 items including employee-specific ones)
+   - Filters nav items via `canAccess(item.view, role)` from auth-utils
+   - Employee sees: My Dashboard, My Attendance, My Leave, My Profile, Notifications
+   - Admins see: Dashboard, Candidates, Clients, Jobs, Attendance, Leave, Interviews, Placements, Activity, Notifications, Employees, Analytics, Settings
+   - Sidebar footer shows actual user name, role badge (ROLE_COLORS), avatar with initials
+   - Logout button (ghost, with LogOut icon) below user info
+   - Logo rebranded: A360 with emerald→teal gradient, "Attitude360 / HR Management System"
+   - Header shows current page label from allNavItems (not filtered)
+   - Footer updated: "© 2025 Attitude360 · HR Management System", v2.0.0
+   - EMPLOYEE role auto-navigates to my-dashboard
+
+### Color Constraints Verified
+- No blue/indigo/purple/sky colors used in new code
+- Auth page uses emerald→teal→cyan gradient palette
+- Role badges use existing ROLE_COLORS (amber, orange, teal, emerald)
+
+### Lint Status
+- 0 errors, 1 warning (pre-existing react-hook-form `watch` in placements-page.tsx)
+
+### Demo Credentials
+| Role | Email | Password |
+|------|-------|----------|
+| Founder | arjun@attitude360.com | founder123 |
+| Co-Founder | priya@attitude360.com | founder123 |
+| HR | rahul@attitude360.com | hr123 |
+| Employee | vikram@attitude360.com | emp123 |
+
+---
+
+## Task 6 - Rebrand from RecruitPro to Attitude360 (2025-08-21)
+
+### Changes Made
+Replaced all remaining "RecruitPro" / "recruitpro" references in `src/` with "Attitude360" / "attitude360":
+
+1. **`src/app/layout.tsx`** — Page title: `"RecruitPro - Recruitment CRM"` → `"Attitude360 - HRMS"`
+2. **`src/components/crm/keyboard-shortcuts.tsx`** — Dialog description: `"RecruitPro CRM"` → `"Attitude360 HRMS"`
+3. **`src/components/crm/settings-page.tsx`** — 15 replacements:
+   - 6 localStorage keys: `recruitpro-compact-mode`, `recruitpro-sidebar-default`, `recruitpro-notif-email`, `recruitpro-notif-interview`, `recruitpro-notif-leave`, `recruitpro-notif-placement` → `attitude360-*`
+   - CSV download filename: `recruitpro-candidates-` → `attitude360-candidates-`
+   - Database stats card description: `"RecruitPro database"` → `"Attitude360 database"`
+   - About section heading: `"RecruitPro CRM"` → `"Attitude360 HRMS"`
+   - About section description: `"Modern Recruitment Management System"` → `"Modern HR Management System"`
+   - About section icon letter: `R` → `A`
+   - Tech stack card description: `"RecruitPro CRM"` → `"Attitude360 HRMS"`
+   - Copyright: `"© 2025 RecruitPro CRM"` → `"© 2025 Attitude360 HRMS"`
+
+### Verified Already Updated (by previous agents)
+- `src/components/crm/crm-layout.tsx` — Sidebar logo "A360", name "Attitude360", subtitle "HR Management System", footer "© 2025 Attitude360"
+- `src/components/crm/auth/auth-page.tsx` — Already uses Attitude360
+- `src/components/crm/dashboard/dashboard-page.tsx` — No RecruitPro references
+- `src/components/crm/command-palette.tsx` — No RecruitPro references
+
+### Verification
+- `rg -i 'recruitpro' src/` returns zero matches ✅
+- `bun run lint` passes (only 1 pre-existing warning, 0 errors) ✅
+
+---
+Task ID: Round 10 Master
+Agent: main-orchestrator
+Task: Transform RecruitPro CRM into Attitude360 HRMS with auth, roles, and rebrand
+
+Work Log:
+
+**1. Project Assessment & QA**
+- Read worklog.md (Rounds 1-9, v1.8.0)
+- ESLint: 0 errors, 1 pre-existing warning
+- Color audit: zero blue/indigo/purple/sky
+- Determined major transformation needed: CRM → HRMS
+
+**2. Auth Backend** (subagent 2)
+- Updated Prisma schema: added `password` (nullable String) and `role` (default 'EMPLOYEE') to Employee
+- Created `src/lib/auth.ts`: NextAuth v4 config, CredentialsProvider, JWT strategy, extended Session type with role + employeeId
+- Created `src/app/api/auth/[...nextauth]/route.ts`: NextAuth catch-all route
+- Created `src/app/api/auth/register/route.ts`: Registration with validation, bcrypt hashing, invite code for FOUNDER/COFOUNDER
+- Created `src/app/api/auth/me/route.ts`: Current user endpoint with leave balances + attendance
+- Created `src/lib/auth-utils.ts`: UserRole type, ROLE_LABELS, ROLE_COLORS, canAccess() permission matrix, isAdmin()
+- Updated .env: NEXTAUTH_SECRET, INVITE_CODE
+- Updated seed: 6 auth-enabled accounts with bcrypt-hashed passwords
+
+**3. Auth UI + Role-Based Navigation** (subagent 3)
+- Created `src/components/auth/session-provider.tsx`: SessionProvider wrapper
+- Created `src/components/auth/auth-page.tsx`: Full-screen login/signup with split layout, demo credentials card, invite code flow
+- Created `src/lib/use-auth.ts`: Convenience hook
+- Modified page.tsx: Auth gate (loading → AuthPage → CRMLayout), role-based default view
+- Modified crm-layout.tsx: 20 nav items, canAccess() filtering, real user info in sidebar, logout button
+- Added 4 CRMView types: my-dashboard, my-attendance, my-leave, my-profile
+
+**4. Rebrand** (subagent 6)
+- Zero RecruitPro references in src/ (verified with rg)
+- Updated layout.tsx title, settings localStorage keys, keyboard shortcuts description, about section
+
+**5. Round 9 Features (from earlier in session)**
+- Keyboard Shortcuts Panel, Candidate Kanban DnD, Calendar Scheduling, Dashboard Weekly Summary, 12 CSS utilities
+
+Stage Summary:
+- 0 ESLint errors | Complete CRM→HRMS transformation
+- 8 new files | 10+ modified files | Full auth system | 4-tier role access | Rebrand
+- Version: v2.0.0
+
+## Verification Results (Round 10)
+- ✅ ESLint: Zero errors, 1 warning (pre-existing)
+- ✅ Zero RecruitPro references in src/
+- ✅ Auth: NextAuth v4 with Credentials, JWT, bcrypt
+- ✅ Roles: FOUNDER (full), COFOUNDER (full), HR (admin), EMPLOYEE (self-service)
+- ✅ Login/Signup: Split layout, demo credentials, invite code flow
+- ✅ Role-based sidebar: canAccess() filters 20 nav items
+- ✅ User info in sidebar: name, role badge, avatar initials, logout
+- ✅ 6 seed accounts with different roles and passwords
+- ✅ All Round 9 features preserved (shortcuts, DnD, calendar scheduling, etc.)
+
+## Demo Credentials
+| Role | Email | Password |
+|------|-------|----------|
+| Founder | arjun@attitude360.com | founder123 |
+| Co-Founder | priya@attitude360.com | founder123 |
+| HR | rahul@attitude360.com | hr123 |
+| Employee | vikram@attitude360.com | emp123 |
+
+## Next Phase Recommendations (Priority Order)
+1. Employee self-service: dedicated My Dashboard with personal stats (attendance rate, leave balance, upcoming interviews)
+2. API route protection: auth middleware on all existing API routes
+3. Password change/reset flow in My Profile
+4. Employee onboarding flow (founder invites via email)
+5. AI-powered candidate matching (z-ai-web-dev-sdk LLM)
+6. Resume/CV upload and AI parsing (z-ai-web-dev-sdk VLM)
+7. Real-time notifications via WebSocket/Socket.IO
+8. Email integration (leave approval, interview invites)
+9. Custom report builder
+10. Mobile PWA support
+11. Jobs/Employees date-range filters

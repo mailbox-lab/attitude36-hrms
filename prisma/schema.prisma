@@ -7,13 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===== EMPLOYEES =====
+// ===== EMPLOYEES (Users with auth) =====
 model Employee {
   id         String   @id @default(cuid())
   name       String
   email      String   @unique
   phone      String?
-  role       String   @default("Recruiter")
+  password   String?                          // bcrypt hash, null = no login yet
+  role       String   @default("EMPLOYEE")   // FOUNDER, COFOUNDER, HR, EMPLOYEE
   department String?
   avatar     String?
   isActive   Boolean  @default(true)
@@ -74,7 +75,7 @@ model JobOpening {
 
   candidates   Candidate[]
   interviews   Interview[]  @relation("JobInterview")
-  placements   Placement[]  @relation("JobPlacement")
+  placements   Placement[] @relation("JobPlacement")
 }
 
 // ===== CANDIDATES =====

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RecruitPro - Recruitment CRM",
+  title: "Attitude360 - HRMS",
   description: "Comprehensive recruitment CRM with candidate tracking, job management, attendance & leave management.",
   keywords: ["Recruitment", "CRM", "HR", "Attendance", "Leave Management", "Candidate Tracking"],
   icons: {

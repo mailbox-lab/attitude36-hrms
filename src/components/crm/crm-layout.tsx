@@ -2,7 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { signOut } from 'next-auth/react'
 import { useCRMStore, type CRMView } from '@/stores/crm-store'
+import { useAuth } from '@/lib/use-auth'
+import { canAccess, ROLE_LABELS, ROLE_COLORS } from '@/lib/auth-utils'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
@@ -28,6 +31,7 @@ import {
   HeadphonesIcon,
   Bell,
   Keyboard,
+  LogOut,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -42,12 +46,18 @@ import { GlobalSearch } from '@/components/crm/global-search'
 import { BackToTop } from '@/components/crm/back-to-top'
 import { LoadingProgress } from '@/components/crm/loading-progress'
 
-const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string; section?: string }[] = [
+const allNavItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string; section?: string }[] = [
+  // Employee-specific items (shown for EMPLOYEE role)
+  { icon: LayoutDashboard, label: 'My Dashboard', view: 'my-dashboard', section: 'PERSONAL' },
+  { icon: Clock, label: 'My Attendance', view: 'my-attendance', section: 'PERSONAL' },
+  { icon: CalendarOff, label: 'My Leave', view: 'my-leave', section: 'PERSONAL' },
+  { icon: UserCog, label: 'My Profile', view: 'my-profile', section: 'PERSONAL' },
+  // Admin items (shown for FOUNDER, COFOUNDER, HR)
   { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
   { icon: Users, label: 'Candidates', view: 'candidates', badge: 'Pipeline', badgeColor: 'bg-emerald-500' },
   { icon: Building2, label: 'Clients', view: 'clients' },
   { icon: Briefcase, label: 'Job Openings', view: 'jobs' },
-  { icon: Clock, label: 'Attendance', view: 'attendance' },
+  { icon: Clock, label: 'Attendance', view: 'attendance', section: 'HR & Attendance' },
   { icon: CalendarOff, label: 'Leave Mgmt', view: 'leave' },
   { icon: Video, label: 'Interviews', view: 'interviews' },
   { icon: Award, label: 'Placements', view: 'placements' },
@@ -55,19 +65,40 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; ba
   { icon: Bell, label: 'Notifications', view: 'notifications', section: 'NOTIFICATIONS' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
   { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-violet-500' },
-  { icon: Settings, label: 'Settings', view: 'settings' },
+  { icon: Settings, label: 'Settings', view: 'settings', section: 'System' },
 ]
+
+function getInitials(name?: string | null): string {
+  if (!name) return '??'
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
 
 export function CRMLayout({ children }: { children: React.ReactNode }) {
   const { currentView, sidebarOpen, toggleSidebar, setSidebarOpen, navigate } = useCRMStore()
+  const { role, user } = useAuth()
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
   const isFetching = queryClient.isFetching() > 0
 
+  // Filter nav items based on role permissions
+  const navItems = allNavItems.filter((item) => canAccess(item.view, role))
+
+  // Get the label for the current view from all items (not just filtered)
+  const currentLabel = allNavItems.find((i) => i.view === currentView)?.label ?? 'Dashboard'
+
   useEffect(() => {
     if (isMobile) setSidebarOpen(false)
   }, [isMobile, setSidebarOpen])
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false })
+  }
 
   return (
     <div className="flex h-screen bg-muted/30">
@@ -85,13 +116,13 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           'flex h-14 items-center border-b transition-all duration-300',
           sidebarOpen ? 'gap-2 px-3' : 'justify-center',
         )}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-sm shadow-sm">
-            R
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-sm">
+            A360
           </div>
           {sidebarOpen && (
             <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-semibold tracking-tight">RecruitPro</span>
-              <span className="text-[10px] text-muted-foreground">Recruitment CRM</span>
+              <span className="text-sm font-semibold tracking-tight">Attitude360</span>
+              <span className="text-[10px] text-muted-foreground">HR Management System</span>
             </div>
           )}
         </div>
@@ -164,29 +195,71 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </ScrollArea>
 
-        {/* Bottom section */}
+        {/* Bottom section - User info & Logout */}
         <div className="border-t p-2">
           {sidebarOpen ? (
-            <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">AP</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col overflow-hidden">
-                <span className="text-xs font-medium">Admin Panel</span>
-                <span className="text-[10px] text-muted-foreground">admin@recruitpro.com</span>
+            <div className="space-y-1 px-2">
+              <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 text-xs font-semibold">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col overflow-hidden flex-1">
+                  <span className="text-xs font-medium truncate">{user?.name ?? 'User'}</span>
+                  <Badge
+                    variant="secondary"
+                    className={cn('text-[9px] px-1.5 py-0 h-4 w-fit font-normal', ROLE_COLORS[role])}
+                  >
+                    {ROLE_LABELS[role]}
+                  </Badge>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500 h-8 text-xs"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
+              </Button>
             </div>
           ) : (
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-full h-9">
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-semibold">AP</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Admin Panel</TooltipContent>
-            </Tooltip>
+            <div className="flex flex-col items-center gap-1">
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="w-full h-9">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 text-[10px] font-semibold">
+                        {getInitials(user?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium">{user?.name ?? 'User'}</span>
+                    <Badge variant="secondary" className={cn('text-[9px] px-1.5 py-0 h-4 w-fit font-normal', ROLE_COLORS[role])}>
+                      {ROLE_LABELS[role]}
+                    </Badge>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-full h-8 text-muted-foreground hover:text-red-500"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Sign Out</TooltipContent>
+              </Tooltip>
+            </div>
           )}
         </div>
       </aside>
@@ -213,7 +286,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           <GlobalSearch />
           <div className="hidden md:flex flex-1">
             <h2 className="text-sm font-semibold">
-              {navItems.find((i) => i.view === currentView)?.label ?? 'Dashboard'}
+              {currentLabel}
             </h2>
           </div>
           <NotificationBell />
@@ -250,9 +323,9 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <span>© 2025 RecruitPro</span>
+              <span>© 2025 Attitude360</span>
               <span className="text-muted-foreground/40">·</span>
-              <span>Recruitment CRM</span>
+              <span>HR Management System</span>
             </div>
             <div className="hidden sm:flex items-center gap-3">
               <div className="flex items-center gap-1.5">
@@ -263,7 +336,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v1.8.0
+                v2.0.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with <span className="animate-dot-pulse inline-block">♥</span> in India</span>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { hashSync } from 'bcryptjs';
 
 export async function POST() {
   try {
@@ -18,20 +19,55 @@ export async function POST() {
     const employees = await Promise.all([
       db.employee.create({
         data: {
-          name: 'Priya Sharma',
-          email: 'priya.sharma@recruitcrm.com',
+          name: 'Arjun Mehta',
+          email: 'arjun@attitude360.com',
           phone: '+91-9876543210',
-          role: 'HR Manager',
+          password: hashSync('founder123', 10),
+          role: 'FOUNDER',
+          department: 'Leadership',
+          isActive: true,
+        },
+      }),
+      db.employee.create({
+        data: {
+          name: 'Priya Sharma',
+          email: 'priya@attitude360.com',
+          phone: '+91-9876543211',
+          password: hashSync('founder123', 10),
+          role: 'COFOUNDER',
+          department: 'Leadership',
+          isActive: true,
+        },
+      }),
+      db.employee.create({
+        data: {
+          name: 'Rahul Verma',
+          email: 'rahul@attitude360.com',
+          phone: '+91-9876543212',
+          password: hashSync('hr123', 10),
+          role: 'HR',
           department: 'Human Resources',
           isActive: true,
         },
       }),
       db.employee.create({
         data: {
-          name: 'Rahul Mehta',
-          email: 'rahul.mehta@recruitcrm.com',
-          phone: '+91-9876543211',
-          role: 'Senior Recruiter',
+          name: 'Sneha Patel',
+          email: 'sneha@attitude360.com',
+          phone: '+91-9876543213',
+          password: hashSync('hr123', 10),
+          role: 'HR',
+          department: 'Human Resources',
+          isActive: true,
+        },
+      }),
+      db.employee.create({
+        data: {
+          name: 'Vikram Singh',
+          email: 'vikram@attitude360.com',
+          phone: '+91-9876543214',
+          password: hashSync('emp123', 10),
+          role: 'EMPLOYEE',
           department: 'Recruitment',
           isActive: true,
         },
@@ -39,40 +75,11 @@ export async function POST() {
       db.employee.create({
         data: {
           name: 'Anita Desai',
-          email: 'anita.desai@recruitcrm.com',
-          phone: '+91-9876543212',
-          role: 'Recruiter',
-          department: 'Recruitment',
-          isActive: true,
-        },
-      }),
-      db.employee.create({
-        data: {
-          name: 'Vikram Singh',
-          email: 'vikram.singh@recruitcrm.com',
-          phone: '+91-9876543213',
-          role: 'Senior Recruiter',
-          department: 'Recruitment',
-          isActive: true,
-        },
-      }),
-      db.employee.create({
-        data: {
-          name: 'Sneha Patel',
-          email: 'sneha.patel@recruitcrm.com',
-          phone: '+91-9876543214',
-          role: 'Recruiter',
-          department: 'Recruitment',
-          isActive: true,
-        },
-      }),
-      db.employee.create({
-        data: {
-          name: 'Arjun Reddy',
-          email: 'arjun.reddy@recruitcrm.com',
+          email: 'anita@attitude360.com',
           phone: '+91-9876543215',
-          role: 'Business Development',
-          department: 'Sales',
+          password: hashSync('emp123', 10),
+          role: 'EMPLOYEE',
+          department: 'Recruitment',
           isActive: true,
         },
       }),
@@ -341,15 +348,15 @@ export async function POST() {
     // ===== INTERVIEWS =====
     const now = new Date();
     const interviewData = [
-      { candidateId: candidates[0].id, jobId: jobs[0].id, type: 'Technical', interviewer: 'Rahul Mehta', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/abc-defg-hij', status: 'Completed', feedback: 'Strong React skills, good system design understanding. Recommended for next round.', rating: 4 },
-      { candidateId: candidates[0].id, jobId: jobs[0].id, type: 'HR', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/klm-nopq-rst', status: 'Completed', feedback: 'Good communication skills. Culture fit looks positive.', rating: 4 },
-      { candidateId: candidates[2].id, jobId: jobs[1].id, type: 'Technical', interviewer: 'Rahul Mehta', date: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/uvw-xyza-bcd', status: 'Scheduled', feedback: null, rating: null },
-      { candidateId: candidates[3].id, jobId: jobs[2].id, type: 'Technical', interviewer: 'Vikram Singh', date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), duration: 90, meetingLink: 'https://meet.google.com/efg-hijk-lmn', status: 'Completed', feedback: 'Excellent ML knowledge. Solved all coding challenges. Strong hire recommendation.', rating: 5 },
-      { candidateId: candidates[3].id, jobId: jobs[2].id, type: 'HR', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/opq-rstu-vwx', status: 'Completed', feedback: 'Great fit for the team. Salary expectations are within range.', rating: 5 },
+      { candidateId: candidates[0].id, jobId: jobs[0].id, type: 'Technical', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/abc-defg-hij', status: 'Completed', feedback: 'Strong React skills, good system design understanding. Recommended for next round.', rating: 4 },
+      { candidateId: candidates[0].id, jobId: jobs[0].id, type: 'HR', interviewer: 'Rahul Verma', date: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/klm-nopq-rst', status: 'Completed', feedback: 'Good communication skills. Culture fit looks positive.', rating: 4 },
+      { candidateId: candidates[2].id, jobId: jobs[1].id, type: 'Technical', interviewer: 'Priya Sharma', date: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/uvw-xyza-bcd', status: 'Scheduled', feedback: null, rating: null },
+      { candidateId: candidates[3].id, jobId: jobs[2].id, type: 'Technical', interviewer: 'Sneha Patel', date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), duration: 90, meetingLink: 'https://meet.google.com/efg-hijk-lmn', status: 'Completed', feedback: 'Excellent ML knowledge. Solved all coding challenges. Strong hire recommendation.', rating: 5 },
+      { candidateId: candidates[3].id, jobId: jobs[2].id, type: 'HR', interviewer: 'Rahul Verma', date: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/opq-rstu-vwx', status: 'Completed', feedback: 'Great fit for the team. Salary expectations are within range.', rating: 5 },
       { candidateId: candidates[5].id, jobId: jobs[4].id, type: 'Technical', interviewer: 'Anita Desai', date: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/yza-bcde-fgh', status: 'Scheduled', feedback: null, rating: null },
-      { candidateId: candidates[7].id, jobId: jobs[6].id, type: 'Case Study', interviewer: 'Arjun Reddy', date: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), duration: 90, meetingLink: 'https://meet.google.com/ijk-lmno-pqr', status: 'Scheduled', feedback: null, rating: null },
-      { candidateId: candidates[8].id, jobId: jobs[0].id, type: 'Technical', interviewer: 'Rahul Mehta', date: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000), duration: 75, meetingLink: 'https://meet.google.com/stu-vwxy-zab', status: 'Completed', feedback: 'Outstanding frontend skills. Deep understanding of React internals.', rating: 5 },
-      { candidateId: candidates[8].id, jobId: jobs[0].id, type: 'HR', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/cde-fghi-jkl', status: 'Completed', feedback: 'Strong candidate. Discussed compensation expectations.', rating: 5 },
+      { candidateId: candidates[7].id, jobId: jobs[6].id, type: 'Case Study', interviewer: 'Arjun Mehta', date: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), duration: 90, meetingLink: 'https://meet.google.com/ijk-lmno-pqr', status: 'Scheduled', feedback: null, rating: null },
+      { candidateId: candidates[8].id, jobId: jobs[0].id, type: 'Technical', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000), duration: 75, meetingLink: 'https://meet.google.com/stu-vwxy-zab', status: 'Completed', feedback: 'Outstanding frontend skills. Deep understanding of React internals.', rating: 5 },
+      { candidateId: candidates[8].id, jobId: jobs[0].id, type: 'HR', interviewer: 'Rahul Verma', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/cde-fghi-jkl', status: 'Completed', feedback: 'Strong candidate. Discussed compensation expectations.', rating: 5 },
       { candidateId: candidates[12].id, jobId: jobs[4].id, type: 'Technical', interviewer: 'Anita Desai', date: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/mno-pqrs-tuv', status: 'Completed', feedback: 'Very strong cloud background. Could be a great asset for infrastructure team.', rating: 4 },
     ];
 
@@ -485,10 +492,10 @@ export async function POST() {
     // ===== LEAVE REQUESTS =====
     const leaveRequestData = [
       { employeeId: employees[0].id, type: 'Casual Leave', startDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), totalDays: 3, reason: 'Family function', status: 'Approved', approvedBy: 'admin' },
-      { employeeId: employees[1].id, type: 'Sick Leave', startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), totalDays: 1, reason: 'Not feeling well, doctor appointment', status: 'Approved', approvedBy: 'priya.sharma@recruitcrm.com' },
+      { employeeId: employees[1].id, type: 'Sick Leave', startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), totalDays: 1, reason: 'Not feeling well, doctor appointment', status: 'Approved', approvedBy: 'rahul@attitude360.com' },
       { employeeId: employees[2].id, type: 'Casual Leave', startDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000), totalDays: 3, reason: 'Travel plans', status: 'Pending', approvedBy: null },
       { employeeId: employees[3].id, type: 'Earned Leave', startDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 19 * 24 * 60 * 60 * 1000), totalDays: 5, reason: 'Vacation with family', status: 'Pending', approvedBy: null },
-      { employeeId: employees[4].id, type: 'Casual Leave', startDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), totalDays: 1, reason: 'Personal work', status: 'Rejected', approvedBy: 'priya.sharma@recruitcrm.com' },
+      { employeeId: employees[4].id, type: 'Casual Leave', startDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), totalDays: 1, reason: 'Personal work', status: 'Rejected', approvedBy: 'rahul@attitude360.com' },
       { employeeId: employees[5].id, type: 'Earned Leave', startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), totalDays: 8, reason: 'International travel', status: 'Pending', approvedBy: null },
     ];
 

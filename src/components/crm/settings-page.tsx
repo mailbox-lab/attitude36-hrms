@@ -191,24 +191,24 @@ function AppearanceTab() {
   const { theme, setTheme } = useTheme()
   const [compactMode, setCompactMode] = useState(() => {
     if (typeof window === 'undefined') return false
-    const cm = localStorage.getItem('recruitpro-compact-mode')
+    const cm = localStorage.getItem('attitude360-compact-mode')
     return cm === null ? false : cm === 'true'
   })
   const [sidebarDefault, setSidebarDefault] = useState(() => {
     if (typeof window === 'undefined') return true
-    const sd = localStorage.getItem('recruitpro-sidebar-default')
+    const sd = localStorage.getItem('attitude360-sidebar-default')
     return sd === null ? true : sd === 'true'
   })
 
   const handleCompactChange = (checked: boolean) => {
     setCompactMode(checked)
-    localStorage.setItem('recruitpro-compact-mode', String(checked))
+    localStorage.setItem('attitude360-compact-mode', String(checked))
     toast.success(checked ? 'Compact mode enabled' : 'Compact mode disabled')
   }
 
   const handleSidebarDefault = (checked: boolean) => {
     setSidebarDefault(checked)
-    localStorage.setItem('recruitpro-sidebar-default', String(checked))
+    localStorage.setItem('attitude360-sidebar-default', String(checked))
     toast.success(checked ? 'Sidebar will default to expanded' : 'Sidebar will default to collapsed')
   }
 
@@ -298,10 +298,10 @@ function NotificationsTab() {
     return val === null ? fallback : val === 'true'
   }
 
-  const [emailNotifications, setEmailNotifications] = useState(() => lsBool('recruitpro-notif-email', true))
-  const [interviewReminders, setInterviewReminders] = useState(() => lsBool('recruitpro-notif-interview', true))
-  const [leaveAlerts, setLeaveAlerts] = useState(() => lsBool('recruitpro-notif-leave', true))
-  const [placementUpdates, setPlacementUpdates] = useState(() => lsBool('recruitpro-notif-placement', true))
+  const [emailNotifications, setEmailNotifications] = useState(() => lsBool('attitude360-notif-email', true))
+  const [interviewReminders, setInterviewReminders] = useState(() => lsBool('attitude360-notif-interview', true))
+  const [leaveAlerts, setLeaveAlerts] = useState(() => lsBool('attitude360-notif-leave', true))
+  const [placementUpdates, setPlacementUpdates] = useState(() => lsBool('attitude360-notif-placement', true))
 
   const toggleSetting = (
     key: string,
@@ -319,25 +319,25 @@ function NotificationsTab() {
       label: 'Email Notifications',
       description: 'Receive email notifications for important events and updates.',
       value: emailNotifications,
-      setter: (v: boolean) => toggleSetting('recruitpro-notif-email', v, setEmailNotifications, 'Email Notifications'),
+      setter: (v: boolean) => toggleSetting('attitude360-notif-email', v, setEmailNotifications, 'Email Notifications'),
     },
     {
       label: 'Interview Reminders',
       description: 'Get reminded about upcoming interviews with candidates.',
       value: interviewReminders,
-      setter: (v: boolean) => toggleSetting('recruitpro-notif-interview', v, setInterviewReminders, 'Interview Reminders'),
+      setter: (v: boolean) => toggleSetting('attitude360-notif-interview', v, setInterviewReminders, 'Interview Reminders'),
     },
     {
       label: 'Leave Request Alerts',
       description: 'Receive alerts when new leave requests are submitted.',
       value: leaveAlerts,
-      setter: (v: boolean) => toggleSetting('recruitpro-notif-leave', v, setLeaveAlerts, 'Leave Request Alerts'),
+      setter: (v: boolean) => toggleSetting('attitude360-notif-leave', v, setLeaveAlerts, 'Leave Request Alerts'),
     },
     {
       label: 'Placement Updates',
       description: 'Get notified about placement status changes and milestones.',
       value: placementUpdates,
-      setter: (v: boolean) => toggleSetting('recruitpro-notif-placement', v, setPlacementUpdates, 'Placement Updates'),
+      setter: (v: boolean) => toggleSetting('attitude360-notif-placement', v, setPlacementUpdates, 'Placement Updates'),
     },
   ]
 
@@ -460,7 +460,7 @@ function DataManagementTab() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `recruitpro-candidates-${new Date().toISOString().split('T')[0]}.csv`
+      link.download = `attitude360-candidates-${new Date().toISOString().split('T')[0]}.csv`
       link.click()
       URL.revokeObjectURL(url)
 
@@ -529,7 +529,7 @@ function DataManagementTab() {
       <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Database Overview</CardTitle>
-          <CardDescription>Current statistics for your RecruitPro database.</CardDescription>
+          <CardDescription>Current statistics for your Attitude360 database.</CardDescription>
         </CardHeader>
         <CardContent>
           {statsLoading ? (
@@ -656,11 +656,11 @@ function AboutTab() {
         <div className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-background p-8">
           <div className="flex flex-col items-center gap-4">
             <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
-              <span className="text-3xl font-bold text-primary-foreground">R</span>
+              <span className="text-3xl font-bold text-primary-foreground">A</span>
             </div>
             <div className="text-center">
-              <h2 className="text-2xl font-bold tracking-tight">RecruitPro CRM</h2>
-              <p className="text-sm text-muted-foreground mt-1">Modern Recruitment Management System</p>
+              <h2 className="text-2xl font-bold tracking-tight">Attitude360 HRMS</h2>
+              <p className="text-sm text-muted-foreground mt-1">Modern HR Management System</p>
             </div>
           </div>
         </div>
@@ -691,7 +691,7 @@ function AboutTab() {
       <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Built With</CardTitle>
-          <CardDescription>The technologies powering RecruitPro CRM.</CardDescription>
+          <CardDescription>The technologies powering Attitude360 HRMS.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
@@ -710,7 +710,7 @@ function AboutTab() {
 
       {/* Copyright */}
       <p className="text-center text-xs text-muted-foreground">
-        © 2025 RecruitPro CRM. All rights reserved.
+        © 2025 Attitude360 HRMS. All rights reserved.
       </p>
     </div>
   )

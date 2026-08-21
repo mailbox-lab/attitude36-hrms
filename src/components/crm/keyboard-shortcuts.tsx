@@ -181,7 +181,7 @@ export function KeyboardShortcuts() {
             <DialogHeader>
               <DialogTitle className="sr-only">Keyboard Shortcuts</DialogTitle>
               <DialogDescription className="sr-only">
-                View all available keyboard shortcuts in RecruitPro CRM
+                View all available keyboard shortcuts in Attitude360 HRMS
               </DialogDescription>
               <EnhancedDialogHeader
                 icon={Keyboard}

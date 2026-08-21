@@ -18,6 +18,10 @@ export type CRMView =
   | 'notifications'
   | 'analytics'
   | 'settings'
+  | 'my-dashboard'
+  | 'my-attendance'
+  | 'my-leave'
+  | 'my-profile'
 
 export type CandidateFilter = {
   status: string

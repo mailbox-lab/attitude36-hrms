@@ -1,9 +1,13 @@
 'use client'
 
 import { lazy, Suspense, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { useCRMStore } from '@/stores/crm-store'
 import { CRMLayout } from '@/components/crm/crm-layout'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AuthProvider } from '@/components/auth/session-provider'
+import { AuthPage } from '@/components/auth/auth-page'
+import { Loader2 } from 'lucide-react'
 
 // Lazy load all page components to avoid OOM during compilation
 const DashboardPage = lazy(() => import('@/components/crm/dashboard/dashboard-page').then(m => ({ default: m.DashboardPage })))
@@ -39,10 +43,25 @@ function PageLoader() {
   )
 }
 
-export default function CRMPage() {
-  const { currentView, selectedId } = useCRMStore()
+function AuthLoadingScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-xl">
+        A360
+      </div>
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm">Loading Attitude360...</span>
+      </div>
+    </div>
+  )
+}
 
-  // Auto-seed on first load
+function CRMApp() {
+  const { data: session, status } = useSession()
+  const { currentView, selectedId, navigate } = useCRMStore()
+
+  // Auto-seed on first load and set default view for employee role
   useEffect(() => {
     async function seedIfEmpty() {
       try {
@@ -61,9 +80,28 @@ export default function CRMPage() {
     seedIfEmpty()
   }, [])
 
+  // Set default view for employee role
+  useEffect(() => {
+    if (session && session.user.role === 'EMPLOYEE' && currentView === 'dashboard') {
+      navigate('my-dashboard')
+    }
+  }, [session, currentView, navigate])
+
+  if (status === 'loading') {
+    return <AuthLoadingScreen />
+  }
+
+  if (!session) {
+    return <AuthPage />
+  }
+
+  // Set default view based on role
+  const role = session.user.role
+
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
+      case 'my-dashboard':
         return <DashboardPage />
       case 'candidates':
         return <CandidatesPage />
@@ -78,8 +116,10 @@ export default function CRMPage() {
       case 'job-detail':
         return selectedId ? <JobDetail jobId={selectedId} /> : <JobsPage />
       case 'attendance':
+      case 'my-attendance':
         return <AttendancePage />
       case 'leave':
+      case 'my-leave':
         return <LeavePage />
       case 'interviews':
         return <InterviewsPage />
@@ -96,6 +136,7 @@ export default function CRMPage() {
       case 'analytics':
         return <AnalyticsPage />
       case 'settings':
+      case 'my-profile':
         return <SettingsPage />
       default:
         return <DashboardPage />
@@ -108,5 +149,13 @@ export default function CRMPage() {
         {renderView()}
       </Suspense>
     </CRMLayout>
+  )
+}
+
+export default function CRMPage() {
+  return (
+    <AuthProvider>
+      <CRMApp />
+    </AuthProvider>
   )
 }
