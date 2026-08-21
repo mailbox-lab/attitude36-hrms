@@ -1,0 +1,736 @@
+   200→    changeKey: 'placementsThisMonthChange',
+   201→  },
+   202→  {
+   203→    key: 'todaysAttendance',
+   204→    label: "Today's Attendance",
+   205→    icon: UserCheck,
+   206→    iconBg: 'bg-blue-100 dark:bg-blue-950',
+   207→    iconColor: 'text-blue-600 dark:text-blue-400',
+   208→    gradientFrom: 'from-blue-50/80 dark:from-blue-950/50',
+   209→    gradientTo: 'to-transparent',
+   210→    accentColor: 'border-l-blue-400',
+   211→    sparklineColor: '#3b82f6',
+   212→    changeKey: 'todaysAttendanceChange',
+   213→  },
+   214→  {
+   215→    key: 'pendingLeaves',
+   216→    label: 'Pending Leaves',
+   217→    icon: CalendarOff,
+   218→    iconBg: 'bg-orange-100 dark:bg-orange-950',
+   219→    iconColor: 'text-orange-600 dark:text-orange-400',
+   220→    gradientFrom: 'from-orange-50/80 dark:from-orange-950/50',
+   221→    gradientTo: 'to-transparent',
+   222→    accentColor: 'border-l-orange-400',
+   223→    sparklineColor: '#f97316',
+   224→    changeKey: 'pendingLeavesChange',
+   225→  },
+   226→  {
+   227→    key: 'monthlyRevenue',
+   228→    label: 'Monthly Revenue',
+   229→    icon: IndianRupee,
+   230→    iconBg: 'bg-green-100 dark:bg-green-950',
+   231→    iconColor: 'text-green-600 dark:text-green-400',
+   232→    gradientFrom: 'from-green-50/80 dark:from-green-950/50',
+   233→    gradientTo: 'to-transparent',
+   234→    accentColor: 'border-l-green-400',
+   235→    sparklineColor: '#22c55e',
+   236→    format: (v) => `\u20b9${(v / 100000).toFixed(1)}L`,
+   237→    changeKey: 'monthlyRevenueChange',
+   238→  },
+   239→]
+   240→
+   241→// ===== Sub-components =====
+   242→
+   243→function Sparkline({ color }: { color: string }) {
+   244→  return (
+   245→    <svg
+   246→      className="ml-auto h-8 w-16 opacity-40"
+   247→      viewBox="0 0 64 32"
+   248→      fill="none"
+   249→      xmlns="http://www.w3.org/2000/svg"
+   250→    >
+   251→      <path
+   252→        d="M2 28 C10 24, 16 20, 22 18 C28 16, 32 22, 38 14 C44 6, 52 8, 62 4"
+   253→        stroke={color}
+   254→        strokeWidth="2"
+   255→        strokeLinecap="round"
+   256→        fill="none"
+   257→      />
+   258→      <path
+   259→        d="M2 28 C10 24, 16 20, 22 18 C28 16, 32 22, 38 14 C44 6, 52 8, 62 4 L62 32 L2 32 Z"
+   260→        fill={color}
+   261→        opacity="0.08"
+   262→      />
+   263→    </svg>
+   264→  )
+   265→}
+   266→
+   267→function ChangeIndicator({ value }: { value: number }) {
+   268→  if (value === 0) return null
+   269→  const isPositive = value > 0
+   270→  return (
+   271→    <span
+   272→      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+   273→        isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
+   274→      }`}
+   275→    >
+   276→      {isPositive ? (
+   277→        <TrendingUp className="h-3 w-3" />
+   278→      ) : (
+   279→        <TrendingDown className="h-3 w-3" />
+   280→      )}
+   281→      {Math.abs(value).toFixed(1)}%
+   282→    </span>
+   283→  )
+   284→}
+   285→
+   286→function StatCard({
+   287→  config,
+   288→  stats,
+   289→  isLoading,
+   290→  index,
+   291→}: {
+   292→  config: StatCardConfig
+   293→  stats: DashboardStats | null
+   294→  isLoading: boolean
+   295→  index: number
+   296→}) {
+   297→  const Icon = config.icon
+   298→  if (isLoading || !stats) {
+   299→    return (
+   300→      <Card className="rounded-xl shadow-sm">
+   301→        <CardContent className="flex items-center gap-4 p-4">
+   302→          <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+   303→          <div className="flex flex-col gap-2">
+   304→            <Skeleton className="h-3 w-24" />
+   305→            <Skeleton className="h-7 w-16" />
+   306→            <Skeleton className="h-3 w-14" />
+   307→          </div>
+   308→        </CardContent>
+   309→      </Card>
+   310→    )
+   311→  }
+   312→
+   313→  const value = stats[config.key] as number
+   314→  const change = stats[config.changeKey] as number
+   315→  const displayValue = config.format ? config.format(value) : value.toLocaleString('en-IN')
+   316→
+   317→  return (
+   318→    <motion.div
+   319→      initial={{ opacity: 0, y: 16 }}
+   320→      animate={{ opacity: 1, y: 0 }}
+   321→      transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
+   322→    >
+   323→      <Card
+   324→        className={`relative overflow-hidden rounded-xl border-l-2 ${config.accentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+   325→      >
+   326→        <CardContent className="relative flex items-center gap-4 p-4">
+   327→          <div
+   328→            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+   329→          >
+   330→            <Icon className={`h-6 w-6 ${config.iconColor}`} />
+   331→          </div>
+   332→          <div className="min-w-0 flex-1">
+   333→            <p className="truncate text-sm text-muted-foreground">{config.label}</p>
+   334→            <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
+   335→            <ChangeIndicator value={change} />
+   336→          </div>
+   337→          <Sparkline color={config.sparklineColor} />
+   338→        </CardContent>
+   339→      </Card>
+   340→    </motion.div>
+   341→  )
+   342→}
+   343→
+   344→function CustomTooltip({
+   345→  active,
+   346→  payload,
+   347→  label,
+   348→}: {
+   349→  active?: boolean
+   350→  payload?: Array<{ value: number; name: string; color: string }>
+   351→  label?: string
+   352→}) {
+   353→  if (!active || !payload || payload.length === 0) return null
+   354→  return (
+   355→    <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-md">
+   356→      <p className="font-medium">{label}</p>
+   357→      {payload.map((entry, idx) => (
+   358→        <p key={idx} style={{ color: entry.color }} className="text-sm">
+   359→          {entry.name}: {entry.value}
+   360→        </p>
+   361→      ))}
+   362→    </div>
+   363→  )
+   364→}
+   365→
+   366→function CandidatePipelineChart({
+   367→  data,
+   368→  isLoading,
+   369→}: {
+   370→  data: PipelineData
+   371→  isLoading: boolean
+   372→}) {
+   373→  if (isLoading) {
+   374→    return (
+   375→      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+   376→        <CardHeader className="pb-2">
+   377→          <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   378→        </CardHeader>
+   379→        <CardContent>
+   380→          <Skeleton className="h-[300px] w-full" />
+   381→        </CardContent>
+   382→      </Card>
+   383→    )
+   384→  }
+   385→
+   386→  return (
+   387→    <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+   388→      <CardHeader className="pb-2">
+   389→        <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   390→      </CardHeader>
+   391→      <CardContent>
+   392→        <div className="h-[300px] w-full">
+   393→          <ResponsiveContainer width="100%" height="100%">
+   394→            <BarChart
+   395→              data={data}
+   396→              layout="vertical"
+   397→              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+   398→            >
+   399→              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+   400→              <XAxis type="number" tick={{ fontSize: 12 }} />
+   401→              <YAxis
+   402→                type="category"
+   403→                dataKey="status"
+   404→                tick={{ fontSize: 12 }}
+   405→                width={80}
+   406→              />
+   407→              <Tooltip content={<CustomTooltip />} />
+   408→              <Bar
+   409→                dataKey="count"
+   410→                name="Candidates"
+   411→                radius={[0, 6, 6, 0]}
+   412→                barSize={28}
+   413→              >
+   414→                {data.map((entry, index) => (
+   415→                  <Cell
+   416→                    key={`cell-${index}`}
+   417→                    fill={PIPELINE_COLORS[entry.status] || '#6b7280'}
+   418→                  />
+   419→                ))}
+   420→              </Bar>
+   421→            </BarChart>
+   422→          </ResponsiveContainer>
+   423→        </div>
+   424→      </CardContent>
+   425→    </Card>
+   426→  )
+   427→}
+   428→
+   429→function JobPriorityChart({
+   430→  data,
+   431→  isLoading,
+   432→}: {
+   433→  data: PriorityData
+   434→  isLoading: boolean
+   435→}) {
+   436→  if (isLoading) {
+   437→    return (
+   438→      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+   439→        <CardHeader className="pb-2">
+   440→          <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   441→        </CardHeader>
+   442→        <CardContent>
+   443→          <Skeleton className="h-[300px] w-full" />
+   444→        </CardContent>
+   445→      </Card>
+   446→    )
+   447→  }
+   448→
+   449→  return (
+   450→    <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+   451→      <CardHeader className="pb-2">
+   452→        <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   453→      </CardHeader>
+   454→      <CardContent>
+   455→        <div className="flex flex-col items-center gap-4 lg:flex-row">
+   456→          <div className="h-[280px] w-full max-w-[280px]">
+   457→            <ResponsiveContainer width="100%" height="100%">
+   458→              <PieChart>
+   459→                <Pie
+   460→                  data={data}
+   461→                  cx="50%"
+   462→                  cy="50%"
+   463→                  innerRadius={60}
+   464→                  outerRadius={100}
+   465→                  paddingAngle={3}
+   466→                  dataKey="count"
+   467→                  nameKey="priority"
+   468→                  stroke="none"
+   469→                >
+   470→                  {data.map((entry, index) => (
+   471→                    <Cell
+   472→                      key={`cell-${index}`}
+   473→                      fill={PRIORITY_COLORS[entry.priority] || '#6b7280'}
+   474→                    />
+   475→                  ))}
+   476→                </Pie>
+   477→                <Tooltip content={<CustomTooltip />} />
+   478→              </PieChart>
+   479→            </ResponsiveContainer>
+   480→          </div>
+   481→          <div className="flex flex-wrap justify-center gap-3 lg:flex-col lg:justify-start lg:gap-2">
+   482→            {data.map((entry) => (
+   483→              <div key={entry.priority} className="flex items-center gap-2 text-sm">
+   484→                <span
+   485→                  className="h-3 w-3 shrink-0 rounded-full"
+   486→                  style={{ backgroundColor: PRIORITY_COLORS[entry.priority] || '#6b7280' }}
+   487→                />
+   488→                <span className="text-muted-foreground">{entry.priority}</span>
+   489→                <span className="font-semibold">{entry.count}</span>
+   490→              </div>
+   491→            ))}
+   492→          </div>
+   493→        </div>
+   494→      </CardContent>
+   495→    </Card>
+   496→  )
+   497→}
+   498→
+   499→function formatRelativeTime(dateStr: string): string {
+   500→  const now = new Date()
+   501→  const date = new Date(dateStr)
+   502→  const diffMs = now.getTime() - date.getTime()
+   503→  const diffMins = Math.floor(diffMs / 60000)
+   504→  const diffHours = Math.floor(diffMs / 3600000)
+   505→  const diffDays = Math.floor(diffMs / 86400000)
+   506→
+   507→  if (diffMins < 1) return 'Just now'
+   508→  if (diffMins < 60) return `${diffMins}m ago`
+   509→  if (diffHours < 24) return `${diffHours}h ago`
+   510→  if (diffDays < 7) return `${diffDays}d ago`
+   511→  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+   512→}
+   513→
+   514→function formatInterviewDate(dateStr: string): { day: string; date: string; weekday: string } {
+   515→  const date = new Date(dateStr)
+   516→  return {
+   517→    day: date.toLocaleDateString('en-IN', { month: 'short' }),
+   518→    date: date.getDate().toString(),
+   519→    weekday: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+   520→  }
+   521→}
+   522→
+   523→function RecentActivities({
+   524→  activities,
+   525→  isLoading,
+   526→}: {
+   527→  activities: RecentActivity[]
+   528→  isLoading: boolean
+   529→}) {
+   530→  if (isLoading) {
+   531→    return (
+   532→      <Card className="rounded-xl shadow-sm">
+   533→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   534→        <CardHeader className="pb-2">
+   535→          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   536→        </CardHeader>
+   537→        <CardContent>
+   538→          <div className="space-y-4">
+   539→            {Array.from({ length: 5 }).map((_, i) => (
+   540→              <div key={i} className="flex items-start gap-3">
+   541→                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+   542→                <div className="flex-1 space-y-2">
+   543→                  <Skeleton className="h-4 w-3/4" />
+   544→                  <Skeleton className="h-3 w-1/2" />
+   545→                </div>
+   546→              </div>
+   547→            ))}
+   548→          </div>
+   549→        </CardContent>
+   550→      </Card>
+   551→    )
+   552→  }
+   553→
+   554→  if (activities.length === 0) {
+   555→    return (
+   556→      <Card className="rounded-xl shadow-sm">
+   557→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   558→        <CardHeader className="pb-2">
+   559→          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   560→        </CardHeader>
+   561→        <CardContent>
+   562→          <p className="py-8 text-center text-sm text-muted-foreground">
+   563→            No recent activities to show.
+   564→          </p>
+   565→        </CardContent>
+   566→      </Card>
+   567→    )
+   568→  }
+   569→
+   570→  return (
+   571→    <Card className="rounded-xl shadow-sm">
+   572→      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   573→      <CardHeader className="pb-2">
+   574→        <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   575→      </CardHeader>
+   576→      <CardContent>
+   577→        <div className="custom-scrollbar max-h-[360px] space-y-1 overflow-y-auto pr-1">
+   578→          {activities.map((activity) => (
+   579→            <div
+   580→              key={activity.id}
+   581→              className={`flex items-start gap-3 rounded-lg border-l-2 ${
+   582→                ENTITY_TYPE_COLORS[activity.entityType] || 'border-l-gray-300'
+   583→              } bg-muted/20 px-3 py-3 transition-colors duration-200 hover:bg-muted/50`}
+   584→            >
+   585→              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+   586→                {activity.employeeName?.charAt(0)?.toUpperCase() || '?'}
+   587→              </div>
+   588→              <div className="min-w-0 flex-1">
+   589→                <p className="text-sm leading-snug">
+   590→                  <span className="font-medium">{activity.employeeName}</span>{' '}
+   591→                  <span className="text-muted-foreground">{activity.action.toLowerCase()}</span>{' '}
+   592→                  <Badge variant="secondary" className="mx-0.5 text-xs font-normal">
+   593→                    {activity.entityType}
+   594→                  </Badge>
+   595→                </p>
+   596→                {activity.details && (
+   597→                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+   598→                    {activity.details}
+   599→                  </p>
+   600→                )}
+   601→                <p className="mt-1 text-xs text-muted-foreground/70">
+   602→                  {formatRelativeTime(activity.createdAt)}
+   603→                </p>
+   604→              </div>
+   605→            </div>
+   606→          ))}
+   607→        </div>
+   608→      </CardContent>
+   609→    </Card>
+   610→  )
+   611→}
+   612→
+   613→function UpcomingInterviewsList({
+   614→  interviews,
+   615→  isLoading,
+   616→}: {
+   617→  interviews: UpcomingInterview[]
+   618→  isLoading: boolean
+   619→}) {
+   620→  const navigate = useCRMStore((s) => s.navigate)
+   621→
+   622→  if (isLoading) {
+   623→    return (
+   624→      <Card className="rounded-xl shadow-sm">
+   625→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+   626→        <CardHeader className="pb-2">
+   627→          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   628→        </CardHeader>
+   629→        <CardContent>
+   630→          <div className="space-y-3">
+   631→            {Array.from({ length: 4 }).map((_, i) => (
+   632→              <div key={i} className="flex items-center gap-3">
+   633→                <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+   634→                <div className="flex-1 space-y-2">
+   635→                  <Skeleton className="h-4 w-2/3" />
+   636→                  <Skeleton className="h-3 w-1/3" />
+   637→                </div>
+   638→              </div>
+   639→            ))}
+   640→          </div>
+   641→        </CardContent>
+   642→      </Card>
+   643→    )
+   644→  }
+   645→
+   646→  if (interviews.length === 0) {
+   647→    return (
+   648→      <Card className="rounded-xl shadow-sm">
+   649→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+   650→        <CardHeader className="pb-2">
+   651→          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   652→        </CardHeader>
+   653→        <CardContent>
+   654→          <p className="py-8 text-center text-sm text-muted-foreground">
+   655→            No upcoming interviews scheduled.
+   656→          </p>
+   657→        </CardContent>
+   658→      </Card>
+   659→    )
+   660→  }
+   661→
+   662→  const statusVariant = (status: string) => {
+   663→    switch (status) {
+   664→      case 'Scheduled':
+   665→        return 'default' as const
+   666→      case 'Confirmed':
+   667→        return 'secondary' as const
+   668→      case 'Rescheduled':
+   669→        return 'outline' as const
+   670→      default:
+   671→        return 'secondary' as const
+   672→    }
+   673→  }
+   674→
+   675→  return (
+   676→    <Card className="rounded-xl shadow-sm">
+   677→      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400" />
+   678→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   679→        <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   680→        <button
+   681→          onClick={() => navigate('interviews')}
+   682→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   683→        >
+   684→          View all
+   685→          <ArrowRight className="h-3.5 w-3.5" />
+   686→        </button>
+   687→      </CardHeader>
+   688→      <CardContent>
+   689→        <div className="custom-scrollbar max-h-[360px] space-y-2 overflow-y-auto pr-1">
+   690→          {interviews.map((interview) => {
+   691→            const dateInfo = interview.date ? formatInterviewDate(interview.date) : null
+   692→            return (
+   693→              <div
+   694→                key={interview.id}
+   695→                className="flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+   696→              >
+   697→                <div className="relative flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-cyan-100 to-cyan-50 text-cyan-700 dark:from-cyan-950 dark:to-cyan-900/50 dark:text-cyan-400">
+   698→                  {dateInfo && (
+   699→                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-500 text-[8px] font-bold text-white animate-pulse">
+   700→                      {dateInfo.weekday.charAt(0)}
+   701→                    </span>
+   702→                  )}
+   703→                  <span className="text-[10px] font-medium uppercase leading-none">
+   704→                    {dateInfo?.day ?? ''}
+   705→                  </span>
+   706→                  <span className="text-sm font-bold leading-tight">{dateInfo?.date ?? ''}</span>
+   707→                </div>
+   708→                <div className="min-w-0 flex-1">
+   709→                  <p className="truncate text-sm font-medium">{interview.candidateName}</p>
+   710→                  <p className="truncate text-xs text-muted-foreground">{interview.jobTitle}</p>
+   711→                  <div className="mt-1 flex items-center gap-2">
+   712→                    <span className="text-xs text-muted-foreground">
+   713→                      {interview.time} · {interview.type}
+   714→                    </span>
+   715→                  </div>
+   716→                </div>
+   717→                <Badge variant={statusVariant(interview.status)} className="shrink-0 text-xs">
+   718→                  {interview.status}
+   719→                </Badge>
+   720→              </div>
+   721→            )
+   722→          })}
+   723→        </div>
+   724→      </CardContent>
+   725→    </Card>
+   726→  )
+   727→}
+   728→
+   729→// ===== Quick Action Button =====
+   730→
+   731→function QuickActionButton({
+   732→  icon: Icon,
+   733→  label,
+   734→  colorClass,
+   735→  bgClass,
+   736→  onClick,
+   737→}: {
+   738→  icon: React.ElementType
+   739→  label: string
+   740→  colorClass: string
+   741→  bgClass: string
+   742→  onClick: () => void
+   743→}) {
+   744→  return (
+   745→    <button
+   746→      onClick={onClick}
+   747→      className={`group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}
+   748→    >
+   749→      <div
+   750→        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${colorClass}`}
+   751→      >
+   752→        <Icon className="h-5 w-5" />
+   753→      </div>
+   754→      <span className="text-xs font-medium text-muted-foreground transition-colors duration-200 group-hover:text-foreground">
+   755→        {label}
+   756→      </span>
+   757→    </button>
+   758→  )
+   759→}
+   760→
+   761→// ===== Main Dashboard Page =====
+   762→
+   763→export function DashboardPage() {
+   764→  const [data, setData] = useState<DashboardData | null>(null)
+   765→  const [isLoading, setIsLoading] = useState(true)
+   766→  const [error, setError] = useState<string | null>(null)
+   767→  const navigate = useCRMStore((s) => s.navigate)
+   768→
+   769→  const formattedDate = useMemo(() => {
+   770→    return new Date().toLocaleDateString('en-US', {
+   771→      weekday: 'long',
+   772→      year: 'numeric',
+   773→      month: 'long',
+   774→      day: 'numeric',
+   775→    })
+   776→  }, [])
+   777→
+   778→  useEffect(() => {
+   779→    async function fetchDashboardData() {
+   780→      try {
+   781→        setIsLoading(true)
+   782→        setError(null)
+   783→        const res = await fetch('/api/dashboard')
+   784→        if (!res.ok) {
+   785→          throw new Error(`Failed to fetch dashboard data: ${res.status}`)
+   786→        }
+   787→        const json = await res.json()
+   788→        setData(json)
+   789→      } catch (err) {
+   790→        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+   791→      } finally {
+   792→        setIsLoading(false)
+   793→      }
+   794→    }
+   795→    fetchDashboardData()
+   796→  }, [])
+   797→
+   798→  if (error) {
+   799→    return (
+   800→      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+   801→        <p className="text-lg font-medium text-destructive">Failed to load dashboard</p>
+   802→        <p className="text-sm text-muted-foreground">{error}</p>
+   803→      </div>
+   804→    )
+   805→  }
+   806→
+   807→  // Build pipeline data array ensuring all statuses are present
+   808→  const pipelineData: PipelineData =
+   809→    data?.pipeline ??
+   810→    ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'].map((status) => ({
+   811→      status,
+   812→      count: 0,
+   813→    }))
+   814→
+   815→  // Build priority data array ensuring all priorities are present
+   816→  const priorityData: PriorityData =
+   817→    data?.priorityDistribution ??
+   818→    ['Low', 'Medium', 'High', 'Urgent'].map((priority) => ({
+   819→      priority,
+   820→      count: 0,
+   821→    }))
+   822→
+   823→  return (
+   824→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+   825→      {/* Welcome Banner */}
+   826→      <motion.div
+   827→        initial={{ opacity: 0, y: -10 }}
+   828→        animate={{ opacity: 1, y: 0 }}
+   829→        transition={{ duration: 0.5, ease: 'easeOut' }}
+   830→      >
+   831→        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-cyan-950/40">
+   832→          <div className="relative z-10">
+   833→            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+   834→              Welcome back, Admin
+   835→            </h1>
+   836→            <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
+   837→          </div>
+   838→          {/* Decorative chart pattern on right */}
+   839→          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.12] dark:opacity-[0.08]">
+   840→            <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+   841→              <rect x="10" y="30" width="14" height="40" rx="4" fill="currentColor" className="text-emerald-600" />
+   842→              <rect x="30" y="20" width="14" height="50" rx="4" fill="currentColor" className="text-teal-600" />
+   843→              <rect x="50" y="35" width="14" height="35" rx="4" fill="currentColor" className="text-cyan-600" />
+   844→              <rect x="70" y="10" width="14" height="60" rx="4" fill="currentColor" className="text-emerald-600" />
+   845→              <rect x="90" y="25" width="14" height="45" rx="4" fill="currentColor" className="text-teal-600" />
+   846→              <path d="M17 28 L37 18 L57 33 L77 8 L97 23" stroke="currentColor" className="text-emerald-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+   847→              <circle cx="17" cy="28" r="3" fill="currentColor" className="text-emerald-500" />
+   848→              <circle cx="37" cy="18" r="3" fill="currentColor" className="text-emerald-500" />
+   849→              <circle cx="57" cy="33" r="3" fill="currentColor" className="text-emerald-500" />
+   850→              <circle cx="77" cy="8" r="3" fill="currentColor" className="text-emerald-500" />
+   851→              <circle cx="97" cy="23" r="3" fill="currentColor" className="text-emerald-500" />
+   852→            </svg>
+   853→          </div>
+   854→        </div>
+   855→      </motion.div>
+   856→
+   857→      {/* Quick Actions Bar */}
+   858→      <motion.div
+   859→        initial={{ opacity: 0, y: 10 }}
+   860→        animate={{ opacity: 1, y: 0 }}
+   861→        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+   862→      >
+   863→        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+   864→          <QuickActionButton
+   865→            icon={Users}
+   866→            label="Add Candidate"
+   867→            colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+   868→            bgClass="from-emerald-50/60 to-transparent dark:from-emerald-950/20"
+   869→            onClick={() => navigate('candidates')}
+   870→          />
+   871→          <QuickActionButton
+   872→            icon={Briefcase}
+   873→            label="Post Job"
+   874→            colorClass="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+   875→            bgClass="from-amber-50/60 to-transparent dark:from-amber-950/20"
+   876→            onClick={() => navigate('jobs')}
+   877→          />
+   878→          <QuickActionButton
+   879→            icon={Video}
+   880→            label="Schedule Interview"
+   881→            colorClass="bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
+   882→            bgClass="from-violet-50/60 to-transparent dark:from-violet-950/20"
+   883→            onClick={() => navigate('interviews')}
+   884→          />
+   885→          <QuickActionButton
+   886→            icon={BarChart3}
+   887→            label="View Reports"
+   888→            colorClass="bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400"
+   889→            bgClass="from-rose-50/60 to-transparent dark:from-rose-950/20"
+   890→            onClick={() => navigate('dashboard')}
+   891→          />
+   892→        </div>
+   893→      </motion.div>
+   894→
+   895→      {/* Stat Cards Grid */}
+   896→      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+   897→        {STAT_CARDS.map((config, index) => (
+   898→          <StatCard
+   899→            key={config.key}
+   900→            config={config}
+   901→            stats={data?.stats ?? null}
+   902→            isLoading={isLoading}
+   903→            index={index}
+   904→          />
+   905→        ))}
+   906→      </div>
+   907→
+   908→      {/* Charts Section */}
+   909→      <section>
+   910→        <div className="mb-4 flex items-center gap-3">
+   911→          <Activity className="h-5 w-5 text-muted-foreground" />
+   912→          <h2 className="text-lg font-semibold tracking-tight">Analytics Overview</h2>
+   913→          <div className="h-px flex-1 bg-border" />
+   914→        </div>
+   915→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+   916→          <CandidatePipelineChart data={pipelineData} isLoading={isLoading} />
+   917→          <JobPriorityChart data={priorityData} isLoading={isLoading} />
+   918→        </div>
+   919→      </section>
+   920→
+   921→      {/* Bottom Section: Recent Activities + Upcoming Interviews */}
+   922→      <section>
+   923→        <div className="mb-4 flex items-center gap-3">
+   924→          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+   925→          <h2 className="text-lg font-semibold tracking-tight">Activity & Schedule</h2>
+   926→          <div className="h-px flex-1 bg-border" />
+   927→        </div>
+   928→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+   929→          <RecentActivities activities={data?.recentActivities ?? []} isLoading={isLoading} />
+   930→          <UpcomingInterviewsList interviews={data?.upcomingInterviews ?? []} isLoading={isLoading} />
+   931→        </div>
+   932→      </section>
+   933→    </div>
+   934→  )
+   935→}

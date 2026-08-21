@@ -13,6 +13,7 @@ export type CRMView =
   | 'interviews'
   | 'placements'
   | 'employees'
+  | 'analytics'
   | 'settings'
 
 export type CandidateFilter = {

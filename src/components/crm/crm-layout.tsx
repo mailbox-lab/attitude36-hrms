@@ -19,6 +19,7 @@ import {
   Video,
   Award,
   UserCog,
+  BarChart3,
   Settings,
   Menu,
   ChevronLeft,
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/tooltip'
 import { CommandPalette } from '@/components/crm/command-palette'
 import { NotificationBell } from '@/components/crm/notification-bell'
+import { ThemeToggle } from '@/components/crm/theme-toggle'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
@@ -43,6 +45,8 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; ba
   { icon: Video, label: 'Interviews', view: 'interviews' },
   { icon: Award, label: 'Placements', view: 'placements' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
+  { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-blue-500' },
+  { icon: Settings, label: 'Settings', view: 'settings' },
 ]
 
 export function CRMLayout({ children }: { children: React.ReactNode }) {
@@ -180,6 +184,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
             </h2>
           </div>
           <NotificationBell />
+          <ThemeToggle />
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">

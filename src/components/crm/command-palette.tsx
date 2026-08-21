@@ -24,6 +24,8 @@ import {
   Award,
   UserCog,
   UserPlus,
+  BarChart3,
+  Settings,
   Plus,
   Search,
 } from 'lucide-react'
@@ -54,6 +56,8 @@ const navItems: NavEntry[] = [
   { icon: Video, label: 'Interviews', view: 'interviews', shortcut: 'G then I' },
   { icon: Award, label: 'Placements', view: 'placements', shortcut: 'G then P' },
   { icon: UserCog, label: 'Employees', view: 'employees', shortcut: 'G then E' },
+  { icon: BarChart3, label: 'Analytics', view: 'analytics', shortcut: 'G then R' },
+  { icon: Settings, label: 'Settings', view: 'settings', shortcut: 'G then S' },
 ]
 
 const quickActions: QuickAction[] = [

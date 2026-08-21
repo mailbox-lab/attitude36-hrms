@@ -18,6 +18,8 @@ const LeavePage = lazy(() => import('@/components/crm/leave/leave-page').then(m 
 const InterviewsPage = lazy(() => import('@/components/crm/interviews-page').then(m => ({ default: m.InterviewsPage })))
 const PlacementsPage = lazy(() => import('@/components/crm/placements-page').then(m => ({ default: m.PlacementsPage })))
 const EmployeesPage = lazy(() => import('@/components/crm/employees-page').then(m => ({ default: m.EmployeesPage })))
+const AnalyticsPage = lazy(() => import('@/components/crm/analytics-page').then(m => ({ default: m.AnalyticsPage })))
+const SettingsPage = lazy(() => import('@/components/crm/settings-page').then(m => ({ default: m.SettingsPage })))
 
 function PageLoader() {
   return (
@@ -82,6 +84,10 @@ export default function CRMPage() {
         return <PlacementsPage />
       case 'employees':
         return <EmployeesPage />
+      case 'analytics':
+        return <AnalyticsPage />
+      case 'settings':
+        return <SettingsPage />
       default:
         return <DashboardPage />
     }
