@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== EMPLOYEES =====
+model Employee {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  phone      String?
+  role       String   @default("Recruiter")
+  department String?
+  avatar     String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  attendance    Attendance[]
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+  placements    Placement[]  @relation("PlacementRecruiter")
+  activities    ActivityLog[]
+  assignedJobs  JobOpening[]  @relation("JobRecruiter")
+}
+
+// ===== CLIENTS (Hiring Companies) =====
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  industry     String?
+  website      String?
+  address      String?
+  city         String?
+  state        String?
+  country      String   @default("India")
+  description  String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  status       String   @default("Active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  jobs       JobOpening[]
+  placements Placement[]   @relation("ClientPlacement")
+}
+
+// ===== JOB OPENINGS =====
+model JobOpening {
+  id            String    @id @default(cuid())
+  title         String
+  clientId      String
+  client        Client     @relation(fields: [clientId], references: [id])
+  recruiterId   String?
+  recruiter     Employee?  @relation("JobRecruiter", fields: [recruiterId], references: [id])
+  department    String?
+  location      String?
+  employmentType String    @default("Full-Time")
+  salaryMin     Float?
+  salaryMax     Float?
+  currency      String    @default("INR")
+  description   String?
+  requirements  String?
+  status        String    @default("Open")
+  priority      String    @default("Medium")
+  openings      Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  candidates   Candidate[]
+  interviews   Interview[]  @relation("JobInterview")
+  placements   Placement[]  @relation("JobPlacement")
+}
+
+// ===== CANDIDATES =====
+model Candidate {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  title         String?
+  location      String?
+  experience    Float?
+  currentCompany String?
+  currentCTC    Float?
+  expectedCTC   Float?
+  currency      String   @default("INR")
+  noticePeriod  Int?
+  source        String?
+  resumeUrl     String?
+  skills        String
+  status        String   @default("New")
+  jobId         String?
+  job           JobOpening? @relation(fields: [jobId], references: [id])
+  rating        Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  interviews  Interview[]
+  placements  Placement[] @relation("CandidatePlacement")
+}
+
+// ===== INTERVIEWS =====
+model Interview {
+  id           String    @id @default(cuid())
+  candidateId  String
+  candidate    Candidate  @relation(fields: [candidateId], references: [id])
+  jobId        String?
+  job          JobOpening? @relation("JobInterview", fields: [jobId], references: [id])
+  type         String    @default("Technical")
+  interviewer  String?
+  date         DateTime
+  duration     Int       @default(60)
+  location     String?
+  meetingLink  String?
+  status       String    @default("Scheduled")
+  feedback     String?
+  rating       Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ===== PLACEMENTS =====
+model Placement {
+  id           String    @id @default(cuid())
+  candidateId  String
+  candidate    Candidate  @relation("CandidatePlacement", fields: [candidateId], references: [id])
+  jobId        String?
+  job          JobOpening? @relation("JobPlacement", fields: [jobId], references: [id])
+  clientId     String?
+  client       Client?    @relation("ClientPlacement", fields: [clientId], references: [id])
+  recruiterId  String?
+  recruiter    Employee?  @relation("PlacementRecruiter", fields: [recruiterId], references: [id])
+  offeredCTC   Float?
+  joinedDate   DateTime?
+  status       String    @default("Offered")
+  commission   Float?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ===== ATTENDANCE =====
+model Attendance {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  date       DateTime @default(now())
+  clockIn    DateTime?
+  clockOut   DateTime?
+  status     String   @default("Present")
+  totalHours Float?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, date])
+}
+
+// ===== LEAVE BALANCE =====
+model LeaveBalance {
+  id         String  @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  year       Int
+  type       String
+  total      Float
+  used       Float   @default(0)
+  remaining  Float
+
+  @@unique([employeeId, year, type])
+}
+
+// ===== LEAVE REQUESTS =====
+model LeaveRequest {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  type        String
+  startDate   DateTime
+  endDate     DateTime
+  totalDays   Float
+  reason      String?
+  status      String   @default("Pending")
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== ACTIVITY LOG =====
+model ActivityLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String?
+  action     String
+  details    String?
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  createdAt  DateTime @default(now())
+}
