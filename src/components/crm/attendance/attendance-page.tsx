@@ -322,7 +322,7 @@ function AttendanceTable({
             {records.map((record, index) => (
               <TableRow
                 key={record.id}
-                className={`border-l-4 transition-colors hover:bg-muted/50 ${STATUS_BORDER_COLORS[record.status] || 'border-l-gray-300'} ${index % 2 === 1 ? 'bg-muted/30' : ''}`}
+                className={`table-row-hover border-l-4 ${STATUS_BORDER_COLORS[record.status] || 'border-l-gray-300'} ${index % 2 === 1 ? 'bg-muted/30' : ''}`}
               >
                 <TableCell>
                   <div className="flex items-center gap-2">

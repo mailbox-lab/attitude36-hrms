@@ -395,7 +395,7 @@ function StatCard({
       transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
     >
       <Card
-        className={`relative overflow-hidden rounded-xl border-l-2 border-b-0 ${config.accentColor} ${config.hoverAccentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+        className={`stat-card-hover relative overflow-hidden rounded-xl border-l-2 border-b-0 ${config.accentColor} ${config.hoverAccentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
       >
         <CardContent className="relative flex flex-col gap-1 p-4">
           <div className="flex items-center gap-4">
@@ -458,7 +458,7 @@ function CandidatePipelineChart({
 
   if (isLoading) {
     return (
-      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+      <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-emerald-500" />
@@ -474,7 +474,7 @@ function CandidatePipelineChart({
 
   if (data.every((d) => d.count === 0)) {
     return (
-      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+      <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-emerald-500" />
@@ -506,7 +506,7 @@ function CandidatePipelineChart({
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-    <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+    <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-emerald-500" />
@@ -569,7 +569,7 @@ function JobPriorityChart({
 
   if (isLoading) {
     return (
-      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+      <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-amber-500" />
@@ -585,7 +585,7 @@ function JobPriorityChart({
 
   if (data.every((d) => d.count === 0)) {
     return (
-      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+      <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-amber-500" />
@@ -617,7 +617,7 @@ function JobPriorityChart({
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
     >
-    <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+    <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-amber-500" />
@@ -776,7 +776,7 @@ function RecentActivities({
                   <p className="text-sm leading-snug">
                     <span className="font-medium">{activity.employeeName}</span>{' '}
                     <span className="text-muted-foreground">{activity.action.toLowerCase()}</span>{' '}
-                    <Badge variant="secondary" className="mx-0.5 text-xs font-normal">
+                    <Badge variant="secondary" className="badge-transition mx-0.5 text-xs font-normal">
                       {activity.entityType}
                     </Badge>
                   </p>
@@ -884,7 +884,7 @@ function UpcomingInterviewsList({
             return (
               <div
                 key={interview.id}
-                className="flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+                className={`flex items-center gap-3 rounded-lg border-l-[3px] border p-3 transition-all duration-200 hover:bg-muted/30 ${interview.type === 'Technical' ? 'border-l-cyan-400' : interview.type === 'HR' ? 'border-l-violet-400' : interview.type === 'Screening' ? 'border-l-teal-400' : interview.type === 'Final' ? 'border-l-rose-400' : 'border-l-cyan-400'}`}
               >
                 <div className="relative flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-cyan-100 to-cyan-50 text-cyan-700 dark:from-cyan-950 dark:to-cyan-900/50 dark:text-cyan-400">
                   {dateInfo && (
@@ -901,17 +901,20 @@ function UpcomingInterviewsList({
                   <p className="truncate text-sm font-medium">{interview.candidateName}</p>
                   <p className="truncate text-xs text-muted-foreground">{interview.jobTitle}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className={`text-[10px] font-normal ${typeColorClass}`}>
+                    <Badge variant="secondary" className={`badge-transition text-[10px] font-normal ${typeColorClass}`}>
                       {interview.type}
                     </Badge>
                     {timeIndicator && (
-                      <span className={`text-[11px] font-medium ${timeIndicator.colorClass}`}>
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${timeIndicator.colorClass}`}>
+                        {interview.date && new Date(interview.date).toDateString() === new Date().toDateString() && (
+                          <span className="animate-dot-pulse inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                        )}
                         {timeIndicator.text}
                       </span>
                     )}
                   </div>
                 </div>
-                <Badge variant={statusVariant(interview.status)} className="shrink-0 text-xs">
+                <Badge variant={statusVariant(interview.status)} className="badge-transition shrink-0 text-xs">
                   {interview.status}
                 </Badge>
               </div>
@@ -943,10 +946,10 @@ function QuickActionButton({
   return (
     <button
       onClick={onClick}
-      className={`group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-border/50`}
+      className={`card-glass group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-border/50`}
     >
       <div
-        className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-200 group-hover:scale-110 group-hover:shadow-md ${colorClass}`}
+        className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(16,185,129,0.2)] ${colorClass}`}
       >
         <Icon className="h-5 w-5" />
       </div>
@@ -1047,13 +1050,13 @@ export function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <div className="relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-cyan-950/40">
+        <div className="card-glass relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 backdrop-blur-xl border border-white/20 dark:border-white/10 p-5 shadow-sm">
           {/* Floating decorative circles */}
-          <div className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-400/20 animate-bounce [animation-delay:0s] [animation-duration:3s]" />
-          <div className="pointer-events-none absolute right-1/4 top-2 h-16 w-16 rounded-full bg-teal-400/15 animate-bounce [animation-delay:1s] [animation-duration:4s]" />
-          <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/20 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
+          <div className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-400/10 animate-bounce [animation-delay:0s] [animation-duration:3s]" />
+          <div className="pointer-events-none absolute right-1/4 top-2 h-16 w-16 rounded-full bg-teal-400/8 animate-bounce [animation-delay:1s] [animation-duration:4s]" />
+          <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/10 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
           <div className="relative z-10">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl bg-clip-text bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.12)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.08)_50%,transparent_75%)]">
+            <h1 className="gradient-text text-2xl font-bold tracking-tight md:text-3xl bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.15)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.12)_50%,transparent_75%)]">
               {getGreeting()}, Admin
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>

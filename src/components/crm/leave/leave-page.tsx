@@ -296,7 +296,7 @@ function LeaveTable({
           </TableHeader>
           <TableBody>
             {requests.map((req, index) => (
-              <TableRow key={req.id} className={`border-l-4 transition-colors hover:bg-muted/50 ${STATUS_BORDER_COLORS[req.status] || 'border-l-gray-300'} ${index % 2 === 1 ? 'bg-muted/30' : ''}`}>
+              <TableRow key={req.id} className={`table-row-hover border-l-4 ${STATUS_BORDER_COLORS[req.status] || 'border-l-gray-300'} ${index % 2 === 1 ? 'bg-muted/30' : ''}`}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">

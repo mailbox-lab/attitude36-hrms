@@ -26,6 +26,7 @@ import {
   Menu,
   ChevronLeft,
   HeadphonesIcon,
+  Bell,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -49,6 +50,7 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; ba
   { icon: Video, label: 'Interviews', view: 'interviews' },
   { icon: Award, label: 'Placements', view: 'placements' },
   { icon: Activity, label: 'Activity', view: 'activity-feed', section: 'TRACKING' },
+  { icon: Bell, label: 'Notifications', view: 'notifications', section: 'NOTIFICATIONS' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
   { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-violet-500' },
   { icon: Settings, label: 'Settings', view: 'settings' },
@@ -235,7 +237,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <footer className="bg-background px-4 py-2">
-          <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <span>© 2025 RecruitPro</span>
@@ -251,10 +253,10 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v1.4.0
+                v1.7.0
               </Badge>
             </div>
-            <span className="hidden sm:inline">Made with ♥ in India</span>
+            <span className="hidden sm:inline">Made with <span className="animate-dot-pulse inline-block">♥</span> in India</span>
           </div>
         </footer>
       </main>

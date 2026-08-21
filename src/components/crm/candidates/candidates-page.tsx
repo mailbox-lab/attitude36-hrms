@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCRMStore } from '@/stores/crm-store'
 import { CandidateDetail } from './candidate-detail'
 import { AddCandidateDialog } from './add-candidate-dialog'
 import { BulkActionsBar } from './bulk-actions-bar'
 import { CandidateComparison } from './candidate-comparison'
+import { CsvImportDialog } from './csv-import-dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -48,6 +50,9 @@ import {
   MapPin,
   Download,
   MessageSquare,
+  Upload,
+  CalendarDays,
+  X,
 } from 'lucide-react'
 import {
   Popover,
@@ -349,7 +354,28 @@ export function CandidatesPage() {
   const setCandidateFilter = useCRMStore((s) => s.setCandidateFilter)
   const queryClient = useQueryClient()
 
+  // Date range helpers
+  const todayStr = new Date().toISOString().split('T')[0]
+  const getTodayRange = useCallback(() => ({ fromDate: todayStr, toDate: todayStr }), [todayStr])
+  const getThisWeekRange = useCallback(() => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return { fromDate: monday.toISOString().split('T')[0], toDate: sunday.toISOString().split('T')[0] }
+  }, [])
+  const getThisMonthRange = useCallback(() => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return { fromDate: firstDay.toISOString().split('T')[0], toDate: lastDay.toISOString().split('T')[0] }
+  }, [])
+  const hasDateFilter = !!(candidateFilter.fromDate && candidateFilter.toDate)
+
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editCandidate, setEditCandidate] = useState<Candidate | null>(null)
   const [activeTab, setActiveTab] = useState('list')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -391,6 +417,8 @@ export function CandidatesPage() {
         params.set('status', candidateFilter.status)
       if (candidateFilter.source && candidateFilter.source !== 'All')
         params.set('source', candidateFilter.source)
+      if (candidateFilter.fromDate) params.set('fromDate', candidateFilter.fromDate)
+      if (candidateFilter.toDate) params.set('toDate', candidateFilter.toDate)
       const res = await fetch(`/api/candidates?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch candidates')
       return res.json()
@@ -511,6 +539,15 @@ export function CandidatesPage() {
           <Button
             variant="outline"
             size="sm"
+            className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             className="gap-1.5"
             onClick={() => {
               const csvData = candidates.map((c) => ({
@@ -606,6 +643,75 @@ export function CandidatesPage() {
         </Select>
       </div>
 
+      {/* Date Range Filter */}
+      <div className="rounded-lg bg-muted/50 p-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Range</span>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={candidateFilter.fromDate || ''}
+                placeholder="From"
+                onChange={(e) => {
+                  setCandidateFilter({ fromDate: e.target.value, toDate: candidateFilter.toDate })
+                }}
+              />
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={candidateFilter.toDate || ''}
+                placeholder="To"
+                onChange={(e) => {
+                  setCandidateFilter({ fromDate: candidateFilter.fromDate, toDate: e.target.value })
+                }}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={candidateFilter.fromDate === todayStr && candidateFilter.toDate === todayStr ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setCandidateFilter(getTodayRange())}
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setCandidateFilter(getThisWeekRange())}
+              >
+                This Week
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setCandidateFilter(getThisMonthRange())}
+              >
+                This Month
+              </Button>
+              {hasDateFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive btn-press"
+                  onClick={() => setCandidateFilter({ fromDate: '', toDate: '' })}
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Bulk Actions Bar */}
       <BulkActionsBar
         selectedIds={selectedIdsArray}
@@ -699,7 +805,7 @@ export function CandidatesPage() {
                       return (
                         <TableRow
                           key={candidate.id}
-                          className={`cursor-pointer border-l-4 transition-colors hover:bg-muted/50 ${
+                          className={`table-row-hover cursor-pointer border-l-4 ${
                             STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-400'
                           } ${index % 2 === 1 ? 'bg-muted/30' : ''} ${selectedIds.has(candidate.id) ? 'bg-primary/5' : ''}`}
                           onClick={() => handleViewCandidate(candidate.id)}
@@ -879,6 +985,9 @@ export function CandidatesPage() {
         onOpenChange={handleCloseDialog}
         editCandidate={editCandidate}
       />
+
+      {/* CSV Import Dialog */}
+      <CsvImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Candidate Comparison Overlay */}
       {compareIds && (

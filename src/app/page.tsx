@@ -20,6 +20,7 @@ const PlacementsPage = lazy(() => import('@/components/crm/placements-page').the
 const EmployeesPage = lazy(() => import('@/components/crm/employees-page').then(m => ({ default: m.EmployeesPage })))
 const EmployeeDetail = lazy(() => import('@/components/crm/employee-detail').then(m => ({ default: m.EmployeeDetail })))
 const ActivityFeedPage = lazy(() => import('@/components/crm/activity-feed-page').then(m => ({ default: m.ActivityFeedPage })))
+const NotificationCenter = lazy(() => import('@/components/crm/notification-center').then(m => ({ default: m.NotificationCenter })))
 const AnalyticsPage = lazy(() => import('@/components/crm/analytics-page').then(m => ({ default: m.AnalyticsPage })))
 const SettingsPage = lazy(() => import('@/components/crm/settings-page').then(m => ({ default: m.SettingsPage })))
 
@@ -90,6 +91,8 @@ export default function CRMPage() {
         return selectedId ? <EmployeeDetail employeeId={selectedId} /> : <EmployeesPage />
       case 'activity-feed':
         return <ActivityFeedPage />
+      case 'notifications':
+        return <NotificationCenter />
       case 'analytics':
         return <AnalyticsPage />
       case 'settings':

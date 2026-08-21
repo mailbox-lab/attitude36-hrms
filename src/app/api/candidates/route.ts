@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const source = searchParams.get('source');
     const jobId = searchParams.get('jobId');
+    const fromDate = searchParams.get('fromDate') || '';
+    const toDate = searchParams.get('toDate') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -33,6 +35,15 @@ export async function GET(request: NextRequest) {
 
     if (jobId) {
       where.jobId = jobId;
+    }
+
+    if (fromDate) {
+      const existing = (where.createdAt as Record<string, unknown>) || {};
+      where.createdAt = { ...existing, gte: new Date(fromDate) };
+    }
+    if (toDate) {
+      const existing = (where.createdAt as Record<string, unknown>) || {};
+      where.createdAt = { ...existing, lte: new Date(toDate + 'T23:59:59') };
     }
 
     const [candidates, total] = await Promise.all([

@@ -278,8 +278,7 @@ function ActivityCard({ item, index }: { item: ActivityItem; index: number }) {
       {/* Content card */}
       <motion.div
         className={cn(
-          'flex-1 rounded-xl border bg-card p-4 mb-4 transition-all duration-200',
-          'hover:shadow-md hover:border-border/80',
+          'card-glass flex-1 rounded-xl border bg-card p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
           config.borderClass,
         )}
         whileHover={{ y: -1, transition: { duration: 0.2 } }}
@@ -363,7 +362,7 @@ function StatsCards({ activities, total }: { activities: ActivityItem[]; total: 
             initial="hidden"
             animate="visible"
           >
-            <Card className="relative overflow-hidden border-0 shadow-sm">
+            <Card className="stat-card-hover relative overflow-hidden border-0 shadow-sm">
               <div className={cn('absolute inset-0 bg-gradient-to-br opacity-50', stat.bgGradient)} />
               <CardContent className="relative p-4 flex items-center gap-3">
                 <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm', stat.gradient)}>
@@ -575,7 +574,7 @@ export function ActivityFeedPage() {
       {/* Activity Timeline */}
       <div className="relative">
         {/* Gradient timeline line (desktop) */}
-        <div className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-emerald-500/30 via-teal-500/20 to-transparent hidden sm:block" />
+        <div className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-emerald-500 via-teal-500 to-cyan-500 hidden sm:block" />
 
         {isLoading ? (
           <div className="space-y-4 pl-0 sm:pl-14">

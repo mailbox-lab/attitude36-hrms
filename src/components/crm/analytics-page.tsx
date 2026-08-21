@@ -158,7 +158,7 @@ function StatCard({
       transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
     >
       <Card
-        className={`relative overflow-hidden rounded-xl border-l-2 ${accentColor} bg-gradient-to-r from-green-50/80 dark:from-green-950/50 to-transparent shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+        className={`stat-card-hover relative overflow-hidden rounded-xl border-l-2 ${accentColor} bg-gradient-to-r from-green-50/80 dark:from-green-950/50 to-transparent shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
       >
         <CardContent className="flex items-center gap-4 p-4">
           <div
@@ -362,7 +362,7 @@ export function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
           >
-            <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+            <Card className="card-glass rounded-xl border-l-4 border-l-emerald-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Monthly Placements Trend</CardTitle>
               </CardHeader>
@@ -408,7 +408,7 @@ export function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
           >
-            <Card className="rounded-xl border-l-4 border-l-teal-400 shadow-sm">
+            <Card className="card-glass rounded-xl border-l-4 border-l-teal-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Candidate Sources</CardTitle>
               </CardHeader>
@@ -452,7 +452,7 @@ export function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5, ease: 'easeOut' }}
           >
-            <Card className="rounded-xl border-l-4 border-l-green-400 shadow-sm">
+            <Card className="card-glass rounded-xl border-l-4 border-l-green-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
               </CardHeader>
@@ -485,7 +485,7 @@ export function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
           >
-            <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+            <Card className="card-glass rounded-xl border-l-4 border-l-amber-400 shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Department Distribution</CardTitle>
               </CardHeader>
@@ -562,7 +562,7 @@ export function AnalyticsPage() {
             transition={{ duration: 0.5, delay: 0.7, ease: 'easeOut' }}
             className="lg:col-span-2"
           >
-            <Card className="rounded-xl shadow-sm">
+            <Card className="card-glass rounded-xl shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
               <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Top Recruiters</CardTitle>
@@ -633,7 +633,7 @@ export function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8, ease: 'easeOut' }}
           >
-            <Card className="rounded-xl shadow-sm">
+            <Card className="card-glass rounded-xl shadow-inner shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
               <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-emerald-400 to-teal-400" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Interview Completion</CardTitle>

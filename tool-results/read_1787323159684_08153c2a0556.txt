@@ -1,0 +1,808 @@
+   355→  )
+   356→}
+   357→
+   358→function StatCard({
+   359→  config,
+   360→  stats,
+   361→  isLoading,
+   362→  index,
+   363→}: {
+   364→  config: StatCardConfig
+   365→  stats: DashboardStats | null
+   366→  isLoading: boolean
+   367→  index: number
+   368→}) {
+   369→  const Icon = config.icon
+   370→  const { navigate } = useCRMStore((s) => s.navigate)
+   371→
+   372→  if (isLoading || !stats) {
+   373→    return (
+   374→      <Card className="rounded-xl shadow-sm">
+   375→        <CardContent className="flex items-center gap-4 p-4">
+   376→          <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+   377→          <div className="flex flex-col gap-2">
+   378→            <Skeleton className="h-3 w-24" />
+   379→            <Skeleton className="h-7 w-16" />
+   380→            <Skeleton className="h-3 w-14" />
+   381→          </div>
+   382→        </CardContent>
+   383→      </Card>
+   384→    )
+   385→  }
+   386→
+   387→  const value = stats[config.key] as number
+   388→  const change = stats[config.changeKey] as number
+   389→  const displayValue = config.format ? config.format(value) : value.toLocaleString('en-IN')
+   390→
+   391→  return (
+   392→    <motion.div
+   393→      initial={{ opacity: 0, y: 16 }}
+   394→      animate={{ opacity: 1, y: 0 }}
+   395→      transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
+   396→    >
+   397→      <Card
+   398→        className={`relative overflow-hidden rounded-xl border-l-2 border-b-0 ${config.accentColor} ${config.hoverAccentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+   399→      >
+   400→        <CardContent className="relative flex flex-col gap-1 p-4">
+   401→          <div className="flex items-center gap-4">
+   402→            <div
+   403→              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+   404→            >
+   405→              <Icon className={`h-6 w-6 ${config.iconColor}`} />
+   406→            </div>
+   407→            <div className="min-w-0 flex-1">
+   408→              <p className="truncate text-sm text-muted-foreground">{config.label}</p>
+   409→              <div className="flex items-center gap-2">
+   410→                <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
+   411→              </div>
+   412→              <ChangeIndicator value={change} />
+   413→            </div>
+   414→            <Sparkline color={config.sparklineColor} />
+   415→          </div>
+   416→          <button
+   417→            onClick={() => navigate(config.viewKey as CRMView)}
+   418→            className="mt-1 self-start text-xs text-primary hover:underline cursor-pointer"
+   419→          >
+   420→            View Details →
+   421→          </button>
+   422→        </CardContent>
+   423→      </Card>
+   424→    </motion.div>
+   425→  )
+   426→}
+   427→
+   428→function CustomTooltip({
+   429→  active,
+   430→  payload,
+   431→  label,
+   432→}: {
+   433→  active?: boolean
+   434→  payload?: Array<{ value: number; name: string; color: string }>
+   435→  label?: string
+   436→}) {
+   437→  if (!active || !payload || payload.length === 0) return null
+   438→  return (
+   439→    <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-md">
+   440→      <p className="font-medium">{label}</p>
+   441→      {payload.map((entry, idx) => (
+   442→        <p key={idx} style={{ color: entry.color }} className="text-sm">
+   443→          {entry.name}: {entry.value}
+   444→        </p>
+   445→      ))}
+   446→    </div>
+   447→  )
+   448→}
+   449→
+   450→function CandidatePipelineChart({
+   451→  data,
+   452→  isLoading,
+   453→}: {
+   454→  data: PipelineData
+   455→  isLoading: boolean
+   456→}) {
+   457→  const navigate = useCRMStore((s) => s.navigate)
+   458→
+   459→  if (isLoading) {
+   460→    return (
+   461→      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+   462→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   463→          <div className="flex items-center gap-2">
+   464→            <BarChart3 className="h-4 w-4 text-emerald-500" />
+   465→            <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   466→          </div>
+   467→        </CardHeader>
+   468→        <CardContent>
+   469→          <Skeleton className="h-[300px] w-full" />
+   470→        </CardContent>
+   471→      </Card>
+   472→    )
+   473→  }
+   474→
+   475→  if (data.every((d) => d.count === 0)) {
+   476→    return (
+   477→      <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+   478→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   479→          <div className="flex items-center gap-2">
+   480→            <BarChart3 className="h-4 w-4 text-emerald-500" />
+   481→            <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   482→          </div>
+   483→          <button
+   484→            onClick={() => navigate('candidates')}
+   485→            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   486→          >
+   487→            View All <ArrowRight className="h-3.5 w-3.5" />
+   488→          </button>
+   489→        </CardHeader>
+   490→        <CardContent>
+   491→          <div className="flex h-[300px] items-center justify-center">
+   492→            <div className="text-center">
+   493→              <BarChart3 className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
+   494→              <p className="text-sm text-muted-foreground">No pipeline data yet</p>
+   495→            </div>
+   496→          </div>
+   497→        </CardContent>
+   498→      </Card>
+   499→    )
+   500→  }
+   501→
+   502→  return (
+   503→    <motion.div
+   504→      initial={{ opacity: 0, y: 20 }}
+   505→      whileInView={{ opacity: 1, y: 0 }}
+   506→      viewport={{ once: true, margin: '-50px' }}
+   507→      transition={{ duration: 0.5, ease: 'easeOut' }}
+   508→    >
+   509→    <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+   510→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   511→        <div className="flex items-center gap-2">
+   512→          <BarChart3 className="h-4 w-4 text-emerald-500" />
+   513→          <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+   514→        </div>
+   515→        <button
+   516→          onClick={() => navigate('candidates')}
+   517→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   518→        >
+   519→          View All <ArrowRight className="h-3.5 w-3.5" />
+   520→        </button>
+   521→      </CardHeader>
+   522→      <CardContent>
+   523→        <div className="h-[300px] w-full">
+   524→          <ResponsiveContainer width="100%" height="100%">
+   525→            <BarChart
+   526→              data={data}
+   527→              layout="vertical"
+   528→              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+   529→            >
+   530→              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+   531→              <XAxis type="number" tick={{ fontSize: 12 }} />
+   532→              <YAxis
+   533→                type="category"
+   534→                dataKey="status"
+   535→                tick={{ fontSize: 12 }}
+   536→                width={80}
+   537→              />
+   538→              <Tooltip content={<CustomTooltip />} />
+   539→              <Bar
+   540→                dataKey="count"
+   541→                name="Candidates"
+   542→                radius={[0, 6, 6, 0]}
+   543→                barSize={28}
+   544→              >
+   545→                {data.map((entry, index) => (
+   546→                  <Cell
+   547→                    key={`cell-${index}`}
+   548→                    fill={PIPELINE_COLORS[entry.status] || '#6b7280'}
+   549→                  />
+   550→                ))}
+   551→              </Bar>
+   552→            </BarChart>
+   553→          </ResponsiveContainer>
+   554→        </div>
+   555→      </CardContent>
+   556→    </Card>
+   557→    </motion.div>
+   558→  )
+   559→}
+   560→
+   561→function JobPriorityChart({
+   562→  data,
+   563→  isLoading,
+   564→}: {
+   565→  data: PriorityData
+   566→  isLoading: boolean
+   567→}) {
+   568→  const navigate = useCRMStore((s) => s.navigate)
+   569→
+   570→  if (isLoading) {
+   571→    return (
+   572→      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+   573→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   574→          <div className="flex items-center gap-2">
+   575→            <Activity className="h-4 w-4 text-amber-500" />
+   576→            <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   577→          </div>
+   578→        </CardHeader>
+   579→        <CardContent>
+   580→          <Skeleton className="h-[300px] w-full" />
+   581→        </CardContent>
+   582→      </Card>
+   583→    )
+   584→  }
+   585→
+   586→  if (data.every((d) => d.count === 0)) {
+   587→    return (
+   588→      <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+   589→        <CardHeader className="flex flex-row items-center justify-between pb-2">
+   590→          <div className="flex items-center gap-2">
+   591→            <Activity className="h-4 w-4 text-amber-500" />
+   592→            <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   593→          </div>
+   594→          <button
+   595→            onClick={() => navigate('jobs')}
+   596→            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   597→          >
+   598→            View All <ArrowRight className="h-3.5 w-3.5" />
+   599→          </button>
+   600→        </CardHeader>
+   601→        <CardContent>
+   602→          <div className="flex h-[300px] items-center justify-center">
+   603→            <div className="text-center">
+   604→              <Activity className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
+   605→              <p className="text-sm text-muted-foreground">No priority data yet</p>
+   606→            </div>
+   607→          </div>
+   608→        </CardContent>
+   609→      </Card>
+   610→    )
+   611→  }
+   612→
+   613→  return (
+   614→    <motion.div
+   615→      initial={{ opacity: 0, y: 20 }}
+   616→      whileInView={{ opacity: 1, y: 0 }}
+   617→      viewport={{ once: true, margin: '-50px' }}
+   618→      transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+   619→    >
+   620→    <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+   621→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   622→        <div className="flex items-center gap-2">
+   623→          <Activity className="h-4 w-4 text-amber-500" />
+   624→          <CardTitle className="text-base font-semibold">Job Priority Distribution</CardTitle>
+   625→        </div>
+   626→        <button
+   627→          onClick={() => navigate('jobs')}
+   628→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   629→        >
+   630→          View All <ArrowRight className="h-3.5 w-3.5" />
+   631→        </button>
+   632→      </CardHeader>
+   633→      <CardContent>
+   634→        <div className="flex flex-col items-center gap-4 lg:flex-row">
+   635→          <div className="h-[280px] w-full max-w-[280px]">
+   636→            <ResponsiveContainer width="100%" height="100%">
+   637→              <PieChart>
+   638→                <Pie
+   639→                  data={data}
+   640→                  cx="50%"
+   641→                  cy="50%"
+   642→                  innerRadius={60}
+   643→                  outerRadius={100}
+   644→                  paddingAngle={3}
+   645→                  dataKey="count"
+   646→                  nameKey="priority"
+   647→                  stroke="none"
+   648→                >
+   649→                  {data.map((entry, index) => (
+   650→                    <Cell
+   651→                      key={`cell-${index}`}
+   652→                      fill={PRIORITY_COLORS[entry.priority] || '#6b7280'}
+   653→                    />
+   654→                  ))}
+   655→                </Pie>
+   656→                <Tooltip content={<CustomTooltip />} />
+   657→              </PieChart>
+   658→            </ResponsiveContainer>
+   659→          </div>
+   660→          <div className="flex flex-wrap justify-center gap-3 lg:flex-col lg:justify-start lg:gap-2">
+   661→            {data.map((entry) => (
+   662→              <div key={entry.priority} className="flex items-center gap-2 text-sm">
+   663→                <span
+   664→                  className="h-3 w-3 shrink-0 rounded-full"
+   665→                  style={{ backgroundColor: PRIORITY_COLORS[entry.priority] || '#6b7280' }}
+   666→                />
+   667→                <span className="text-muted-foreground">{entry.priority}</span>
+   668→                <span className="font-semibold">{entry.count}</span>
+   669→              </div>
+   670→            ))}
+   671→          </div>
+   672→        </div>
+   673→      </CardContent>
+   674→    </Card>
+   675→    </motion.div>
+   676→  )
+   677→}
+   678→
+   679→function formatRelativeTime(dateStr: string): string {
+   680→  const now = new Date()
+   681→  const date = new Date(dateStr)
+   682→  const diffMs = now.getTime() - date.getTime()
+   683→  const diffMins = Math.floor(diffMs / 60000)
+   684→  const diffHours = Math.floor(diffMs / 3600000)
+   685→  const diffDays = Math.floor(diffMs / 86400000)
+   686→
+   687→  if (diffMins < 1) return 'Just now'
+   688→  if (diffMins < 60) return `${diffMins}m ago`
+   689→  if (diffHours < 24) return `${diffHours}h ago`
+   690→  if (diffDays < 7) return `${diffDays}d ago`
+   691→  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+   692→}
+   693→
+   694→function formatInterviewDate(dateStr: string): { day: string; date: string; weekday: string } {
+   695→  const date = new Date(dateStr)
+   696→  return {
+   697→    day: date.toLocaleDateString('en-IN', { month: 'short' }),
+   698→    date: date.getDate().toString(),
+   699→    weekday: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+   700→  }
+   701→}
+   702→
+   703→function RecentActivities({
+   704→  activities,
+   705→  isLoading,
+   706→}: {
+   707→  activities: RecentActivity[]
+   708→  isLoading: boolean
+   709→}) {
+   710→  if (isLoading) {
+   711→    return (
+   712→      <Card className="rounded-xl shadow-sm">
+   713→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   714→        <CardHeader className="pb-2">
+   715→          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   716→        </CardHeader>
+   717→        <CardContent>
+   718→          <div className="space-y-4">
+   719→            {Array.from({ length: 5 }).map((_, i) => (
+   720→              <div key={i} className="flex items-start gap-3">
+   721→                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+   722→                <div className="flex-1 space-y-2">
+   723→                  <Skeleton className="h-4 w-3/4" />
+   724→                  <Skeleton className="h-3 w-1/2" />
+   725→                </div>
+   726→              </div>
+   727→            ))}
+   728→          </div>
+   729→        </CardContent>
+   730→      </Card>
+   731→    )
+   732→  }
+   733→
+   734→  if (activities.length === 0) {
+   735→    return (
+   736→      <Card className="rounded-xl shadow-sm">
+   737→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   738→        <CardHeader className="pb-2">
+   739→          <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   740→        </CardHeader>
+   741→        <CardContent>
+   742→          <div className="flex flex-col items-center gap-3 py-8">
+   743→            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-50 dark:bg-cyan-950/50">
+   744→              <Activity className="h-6 w-6 text-cyan-400" />
+   745→            </div>
+   746→            <div className="text-center">
+   747→              <p className="text-sm font-medium text-muted-foreground">No recent activities</p>
+   748→              <p className="mt-1 text-xs text-muted-foreground/70">Actions like adding candidates and scheduling interviews will appear here</p>
+   749→            </div>
+   750→          </div>
+   751→        </CardContent>
+   752→      </Card>
+   753→    )
+   754→  }
+   755→
+   756→  return (
+   757→    <Card className="rounded-xl shadow-sm">
+   758→      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-violet-400 via-cyan-400 to-emerald-400" />
+   759→      <CardHeader className="pb-2">
+   760→        <CardTitle className="text-base font-semibold">Recent Activities</CardTitle>
+   761→      </CardHeader>
+   762→      <CardContent>
+   763→        <div className="custom-scrollbar max-h-96 space-y-1 overflow-y-auto pr-1">
+   764→          {activities.map((activity) => {
+   765→            const EntityIcon = ENTITY_TYPE_ICONS[activity.entityType] || Activity
+   766→            const iconColorClass = ENTITY_ICON_COLORS[activity.entityType] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+   767→            return (
+   768→              <div
+   769→                key={activity.id}
+   770→                className="flex items-start gap-3 rounded-lg bg-muted/20 px-3 py-3 transition-colors duration-200 hover:bg-muted/50"
+   771→              >
+   772→                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconColorClass}`}>
+   773→                  <EntityIcon className="h-4 w-4" />
+   774→                </div>
+   775→                <div className="min-w-0 flex-1">
+   776→                  <p className="text-sm leading-snug">
+   777→                    <span className="font-medium">{activity.employeeName}</span>{' '}
+   778→                    <span className="text-muted-foreground">{activity.action.toLowerCase()}</span>{' '}
+   779→                    <Badge variant="secondary" className="mx-0.5 text-xs font-normal">
+   780→                      {activity.entityType}
+   781→                    </Badge>
+   782→                  </p>
+   783→                  {activity.details && (
+   784→                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+   785→                      {activity.details}
+   786→                    </p>
+   787→                  )}
+   788→                  <p className="mt-1 text-xs text-muted-foreground/70">
+   789→                    {formatRelativeTime(activity.createdAt)}
+   790→                  </p>
+   791→                </div>
+   792→              </div>
+   793→            )
+   794→          })}
+   795→        </div>
+   796→      </CardContent>
+   797→    </Card>
+   798→  )
+   799→}
+   800→
+   801→function UpcomingInterviewsList({
+   802→  interviews,
+   803→  isLoading,
+   804→}: {
+   805→  interviews: UpcomingInterview[]
+   806→  isLoading: boolean
+   807→}) {
+   808→  const navigate = useCRMStore((s) => s.navigate)
+   809→
+   810→  if (isLoading) {
+   811→    return (
+   812→      <Card className="rounded-xl shadow-sm">
+   813→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
+   814→        <CardHeader className="pb-2">
+   815→          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   816→        </CardHeader>
+   817→        <CardContent>
+   818→          <div className="space-y-3">
+   819→            {Array.from({ length: 4 }).map((_, i) => (
+   820→              <div key={i} className="flex items-center gap-3">
+   821→                <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+   822→                <div className="flex-1 space-y-2">
+   823→                  <Skeleton className="h-4 w-2/3" />
+   824→                  <Skeleton className="h-3 w-1/3" />
+   825→                </div>
+   826→              </div>
+   827→            ))}
+   828→          </div>
+   829→        </CardContent>
+   830→      </Card>
+   831→    )
+   832→  }
+   833→
+   834→  if (interviews.length === 0) {
+   835→    return (
+   836→      <Card className="rounded-xl shadow-sm">
+   837→        <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
+   838→        <CardHeader className="pb-2">
+   839→          <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   840→        </CardHeader>
+   841→        <CardContent>
+   842→          <p className="py-8 text-center text-sm text-muted-foreground">
+   843→            No upcoming interviews scheduled.
+   844→          </p>
+   845→        </CardContent>
+   846→      </Card>
+   847→    )
+   848→  }
+   849→
+   850→  const statusVariant = (status: string) => {
+   851→    switch (status) {
+   852→      case 'Scheduled':
+   853→        return 'default' as const
+   854→      case 'Confirmed':
+   855→        return 'secondary' as const
+   856→      case 'Rescheduled':
+   857→        return 'outline' as const
+   858→      default:
+   859→        return 'secondary' as const
+   860→    }
+   861→  }
+   862→
+   863→  return (
+   864→    <Card className="rounded-xl shadow-sm">
+   865→      <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-violet-400" />
+   866→      <CardHeader className="flex flex-row items-center justify-between pb-2">
+   867→        <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+   868→        <button
+   869→          onClick={() => navigate('interviews')}
+   870→          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+   871→        >
+   872→          View all
+   873→          <ArrowRight className="h-3.5 w-3.5" />
+   874→        </button>
+   875→      </CardHeader>
+   876→      <CardContent>
+   877→        <div className="custom-scrollbar max-h-96 space-y-2 overflow-y-auto pr-1">
+   878→          {interviews.map((interview) => {
+   879→            const dateInfo = interview.date ? formatInterviewDate(interview.date) : null
+   880→            const timeIndicator = interview.date && interview.time
+   881→              ? formatInterviewTimeIndicator(interview.date, interview.time)
+   882→              : null
+   883→            const typeColorClass = INTERVIEW_TYPE_COLORS[interview.type] || 'bg-muted text-muted-foreground'
+   884→            return (
+   885→              <div
+   886→                key={interview.id}
+   887→                className="flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm"
+   888→              >
+   889→                <div className="relative flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-cyan-100 to-cyan-50 text-cyan-700 dark:from-cyan-950 dark:to-cyan-900/50 dark:text-cyan-400">
+   890→                  {dateInfo && (
+   891→                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-500 text-[8px] font-bold text-white animate-pulse">
+   892→                      {dateInfo.weekday.charAt(0)}
+   893→                    </span>
+   894→                  )}
+   895→                  <span className="text-[10px] font-medium uppercase leading-none">
+   896→                    {dateInfo?.day ?? ''}
+   897→                  </span>
+   898→                  <span className="text-sm font-bold leading-tight">{dateInfo?.date ?? ''}</span>
+   899→                </div>
+   900→                <div className="min-w-0 flex-1">
+   901→                  <p className="truncate text-sm font-medium">{interview.candidateName}</p>
+   902→                  <p className="truncate text-xs text-muted-foreground">{interview.jobTitle}</p>
+   903→                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+   904→                    <Badge variant="secondary" className={`text-[10px] font-normal ${typeColorClass}`}>
+   905→                      {interview.type}
+   906→                    </Badge>
+   907→                    {timeIndicator && (
+   908→                      <span className={`text-[11px] font-medium ${timeIndicator.colorClass}`}>
+   909→                        {timeIndicator.text}
+   910→                      </span>
+   911→                    )}
+   912→                  </div>
+   913→                </div>
+   914→                <Badge variant={statusVariant(interview.status)} className="shrink-0 text-xs">
+   915→                  {interview.status}
+   916→                </Badge>
+   917→              </div>
+   918→            )
+   919→          })}
+   920→        </div>
+   921→      </CardContent>
+   922→    </Card>
+   923→  )
+   924→}
+   925→
+   926→// ===== Quick Action Button =====
+   927→
+   928→function QuickActionButton({
+   929→  icon: Icon,
+   930→  label,
+   931→  description,
+   932→  colorClass,
+   933→  bgClass,
+   934→  onClick,
+   935→}: {
+   936→  icon: React.ElementType
+   937→  label: string
+   938→  description: string
+   939→  colorClass: string
+   940→  bgClass: string
+   941→  onClick: () => void
+   942→}) {
+   943→  return (
+   944→    <button
+   945→      onClick={onClick}
+   946→      className={`group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-border/50`}
+   947→    >
+   948→      <div
+   949→        className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-200 group-hover:scale-110 group-hover:shadow-md ${colorClass}`}
+   950→      >
+   951→        <Icon className="h-5 w-5" />
+   952→      </div>
+   953→      <div className="text-center">
+   954→        <span className="block text-xs font-medium text-muted-foreground transition-colors duration-200 group-hover:text-foreground">
+   955→          {label}
+   956→        </span>
+   957→        <span className="mt-0.5 block text-[10px] text-muted-foreground/60">
+   958→          {description}
+   959→        </span>
+   960→      </div>
+   961→    </button>
+   962→  )
+   963→}
+   964→
+   965→// ===== Main Dashboard Page =====
+   966→
+   967→export function DashboardPage() {
+   968→  const [data, setData] = useState<DashboardData | null>(null)
+   969→  const [isLoading, setIsLoading] = useState(true)
+   970→  const [error, setError] = useState<string | null>(null)
+   971→  const navigate = useCRMStore((s) => s.navigate)
+   972→
+   973→  const formattedDate = useMemo(() => {
+   974→    return new Date().toLocaleDateString('en-US', {
+   975→      weekday: 'long',
+   976→      year: 'numeric',
+   977→      month: 'long',
+   978→      day: 'numeric',
+   979→    })
+   980→  }, [])
+   981→
+   982→  useEffect(() => {
+   983→    async function fetchDashboardData() {
+   984→      try {
+   985→        setIsLoading(true)
+   986→        setError(null)
+   987→        const res = await fetch('/api/dashboard')
+   988→        if (!res.ok) {
+   989→          throw new Error(`Failed to fetch dashboard data: ${res.status}`)
+   990→        }
+   991→        const json = await res.json()
+   992→        setData(json)
+   993→      } catch (err) {
+   994→        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+   995→      } finally {
+   996→        setIsLoading(false)
+   997→      }
+   998→    }
+   999→    fetchDashboardData()
+  1000→  }, [])
+  1001→
+  1002→  if (error) {
+  1003→    return (
+  1004→      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+  1005→        <p className="text-lg font-medium text-destructive">Failed to load dashboard</p>
+  1006→        <p className="text-sm text-muted-foreground">{error}</p>
+  1007→      </div>
+  1008→    )
+  1009→  }
+  1010→
+  1011→  // Build pipeline data array ensuring all statuses are present
+  1012→  const pipelineData: PipelineData =
+  1013→    data?.pipeline ??
+  1014→    ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'].map((status) => ({
+  1015→      status,
+  1016→      count: 0,
+  1017→    }))
+  1018→
+  1019→  // Build priority data array ensuring all priorities are present
+  1020→  const priorityData: PriorityData =
+  1021→    data?.priorityDistribution ??
+  1022→    ['Low', 'Medium', 'High', 'Urgent'].map((priority) => ({
+  1023→      priority,
+  1024→      count: 0,
+  1025→    }))
+  1026→
+  1027→  return (
+  1028→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+  1029→      <style dangerouslySetInnerHTML={{ __html: `
+  1030→        @keyframes gradient {
+  1031→          0% { background-position: 0% 50%; }
+  1032→          50% { background-position: 100% 50%; }
+  1033→          100% { background-position: 0% 50%; }
+  1034→        }
+  1035→        @keyframes shimmer {
+  1036→          0% { background-position: -200% center; }
+  1037→          100% { background-position: 200% center; }
+  1038→        }
+  1039→        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+  1040→        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  1041→        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  1042→        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: hsl(var(--border)); border-radius: 9999px; }
+  1043→      ` }} />
+  1044→      {/* Welcome Banner */}
+  1045→      <motion.div
+  1046→        initial={{ opacity: 0, y: -10 }}
+  1047→        animate={{ opacity: 1, y: 0 }}
+  1048→        transition={{ duration: 0.5, ease: 'easeOut' }}
+  1049→      >
+  1050→        <div className="relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-cyan-950/40">
+  1051→          {/* Floating decorative circles */}
+  1052→          <div className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-400/20 animate-bounce [animation-delay:0s] [animation-duration:3s]" />
+  1053→          <div className="pointer-events-none absolute right-1/4 top-2 h-16 w-16 rounded-full bg-teal-400/15 animate-bounce [animation-delay:1s] [animation-duration:4s]" />
+  1054→          <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/20 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
+  1055→          <div className="relative z-10">
+  1056→            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl bg-clip-text bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.12)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.08)_50%,transparent_75%)]">
+  1057→              {getGreeting()}, Admin
+  1058→            </h1>
+  1059→            <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
+  1060→          </div>
+  1061→          {/* Decorative chart pattern on right */}
+  1062→          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.12] dark:opacity-[0.08]">
+  1063→            <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  1064→              <rect x="10" y="30" width="14" height="40" rx="4" fill="currentColor" className="text-emerald-600" />
+  1065→              <rect x="30" y="20" width="14" height="50" rx="4" fill="currentColor" className="text-teal-600" />
+  1066→              <rect x="50" y="35" width="14" height="35" rx="4" fill="currentColor" className="text-cyan-600" />
+  1067→              <rect x="70" y="10" width="14" height="60" rx="4" fill="currentColor" className="text-emerald-600" />
+  1068→              <rect x="90" y="25" width="14" height="45" rx="4" fill="currentColor" className="text-teal-600" />
+  1069→              <path d="M17 28 L37 18 L57 33 L77 8 L97 23" stroke="currentColor" className="text-emerald-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  1070→              <circle cx="17" cy="28" r="3" fill="currentColor" className="text-emerald-500" />
+  1071→              <circle cx="37" cy="18" r="3" fill="currentColor" className="text-emerald-500" />
+  1072→              <circle cx="57" cy="33" r="3" fill="currentColor" className="text-emerald-500" />
+  1073→              <circle cx="77" cy="8" r="3" fill="currentColor" className="text-emerald-500" />
+  1074→              <circle cx="97" cy="23" r="3" fill="currentColor" className="text-emerald-500" />
+  1075→            </svg>
+  1076→          </div>
+  1077→        </div>
+  1078→      </motion.div>
+  1079→
+  1080→      {/* Quick Actions Bar */}
+  1081→      <motion.div
+  1082→        initial={{ opacity: 0, y: 10 }}
+  1083→        animate={{ opacity: 1, y: 0 }}
+  1084→        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+  1085→      >
+  1086→        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+  1087→          <QuickActionButton
+  1088→            icon={Users}
+  1089→            label="Add Candidate"
+  1090→            description="Add new candidate to pipeline"
+  1091→            colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+  1092→            bgClass="from-emerald-50/60 to-transparent dark:from-emerald-950/20"
+  1093→            onClick={() => navigate('candidates')}
+  1094→          />
+  1095→          <QuickActionButton
+  1096→            icon={Briefcase}
+  1097→            label="Post Job"
+  1098→            description="Create a new job opening"
+  1099→            colorClass="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+  1100→            bgClass="from-amber-50/60 to-transparent dark:from-amber-950/20"
+  1101→            onClick={() => navigate('jobs')}
+  1102→          />
+  1103→          <QuickActionButton
+  1104→            icon={Video}
+  1105→            label="Schedule Interview"
+  1106→            description="Set up an interview slot"
+  1107→            colorClass="bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
+  1108→            bgClass="from-violet-50/60 to-transparent dark:from-violet-950/20"
+  1109→            onClick={() => navigate('interviews')}
+  1110→          />
+  1111→          <QuickActionButton
+  1112→            icon={BarChart3}
+  1113→            label="View Reports"
+  1114→            description="View analytics dashboard"
+  1115→            colorClass="bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400"
+  1116→            bgClass="from-rose-50/60 to-transparent dark:from-rose-950/20"
+  1117→            onClick={() => navigate('analytics')}
+  1118→          />
+  1119→        </div>
+  1120→      </motion.div>
+  1121→
+  1122→      {/* Stat Cards Grid */}
+  1123→      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+  1124→        {STAT_CARDS.map((config, index) => (
+  1125→          <StatCard
+  1126→            key={config.key}
+  1127→            config={config}
+  1128→            stats={data?.stats ?? null}
+  1129→            isLoading={isLoading}
+  1130→            index={index}
+  1131→          />
+  1132→        ))}
+  1133→      </div>
+  1134→
+  1135→      {/* Charts Section */}
+  1136→      <section>
+  1137→        <div className="mb-4 flex items-center gap-3">
+  1138→          <Activity className="h-5 w-5 text-muted-foreground" />
+  1139→          <h2 className="text-lg font-semibold tracking-tight">Analytics Overview</h2>
+  1140→          <div className="h-px flex-1 bg-border" />
+  1141→        </div>
+  1142→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  1143→          <CandidatePipelineChart data={pipelineData} isLoading={isLoading} />
+  1144→          <JobPriorityChart data={priorityData} isLoading={isLoading} />
+  1145→        </div>
+  1146→      </section>
+  1147→
+  1148→      {/* Bottom Section: Recent Activities + Upcoming Interviews */}
+  1149→      <section>
+  1150→        <div className="mb-4 flex items-center gap-3">
+  1151→          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+  1152→          <h2 className="text-lg font-semibold tracking-tight">Activity & Schedule</h2>
+  1153→          <div className="h-px flex-1 bg-border" />
+  1154→        </div>
+  1155→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  1156→          <RecentActivities activities={data?.recentActivities ?? []} isLoading={isLoading} />
+  1157→          <UpcomingInterviewsList interviews={data?.upcomingInterviews ?? []} isLoading={isLoading} />
+  1158→        </div>
+  1159→      </section>
+  1160→    </div>
+  1161→  )
+  1162→}

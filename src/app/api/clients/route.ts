@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
     const industry = searchParams.get('industry');
+    const fromDate = searchParams.get('fromDate') || '';
+    const toDate = searchParams.get('toDate') || '';
 
     const where: Record<string, unknown> = {};
 
@@ -25,6 +27,15 @@ export async function GET(request: NextRequest) {
 
     if (industry) {
       where.industry = industry;
+    }
+
+    if (fromDate) {
+      const existing = (where.createdAt as Record<string, unknown>) || {};
+      where.createdAt = { ...existing, gte: new Date(fromDate) };
+    }
+    if (toDate) {
+      const existing = (where.createdAt as Record<string, unknown>) || {};
+      where.createdAt = { ...existing, lte: new Date(toDate + 'T23:59:59') };
     }
 
     const clients = await db.client.findMany({

@@ -1,0 +1,701 @@
+     1→'use client'
+     2→
+     3→import { useEffect, useState } from 'react'
+     4→import {
+     5→  IndianRupee,
+     6→  Clock,
+     7→  TrendingUp,
+     8→  Users,
+     9→  Download,
+    10→  Trophy,
+    11→} from 'lucide-react'
+    12→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+    13→import { Button } from '@/components/ui/button'
+    14→import { Badge } from '@/components/ui/badge'
+    15→import { Skeleton } from '@/components/ui/skeleton'
+    16→import { Progress } from '@/components/ui/progress'
+    17→import {
+    18→  Select,
+    19→  SelectContent,
+    20→  SelectItem,
+    21→  SelectTrigger,
+    22→  SelectValue,
+    23→} from '@/components/ui/select'
+    24→import {
+    25→  Table,
+    26→  TableBody,
+    27→  TableCell,
+    28→  TableHead,
+    29→  TableHeader,
+    30→  TableRow,
+    31→} from '@/components/ui/table'
+    32→import {
+    33→  AreaChart,
+    34→  Area,
+    35→  BarChart,
+    36→  Bar,
+    37→  PieChart,
+    38→  Pie,
+    39→  Cell,
+    40→  XAxis,
+    41→  YAxis,
+    42→  CartesianGrid,
+    43→  Tooltip,
+    44→  ResponsiveContainer,
+    45→  Legend,
+    46→} from 'recharts'
+    47→import { motion } from 'framer-motion'
+    48→import { exportToCSV } from '@/lib/export-csv'
+    49→
+    50→// ===== Types =====
+    51→
+    52→type AnalyticsData = {
+    53→  monthlyPlacements: { month: string; count: number }[]
+    54→  candidateSources: { source: string; count: number }[]
+    55→  departmentDistribution: { department: string; count: number }[]
+    56→  weeklyInterviews: { total: number; completed: number }
+    57→  topRecruiters: { rank: number; name: string; placements: number }[]
+    58→  avgTimeToHire: number
+    59→  revenueTrend: { month: string; revenue: number }[]
+    60→  totalRevenue: number
+    61→  activeRecruitersCount: number
+    62→}
+    63→
+    64→// ===== Color Constants =====
+    65→
+    66→const SOURCE_COLORS = [
+    67→  '#14b8a6', // teal-500
+    68→  '#10b981', // emerald-500
+    69→  '#f59e0b', // amber-500
+    70→  '#8b5cf6', // violet-500
+    71→  '#ec4899', // pink-500
+    72→  '#f97316', // orange-500
+    73→  '#06b6d4', // cyan-500
+    74→  '#6b7280', // gray-500
+    75→]
+    76→
+    77→const DEPT_COLORS = [
+    78→  '#10b981',
+    79→  '#0ea5e9',
+    80→  '#f59e0b',
+    81→  '#8b5cf6',
+    82→  '#ec4899',
+    83→  '#f97316',
+    84→  '#06b6d4',
+    85→  '#ef4444',
+    86→  '#84cc16',
+    87→  '#6366f1',
+    88→]
+    89→
+    90→// ===== Custom Tooltip =====
+    91→
+    92→function ChartTooltip({
+    93→  active,
+    94→  payload,
+    95→  label,
+    96→}: {
+    97→  active?: boolean
+    98→  payload?: Array<{ value: number; name: string; color: string }>
+    99→  label?: string
+   100→}) {
+   101→  if (!active || !payload || payload.length === 0) return null
+   102→  return (
+   103→    <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-md">
+   104→      <p className="font-medium">{label}</p>
+   105→      {payload.map((entry, idx) => (
+   106→        <p key={idx} style={{ color: entry.color }} className="text-sm">
+   107→          {entry.name}: {typeof entry.value === 'number' && entry.name?.toLowerCase().includes('revenue')
+   108→            ? `\u20b9${(entry.value / 100000).toFixed(1)}L`
+   109→            : entry.value.toLocaleString('en-IN')}
+   110→        </p>
+   111→      ))}
+   112→    </div>
+   113→  )
+   114→}
+   115→
+   116→// ===== Stat Cards =====
+   117→
+   118→function StatCard({
+   119→  icon: Icon,
+   120→  label,
+   121→  value,
+   122→  sub,
+   123→  iconBg,
+   124→  iconColor,
+   125→  accentColor,
+   126→  isLoading,
+   127→  index,
+   128→}: {
+   129→  icon: React.ElementType
+   130→  label: string
+   131→  value: string
+   132→  sub?: string
+   133→  iconBg: string
+   134→  iconColor: string
+   135→  accentColor: string
+   136→  isLoading: boolean
+   137→  index: number
+   138→}) {
+   139→  if (isLoading) {
+   140→    return (
+   141→      <Card className="rounded-xl shadow-sm">
+   142→        <CardContent className="flex items-center gap-4 p-4">
+   143→          <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+   144→          <div className="flex flex-col gap-2">
+   145→            <Skeleton className="h-3 w-28" />
+   146→            <Skeleton className="h-7 w-20" />
+   147→            <Skeleton className="h-3 w-16" />
+   148→          </div>
+   149→        </CardContent>
+   150→      </Card>
+   151→    )
+   152→  }
+   153→
+   154→  return (
+   155→    <motion.div
+   156→      initial={{ opacity: 0, y: 16 }}
+   157→      animate={{ opacity: 1, y: 0 }}
+   158→      transition={{ duration: 0.4, delay: index * 0.06, ease: 'easeOut' }}
+   159→    >
+   160→      <Card
+   161→        className={`relative overflow-hidden rounded-xl border-l-2 ${accentColor} bg-gradient-to-r from-green-50/80 dark:from-green-950/50 to-transparent shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+   162→      >
+   163→        <CardContent className="flex items-center gap-4 p-4">
+   164→          <div
+   165→            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+   166→          >
+   167→            <Icon className={`h-6 w-6 ${iconColor}`} />
+   168→          </div>
+   169→          <div className="min-w-0 flex-1">
+   170→            <p className="truncate text-sm text-muted-foreground">{label}</p>
+   171→            <p className="text-2xl font-bold tracking-tight">{value}</p>
+   172→            {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+   173→          </div>
+   174→        </CardContent>
+   175→      </Card>
+   176→    </motion.div>
+   177→  )
+   178→}
+   179→
+   180→// ===== Main Component =====
+   181→
+   182→export function AnalyticsPage() {
+   183→  const [data, setData] = useState<AnalyticsData | null>(null)
+   184→  const [isLoading, setIsLoading] = useState(true)
+   185→  const [error, setError] = useState<string | null>(null)
+   186→  const [dateRange, setDateRange] = useState('6m')
+   187→
+   188→  useEffect(() => {
+   189→    async function fetchAnalytics() {
+   190→      try {
+   191→        setIsLoading(true)
+   192→        setError(null)
+   193→        const res = await fetch('/api/analytics')
+   194→        if (!res.ok) throw new Error(`Failed: ${res.status}`)
+   195→        const json = await res.json()
+   196→        setData(json)
+   197→      } catch (err) {
+   198→        setError(err instanceof Error ? err.message : 'Unexpected error')
+   199→      } finally {
+   200→        setIsLoading(false)
+   201→      }
+   202→    }
+   203→    fetchAnalytics()
+   204→  }, [])
+   205→
+   206→  const handleExport = () => {
+   207→    if (!data) return
+   208→    const rows: Record<string, unknown>[] = []
+   209→    // Monthly placements
+   210→    data.monthlyPlacements.forEach((m) => {
+   211→      rows.push({ 'Month': m.month, 'Placements': m.count })
+   212→    })
+   213→    // Revenue trend
+   214→    data.revenueTrend.forEach((m) => {
+   215→      rows.push({ 'Month': m.month, 'Revenue (INR)': m.revenue })
+   216→    })
+   217→    // Candidate sources
+   218→    data.candidateSources.forEach((s) => {
+   219→      rows.push({ 'Source': s.source, 'Candidates': s.count })
+   220→    })
+   221→    // Department distribution
+   222→    data.departmentDistribution.forEach((d) => {
+   223→      rows.push({ 'Department': d.department, 'Job Openings': d.count })
+   224→    })
+   225→    // Top recruiters
+   226→    data.topRecruiters.forEach((r) => {
+   227→      rows.push({ 'Rank': r.rank, 'Recruiter': r.name, 'Placements': r.placements })
+   228→    })
+   229→    exportToCSV(rows, 'analytics-report')
+   230→  }
+   231→
+   232→  const interviewRate =
+   233→    data && data.weeklyInterviews.total > 0
+   234→      ? Math.round((data.weeklyInterviews.completed / data.weeklyInterviews.total) * 100)
+   235→      : 0
+   236→
+   237→  const maxRecruiterPlacements =
+   238→    data && data.topRecruiters.length > 0
+   239→      ? Math.max(...data.topRecruiters.map((r) => r.placements))
+   240→      : 1
+   241→
+   242→  if (error) {
+   243→    return (
+   244→      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+   245→        <p className="text-lg font-medium text-destructive">Failed to load analytics</p>
+   246→        <p className="text-sm text-muted-foreground">{error}</p>
+   247→      </div>
+   248→    )
+   249→  }
+   250→
+   251→  return (
+   252→    <motion.div
+   253→      initial={{ opacity: 0, y: 12 }}
+   254→      animate={{ opacity: 1, y: 0 }}
+   255→      transition={{ duration: 0.3, ease: 'easeOut' }}
+   256→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   257→    >
+   258→      {/* Header with date range and export */}
+   259→      <div className="space-y-3">
+   260→        <motion.div
+   261→          initial={{ opacity: 0, y: -10 }}
+   262→          animate={{ opacity: 1, y: 0 }}
+   263→          transition={{ duration: 0.5, ease: 'easeOut' }}
+   264→          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+   265→        >
+   266→          <div className="flex items-center gap-3">
+   267→            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+   268→              <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+   269→            </div>
+   270→            <div>
+   271→              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Analytics & Reports</h1>
+   272→              <p className="mt-1 text-sm text-muted-foreground">Comprehensive insights into your recruitment performance</p>
+   273→            </div>
+   274→          </div>
+   275→          <div className="flex items-center gap-3">
+   276→            <Select value={dateRange} onValueChange={setDateRange}>
+   277→              <SelectTrigger className="w-[180px]">
+   278→                <SelectValue />
+   279→              </SelectTrigger>
+   280→              <SelectContent>
+   281→                <SelectItem value="7d">Last 7 days</SelectItem>
+   282→                <SelectItem value="30d">Last 30 days</SelectItem>
+   283→                <SelectItem value="3m">Last 3 months</SelectItem>
+   284→                <SelectItem value="6m">Last 6 months</SelectItem>
+   285→                <SelectItem value="all">All Time</SelectItem>
+   286→              </SelectContent>
+   287→            </Select>
+   288→            <Button
+   289→              variant="outline"
+   290→              size="sm"
+   291→              onClick={handleExport}
+   292→              disabled={isLoading || !data}
+   293→              className="gap-2"
+   294→            >
+   295→              <Download className="h-4 w-4" />
+   296→              Export Report
+   297→            </Button>
+   298→          </div>
+   299→        </motion.div>
+   300→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+   301→      </div>
+   302→
+   303→      {/* Summary Cards */}
+   304→      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+   305→        <StatCard
+   306→          icon={IndianRupee}
+   307→          label="Total Revenue"
+   308→          value={data ? `\u20b9${(data.totalRevenue / 100000).toFixed(1)}L` : '--'}
+   309→          sub="All time commission"
+   310→          iconBg="bg-green-100 dark:bg-green-950"
+   311→          iconColor="text-green-600 dark:text-green-400"
+   312→          accentColor="border-l-green-500"
+   313→          isLoading={isLoading}
+   314→          index={0}
+   315→        />
+   316→        <StatCard
+   317→          icon={Clock}
+   318→          label="Avg Time to Hire"
+   319→          value={data ? `${data.avgTimeToHire} days` : '--'}
+   320→          sub="Creation to hired"
+   321→          iconBg="bg-amber-100 dark:bg-amber-950"
+   322→          iconColor="text-amber-600 dark:text-amber-400"
+   323→          accentColor="border-l-amber-500"
+   324→          isLoading={isLoading}
+   325→          index={1}
+   326→        />
+   327→        <StatCard
+   328→          icon={TrendingUp}
+   329→          label="Interview Rate"
+   330→          value={isLoading ? '--' : `${interviewRate}%`}
+   331→          sub={`This week (${data?.weeklyInterviews.completed ?? 0}/${data?.weeklyInterviews.total ?? 0})`}
+   332→          iconBg="bg-emerald-100 dark:bg-emerald-950"
+   333→          iconColor="text-emerald-600 dark:text-emerald-400"
+   334→          accentColor="border-l-emerald-500"
+   335→          isLoading={isLoading}
+   336→          index={2}
+   337→        />
+   338→        <StatCard
+   339→          icon={Users}
+   340→          label="Active Recruiters"
+   341→          value={data ? String(data.activeRecruitersCount) : '--'}
+   342→          sub="Currently active"
+   343→          iconBg="bg-violet-100 dark:bg-violet-950"
+   344→          iconColor="text-violet-600 dark:text-violet-400"
+   345→          accentColor="border-l-violet-500"
+   346→          isLoading={isLoading}
+   347→          index={3}
+   348→        />
+   349→      </div>
+   350→
+   351→      {/* Charts 2x2 Grid */}
+   352→      <section>
+   353→        <div className="mb-4 flex items-center gap-3">
+   354→          <TrendingUp className="h-5 w-5 text-muted-foreground" />
+   355→          <h2 className="text-lg font-semibold tracking-tight">Trends & Distribution</h2>
+   356→          <div className="h-px flex-1 bg-border" />
+   357→        </div>
+   358→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+   359→          {/* Monthly Placements Trend - Area Chart */}
+   360→          <motion.div
+   361→            initial={{ opacity: 0, y: 20 }}
+   362→            animate={{ opacity: 1, y: 0 }}
+   363→            transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+   364→          >
+   365→            <Card className="rounded-xl border-l-4 border-l-emerald-400 shadow-sm">
+   366→              <CardHeader className="pb-2">
+   367→                <CardTitle className="text-base font-semibold">Monthly Placements Trend</CardTitle>
+   368→              </CardHeader>
+   369→              <CardContent>
+   370→                {isLoading ? (
+   371→                  <Skeleton className="h-[300px] w-full" />
+   372→                ) : (
+   373→                  <div className="h-[300px] w-full">
+   374→                    <ResponsiveContainer width="100%" height="100%">
+   375→                      <AreaChart
+   376→                        data={data?.monthlyPlacements ?? []}
+   377→                        margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+   378→                      >
+   379→                        <defs>
+   380→                          <linearGradient id="placementGradient" x1="0" y1="0" x2="0" y2="1">
+   381→                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+   382→                            <stop offset="95%" stopColor="#14b8a6" stopOpacity={0.02} />
+   383→                          </linearGradient>
+   384→                        </defs>
+   385→                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+   386→                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+   387→                        <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+   388→                        <Tooltip content={<ChartTooltip />} />
+   389→                        <Area
+   390→                          type="monotone"
+   391→                          dataKey="count"
+   392→                          name="Placements"
+   393→                          stroke="#10b981"
+   394→                          strokeWidth={2}
+   395→                          fill="url(#placementGradient)"
+   396→                        />
+   397→                      </AreaChart>
+   398→                    </ResponsiveContainer>
+   399→                  </div>
+   400→                )}
+   401→              </CardContent>
+   402→            </Card>
+   403→          </motion.div>
+   404→
+   405→          {/* Candidate Sources - Horizontal Bar Chart */}
+   406→          <motion.div
+   407→            initial={{ opacity: 0, y: 20 }}
+   408→            animate={{ opacity: 1, y: 0 }}
+   409→            transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
+   410→          >
+   411→            <Card className="rounded-xl border-l-4 border-l-teal-400 shadow-sm">
+   412→              <CardHeader className="pb-2">
+   413→                <CardTitle className="text-base font-semibold">Candidate Sources</CardTitle>
+   414→              </CardHeader>
+   415→              <CardContent>
+   416→                {isLoading ? (
+   417→                  <Skeleton className="h-[300px] w-full" />
+   418→                ) : (
+   419→                  <div className="h-[300px] w-full">
+   420→                    <ResponsiveContainer width="100%" height="100%">
+   421→                      <BarChart
+   422→                        data={data?.candidateSources ?? []}
+   423→                        layout="vertical"
+   424→                        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+   425→                      >
+   426→                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+   427→                        <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+   428→                        <YAxis
+   429→                          type="category"
+   430→                          dataKey="source"
+   431→                          tick={{ fontSize: 12 }}
+   432→                          width={70}
+   433→                          stroke="hsl(var(--muted-foreground))"
+   434→                        />
+   435→                        <Tooltip content={<ChartTooltip />} />
+   436→                        <Bar dataKey="count" name="Candidates" radius={[0, 6, 6, 0]} barSize={24}>
+   437→                          {(data?.candidateSources ?? []).map((_, index) => (
+   438→                            <Cell key={`source-${index}`} fill={SOURCE_COLORS[index % SOURCE_COLORS.length]} />
+   439→                          ))}
+   440→                        </Bar>
+   441→                      </BarChart>
+   442→                    </ResponsiveContainer>
+   443→                  </div>
+   444→                )}
+   445→              </CardContent>
+   446→            </Card>
+   447→          </motion.div>
+   448→
+   449→          {/* Revenue Trend - Bar Chart */}
+   450→          <motion.div
+   451→            initial={{ opacity: 0, y: 20 }}
+   452→            animate={{ opacity: 1, y: 0 }}
+   453→            transition={{ duration: 0.5, delay: 0.5, ease: 'easeOut' }}
+   454→          >
+   455→            <Card className="rounded-xl border-l-4 border-l-green-400 shadow-sm">
+   456→              <CardHeader className="pb-2">
+   457→                <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
+   458→              </CardHeader>
+   459→              <CardContent>
+   460→                {isLoading ? (
+   461→                  <Skeleton className="h-[300px] w-full" />
+   462→                ) : (
+   463→                  <div className="h-[300px] w-full">
+   464→                    <ResponsiveContainer width="100%" height="100%">
+   465→                      <BarChart
+   466→                        data={data?.revenueTrend ?? []}
+   467→                        margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+   468→                      >
+   469→                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+   470→                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+   471→                        <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `\u20b9${(v / 100000).toFixed(0)}L`} />
+   472→                        <Tooltip content={<ChartTooltip />} />
+   473→                        <Bar dataKey="revenue" name="Revenue" fill="#22c55e" radius={[6, 6, 0, 0]} barSize={32} />
+   474→                      </BarChart>
+   475→                    </ResponsiveContainer>
+   476→                  </div>
+   477→                )}
+   478→              </CardContent>
+   479→            </Card>
+   480→          </motion.div>
+   481→
+   482→          {/* Department Distribution - Donut Chart */}
+   483→          <motion.div
+   484→            initial={{ opacity: 0, y: 20 }}
+   485→            animate={{ opacity: 1, y: 0 }}
+   486→            transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
+   487→          >
+   488→            <Card className="rounded-xl border-l-4 border-l-amber-400 shadow-sm">
+   489→              <CardHeader className="pb-2">
+   490→                <CardTitle className="text-base font-semibold">Department Distribution</CardTitle>
+   491→              </CardHeader>
+   492→              <CardContent>
+   493→                {isLoading ? (
+   494→                  <Skeleton className="h-[300px] w-full" />
+   495→                ) : (
+   496→                  <div className="flex flex-col items-center gap-4 lg:flex-row">
+   497→                    <div className="h-[280px] w-full max-w-[280px]">
+   498→                      <ResponsiveContainer width="100%" height="100%">
+   499→                        <PieChart>
+   500→                          <Pie
+   501→                            data={data?.departmentDistribution ?? []}
+   502→                            cx="50%"
+   503→                            cy="50%"
+   504→                            innerRadius={60}
+   505→                            outerRadius={100}
+   506→                            paddingAngle={3}
+   507→                            dataKey="count"
+   508→                            nameKey="department"
+   509→                            stroke="none"
+   510→                          >
+   511→                            {(data?.departmentDistribution ?? []).map((_, index) => (
+   512→                              <Cell key={`dept-${index}`} fill={DEPT_COLORS[index % DEPT_COLORS.length]} />
+   513→                            ))}
+   514→                          </Pie>
+   515→                          <Tooltip content={<ChartTooltip />} />
+   516→                          <Legend
+   517→                            verticalAlign="bottom"
+   518→                            height={36}
+   519→                            formatter={(value: string) => (
+   520→                              <span className="text-xs text-muted-foreground">{value}</span>
+   521→                            )}
+   522→                          />
+   523→                        </PieChart>
+   524→                      </ResponsiveContainer>
+   525→                    </div>
+   526→                    {(data?.departmentDistribution ?? []).length > 0 && (
+   527→                      <div className="flex flex-wrap justify-center gap-3 lg:flex-col lg:justify-start lg:gap-2">
+   528→                        {data!.departmentDistribution.map((entry, idx) => (
+   529→                          <div key={entry.department} className="flex items-center gap-2 text-sm">
+   530→                            <span
+   531→                              className="h-3 w-3 shrink-0 rounded-full"
+   532→                              style={{ backgroundColor: DEPT_COLORS[idx % DEPT_COLORS.length] }}
+   533→                            />
+   534→                            <span className="text-muted-foreground">{entry.department}</span>
+   535→                            <Badge variant="secondary" className="text-xs font-semibold">
+   536→                              {entry.count}
+   537→                            </Badge>
+   538→                          </div>
+   539→                        ))}
+   540→                      </div>
+   541→                    )}
+   542→                  </div>
+   543→                )}
+   544→              </CardContent>
+   545→            </Card>
+   546→          </motion.div>
+   547→        </div>
+   548→      </section>
+   549→
+   550→      {/* Bottom Section: Top Recruiters + Interview Completion */}
+   551→      <section>
+   552→        <div className="mb-4 flex items-center gap-3">
+   553→          <Trophy className="h-5 w-5 text-muted-foreground" />
+   554→          <h2 className="text-lg font-semibold tracking-tight">Performance</h2>
+   555→          <div className="h-px flex-1 bg-border" />
+   556→        </div>
+   557→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+   558→          {/* Top Recruiters Table */}
+   559→          <motion.div
+   560→            initial={{ opacity: 0, y: 20 }}
+   561→            animate={{ opacity: 1, y: 0 }}
+   562→            transition={{ duration: 0.5, delay: 0.7, ease: 'easeOut' }}
+   563→            className="lg:col-span-2"
+   564→          >
+   565→            <Card className="rounded-xl shadow-sm">
+   566→              <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400" />
+   567→              <CardHeader className="pb-2">
+   568→                <CardTitle className="text-base font-semibold">Top Recruiters</CardTitle>
+   569→              </CardHeader>
+   570→              <CardContent>
+   571→                {isLoading ? (
+   572→                  <div className="space-y-3">
+   573→                    {Array.from({ length: 5 }).map((_, i) => (
+   574→                      <Skeleton key={i} className="h-10 w-full" />
+   575→                    ))}
+   576→                  </div>
+   577→                ) : data && data.topRecruiters.length > 0 ? (
+   578→                  <Table>
+   579→                    <TableHeader>
+   580→                      <TableRow>
+   581→                        <TableHead className="w-16">Rank</TableHead>
+   582→                        <TableHead>Name</TableHead>
+   583→                        <TableHead className="w-32">Placements</TableHead>
+   584→                      </TableRow>
+   585→                    </TableHeader>
+   586→                    <TableBody>
+   587→                      {data.topRecruiters.map((recruiter) => (
+   588→                        <TableRow key={recruiter.rank}>
+   589→                          <TableCell>
+   590→                            <Badge
+   591→                              variant={recruiter.rank <= 3 ? 'default' : 'secondary'}
+   592→                              className={
+   593→                                recruiter.rank === 1
+   594→                                  ? 'bg-amber-500 text-white hover:bg-amber-500'
+   595→                                  : recruiter.rank === 2
+   596→                                    ? 'bg-gray-400 text-white hover:bg-gray-400'
+   597→                                    : recruiter.rank === 3
+   598→                                      ? 'bg-orange-700 text-white hover:bg-orange-700'
+   599→                                      : ''
+   600→                              }
+   601→                            >
+   602→                              #{recruiter.rank}
+   603→                            </Badge>
+   604→                          </TableCell>
+   605→                          <TableCell className="font-medium">{recruiter.name}</TableCell>
+   606→                          <TableCell>
+   607→                            <div className="flex items-center gap-2">
+   608→                              <Progress
+   609→                                value={(recruiter.placements / maxRecruiterPlacements) * 100}
+   610→                                className="h-2 flex-1"
+   611→                              />
+   612→                              <span className="text-sm font-semibold tabular-nums">
+   613→                                {recruiter.placements}
+   614→                              </span>
+   615→                            </div>
+   616→                          </TableCell>
+   617→                        </TableRow>
+   618→                      ))}
+   619→                    </TableBody>
+   620→                  </Table>
+   621→                ) : (
+   622→                  <p className="py-8 text-center text-sm text-muted-foreground">
+   623→                    No placement data available.
+   624→                  </p>
+   625→                )}
+   626→              </CardContent>
+   627→            </Card>
+   628→          </motion.div>
+   629→
+   630→          {/* Interview Completion Card */}
+   631→          <motion.div
+   632→            initial={{ opacity: 0, y: 20 }}
+   633→            animate={{ opacity: 1, y: 0 }}
+   634→            transition={{ duration: 0.5, delay: 0.8, ease: 'easeOut' }}
+   635→          >
+   636→            <Card className="rounded-xl shadow-sm">
+   637→              <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-emerald-400 to-teal-400" />
+   638→              <CardHeader className="pb-2">
+   639→                <CardTitle className="text-base font-semibold">Interview Completion</CardTitle>
+   640→                <p className="text-xs text-muted-foreground">This week&apos;s performance</p>
+   641→              </CardHeader>
+   642→              <CardContent>
+   643→                {isLoading ? (
+   644→                  <div className="space-y-4">
+   645→                    <Skeleton className="h-16 w-full rounded-lg" />
+   646→                    <Skeleton className="h-4 w-full" />
+   647→                    <Skeleton className="h-8 w-32" />
+   648→                  </div>
+   649→                ) : (
+   650→                  <div className="flex flex-col items-center gap-6">
+   651→                    <div className="relative flex h-32 w-32 items-center justify-center">
+   652→                      <svg className="h-32 w-32 -rotate-90" viewBox="0 0 120 120">
+   653→                        <circle
+   654→                          cx="60"
+   655→                          cy="60"
+   656→                          r="52"
+   657→                          fill="none"
+   658→                          stroke="hsl(var(--muted))"
+   659→                          strokeWidth="10"
+   660→                        />
+   661→                        <circle
+   662→                          cx="60"
+   663→                          cy="60"
+   664→                          r="52"
+   665→                          fill="none"
+   666→                          stroke="#10b981"
+   667→                          strokeWidth="10"
+   668→                          strokeDasharray={`${(interviewRate / 100) * 326.73} 326.73`}
+   669→                          strokeLinecap="round"
+   670→                          className="transition-all duration-1000 ease-out"
+   671→                        />
+   672→                      </svg>
+   673→                      <div className="absolute flex flex-col items-center">
+   674→                        <span className="text-3xl font-bold">{interviewRate}%</span>
+   675→                        <span className="text-xs text-muted-foreground">completed</span>
+   676→                      </div>
+   677→                    </div>
+   678→                    <div className="w-full space-y-2">
+   679→                      <div className="flex items-center justify-between text-sm">
+   680→                        <span className="text-muted-foreground">Completed</span>
+   681→                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+   682→                          {data?.weeklyInterviews.completed ?? 0}
+   683→                        </span>
+   684→                      </div>
+   685→                      <Progress value={interviewRate} className="h-2" />
+   686→                      <div className="flex items-center justify-between text-sm">
+   687→                        <span className="text-muted-foreground">Total Scheduled</span>
+   688→                        <span className="font-semibold">{data?.weeklyInterviews.total ?? 0}</span>
+   689→                      </div>
+   690→                    </div>
+   691→                  </div>
+   692→                )}
+   693→              </CardContent>
+   694→            </Card>
+   695→          </motion.div>
+   696→        </div>
+   697→      </section>
+   698→    </motion.div>
+   699→  )
+   700→}
+   701→

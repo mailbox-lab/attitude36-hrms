@@ -1,0 +1,908 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useState, useMemo, useCallback } from 'react'
+     4→     4→import { useQuery, useQueryClient } from '@tanstack/react-query'
+     5→     5→import { useCRMStore } from '@/stores/crm-store'
+     6→     6→import { CandidateDetail } from './candidate-detail'
+     7→     7→import { AddCandidateDialog } from './add-candidate-dialog'
+     8→     8→import { BulkActionsBar } from './bulk-actions-bar'
+     9→     9→import { CandidateComparison } from './candidate-comparison'
+    10→    10→import { CsvImportDialog } from './csv-import-dialog'
+    11→    11→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+    12→    12→import { Button } from '@/components/ui/button'
+    13→    13→import { Badge } from '@/components/ui/badge'
+    14→    14→import { Checkbox } from '@/components/ui/checkbox'
+    15→    15→import { Input } from '@/components/ui/input'
+    16→    16→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    17→    17→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    18→    18→import {
+    19→    19→  Select,
+    20→    20→  SelectContent,
+    21→    21→  SelectItem,
+    22→    22→  SelectTrigger,
+    23→    23→  SelectValue,
+    24→    24→} from '@/components/ui/select'
+    25→    25→import {
+    26→    26→  Table,
+    27→    27→  TableBody,
+    28→    28→  TableCell,
+    29→    29→  TableHead,
+    30→    30→  TableHeader,
+    31→    31→  TableRow,
+    32→    32→} from '@/components/ui/table'
+    33→    33→import {
+    34→    34→  DropdownMenu,
+    35→    35→  DropdownMenuContent,
+    36→    36→  DropdownMenuItem,
+    37→    37→  DropdownMenuTrigger,
+    38→    38→} from '@/components/ui/dropdown-menu'
+    39→    39→import {
+    40→    40→  Plus,
+    41→    41→  Search,
+    42→    42→  LayoutList,
+    43→    43→  Kanban,
+    44→    44→  MoreHorizontal,
+    45→    45→  Pencil,
+    46→    46→  Trash2,
+    47→    47→  Eye,
+    48→    48→  Users,
+    49→    49→  MapPin,
+    50→    50→  Download,
+    51→    51→  MessageSquare,
+    52→    52→  Upload,
+    53→    53→} from 'lucide-react'
+    54→    54→import {
+    55→    55→  Popover,
+    56→    56→  PopoverContent,
+    57→    57→  PopoverTrigger,
+    58→    58→} from '@/components/ui/popover'
+    59→    59→import {
+    60→    60→  Tooltip,
+    61→    61→  TooltipContent,
+    62→    62→  TooltipTrigger,
+    63→    63→} from '@/components/ui/tooltip'
+    64→    64→import { exportToCSV } from '@/lib/export-csv'
+    65→    65→import { toast } from 'sonner'
+    66→    66→import { useMutation } from '@tanstack/react-query'
+    67→    67→
+    68→    68→// ===== Types =====
+    69→    69→
+    70→    70→type Candidate = {
+    71→    71→  id: string
+    72→    72→  firstName: string
+    73→    73→  lastName: string
+    74→    74→  email: string | null
+    75→    75→  phone: string | null
+    76→    76→  title: string | null
+    77→    77→  location: string | null
+    78→    78→  experience: number | null
+    79→    79→  currentCompany: string | null
+    80→    80→  currentCTC: number | null
+    81→    81→  expectedCTC: number | null
+    82→    82→  noticePeriod: number | null
+    83→    83→  source: string | null
+    84→    84→  skills: string
+    85→    85→  status: string
+    86→    86→  jobId: string | null
+    87→    87→  rating: number
+    88→    88→  notes: string | null
+    89→    89→  createdAt: string
+    90→    90→  updatedAt: string
+    91→    91→  job: { id: string; title: string } | null
+    92→    92→}
+    93→    93→
+    94→    94→// ===== Constants =====
+    95→    95→
+    96→    96→const ALL_STATUSES = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected', 'On-Hold']
+    97→    97→
+    98→    98→const STATUS_COLORS: Record<string, string> = {
+    99→    99→  New: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   100→   100→  Screening: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+   101→   101→  Interview: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   102→   102→  Offer: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   103→   103→  Hired: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   104→   104→  Rejected: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   105→   105→  'On-Hold': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+   106→   106→}
+   107→   107→
+   108→   108→const STATUS_BORDER_COLORS: Record<string, string> = {
+   109→   109→  New: 'border-l-emerald-500',
+   110→   110→  Screening: 'border-l-cyan-500',
+   111→   111→  Interview: 'border-l-amber-500',
+   112→   112→  Offer: 'border-l-violet-500',
+   113→   113→  Hired: 'border-l-green-500',
+   114→   114→  Rejected: 'border-l-red-500',
+   115→   115→  'On-Hold': 'border-l-gray-500',
+   116→   116→}
+   117→   117→
+   118→   118→const STATUS_DOT_COLORS: Record<string, string> = {
+   119→   119→  New: 'bg-emerald-500',
+   120→   120→  Screening: 'bg-cyan-500',
+   121→   121→  Interview: 'bg-amber-500',
+   122→   122→  Offer: 'bg-violet-500',
+   123→   123→  Hired: 'bg-green-500',
+   124→   124→  Rejected: 'bg-red-500',
+   125→   125→  'On-Hold': 'bg-gray-500',
+   126→   126→}
+   127→   127→
+   128→   128→const SOURCE_OPTIONS = [
+   129→   129→  'LinkedIn',
+   130→   130→  'Naukri',
+   131→   131→  'Referral',
+   132→   132→  'Job Portal',
+   133→   133→  'Company Website',
+   134→   134→  'Social Media',
+   135→   135→  'Campus Drive',
+   136→   136→  'Headhunting',
+   137→   137→  'Other',
+   138→   138→]
+   139→   139→
+   140→   140→// ===== Helper =====
+   141→   141→
+   142→   142→function getInitials(firstName: string, lastName: string) {
+   143→   143→  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+   144→   144→}
+   145→   145→
+   146→   146→function parseSkills(skills: string): string[] {
+   147→   147→  return skills
+   148→   148→    ? skills
+   149→   149→        .split(',')
+   150→   150→        .map((s) => s.trim())
+   151→   151→        .filter(Boolean)
+   152→   152→        .slice(0, 4)
+   153→   153→    : []
+   154→   154→}
+   155→   155→
+   156→   156→// ===== Kanban Candidate Card =====
+   157→   157→
+   158→   158→function KanbanCard({
+   159→   159→  candidate,
+   160→   160→  onView,
+   161→   161→  onEdit,
+   162→   162→  isSelected,
+   163→   163→  onToggleSelect,
+   164→   164→}: {
+   165→   165→  candidate: Candidate
+   166→   166→  onView: () => void
+   167→   167→  onEdit: () => void
+   168→   168→  isSelected: boolean
+   169→   169→  onToggleSelect: () => void
+   170→   170→}) {
+   171→   171→  const skills = parseSkills(candidate.skills)
+   172→   172→  const initials = getInitials(candidate.firstName, candidate.lastName)
+   173→   173→
+   174→   174→  return (
+   175→   175→    <div
+   176→   176→      className={`group relative rounded-lg border border-l-4 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+   177→   177→        STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-500'
+   178→   178→      } ${isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}
+   179→   179→    >
+   180→   180→      <div className={`absolute right-2 top-2 z-10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+   181→   181→        <Checkbox
+   182→   182→          checked={isSelected}
+   183→   183→          onCheckedChange={(e) => {
+   184→   184→            e.stopPropagation()
+   185→   185→            onToggleSelect()
+   186→   186→          }}
+   187→   187→          aria-label={`Select ${candidate.firstName} ${candidate.lastName}`}
+   188→   188→          onClick={(e) => e.stopPropagation()}
+   189→   189→        />
+   190→   190→      </div>
+   191→   191→      <div className="flex items-start justify-between gap-2">
+   192→   192→        <div className="flex items-center gap-2 min-w-0">
+   193→   193→          <Avatar className="h-7 w-7 shrink-0 text-xs">
+   194→   194→            <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+   195→   195→              {initials}
+   196→   196→            </AvatarFallback>
+   197→   197→          </Avatar>
+   198→   198→          <div className="min-w-0">
+   199→   199→            <button
+   200→   200→              onClick={onView}
+   201→   201→              className="truncate text-sm font-medium leading-tight hover:underline"
+   202→   202→            >
+   203→   203→              {candidate.firstName} {candidate.lastName}
+   204→   204→            </button>
+   205→   205→            {candidate.title && (
+   206→   206→              <p className="truncate text-[11px] text-muted-foreground">{candidate.title}</p>
+   207→   207→            )}
+   208→   208→          </div>
+   209→   209→        </div>
+   210→   210→        <DropdownMenu>
+   211→   211→          <DropdownMenuTrigger asChild>
+   212→   212→            <Button
+   213→   213→              variant="ghost"
+   214→   214→              size="icon"
+   215→   215→              className="h-6 w-6 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+   216→   216→            >
+   217→   217→              <MoreHorizontal className="h-3.5 w-3.5" />
+   218→   218→            </Button>
+   219→   219→          </DropdownMenuTrigger>
+   220→   220→          <DropdownMenuContent align="end">
+   221→   221→            <DropdownMenuItem onClick={onView}>
+   222→   222→              <Eye className="mr-2 h-3.5 w-3.5" /> View Details
+   223→   223→            </DropdownMenuItem>
+   224→   224→            <DropdownMenuItem onClick={onEdit}>
+   225→   225→              <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+   226→   226→            </DropdownMenuItem>
+   227→   227→          </DropdownMenuContent>
+   228→   228→        </DropdownMenu>
+   229→   229→      </div>
+   230→   230→      {skills.length > 0 && (
+   231→   231→        <div className="mt-2 flex flex-wrap gap-1">
+   232→   232→          {skills.map((skill) => (
+   233→   233→            <span
+   234→   234→              key={skill}
+   235→   235→              className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+   236→   236→            >
+   237→   237→              {skill}
+   238→   238→            </span>
+   239→   239→          ))}
+   240→   240→        </div>
+   241→   241→      )}
+   242→   242→      {(candidate.location || candidate.experience != null) && (
+   243→   243→        <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+   244→   244→          {candidate.experience != null && (
+   245→   245→            <span>{candidate.experience} yrs exp</span>
+   246→   246→          )}
+   247→   247→          {candidate.location && (
+   248→   248→            <span className="flex items-center gap-0.5">
+   249→   249→              <MapPin className="h-2.5 w-2.5" /> {candidate.location}
+   250→   250→            </span>
+   251→   251→          )}
+   252→   252→        </div>
+   253→   253→      )}
+   254→   254→    </div>
+   255→   255→  )
+   256→   256→}
+   257→   257→
+   258→   258→// ===== Kanban Column =====
+   259→   259→
+   260→   260→function KanbanColumn({
+   261→   261→  status,
+   262→   262→  candidates,
+   263→   263→  onViewCandidate,
+   264→   264→  onEditCandidate,
+   265→   265→  selectedIds,
+   266→   266→  onToggleSelect,
+   267→   267→}: {
+   268→   268→  status: string
+   269→   269→  candidates: Candidate[]
+   270→   270→  onViewCandidate: (id: string) => void
+   271→   271→  onEditCandidate: (candidate: Candidate) => void
+   272→   272→  selectedIds: Set<string>
+   273→   273→  onToggleSelect: (id: string) => void
+   274→   274→}) {
+   275→   275→  return (
+   276→   276→    <div className="flex w-72 shrink-0 flex-col">
+   277→   277→      <div className="mb-3 flex items-center justify-between px-1">
+   278→   278→        <div className="flex items-center gap-2">
+   279→   279→          <div
+   280→   280→            className={`h-2.5 w-2.5 rounded-full ${
+   281→   281→              STATUS_COLORS[status]
+   282→   282→                ?.replace(/bg-\w+-\d+/, 'bg-\$&')
+   283→   283→                ?.split(' ')[0] || 'bg-gray-400'
+   284→   284→            }`}
+   285→   285→            style={{
+   286→   286→              backgroundColor:
+   287→   287→                status === 'New'
+   288→   288→                  ? '#10b981'
+   289→   289→                  : status === 'Screening'
+   290→   290→                    ? '#3b82f6'
+   291→   291→                    : status === 'Interview'
+   292→   292→                      ? '#f59e0b'
+   293→   293→                      : status === 'Offer'
+   294→   294→                        ? '#8b5cf6'
+   295→   295→                        : status === 'Hired'
+   296→   296→                          ? '#22c55e'
+   297→   297→                          : status === 'Rejected'
+   298→   298→                            ? '#ef4444'
+   299→   299→                            : '#6b7280',
+   300→   300→            }}
+   301→   301→          />
+   302→   302→          <span className="text-sm font-semibold">{status}</span>
+   303→   303→        </div>
+   304→   304→        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+   305→   305→          {candidates.length}
+   306→   306→        </span>
+   307→   307→      </div>
+   308→   308→      <div className="rounded-t-lg border-t-2 flex max-h-[calc(100vh-320px)] min-h-[120px] flex-col gap-2.5 overflow-y-auto rounded-b-lg bg-muted/30 p-2.5" style={{
+   309→   309→        borderTopColor:
+   310→   310→          status === 'New'
+   311→   311→            ? '#10b981'
+   312→   312→            : status === 'Screening'
+   313→   313→              ? '#3b82f6'
+   314→   314→              : status === 'Interview'
+   315→   315→                ? '#f59e0b'
+   316→   316→                : status === 'Offer'
+   317→   317→                  ? '#8b5cf6'
+   318→   318→                  : status === 'Hired'
+   319→   319→                    ? '#22c55e'
+   320→   320→                    : status === 'Rejected'
+   321→   321→                      ? '#ef4444'
+   322→   322→                      : '#6b7280',
+   323→   323→      }}>
+   324→   324→        {candidates.length === 0 ? (
+   325→   325→          <div className="flex flex-1 items-center justify-center py-8">
+   326→   326→            <p className="text-xs text-muted-foreground/60">No candidates</p>
+   327→   327→          </div>
+   328→   328→        ) : (
+   329→   329→          candidates.map((c) => (
+   330→   330→            <KanbanCard
+   331→   331→              key={c.id}
+   332→   332→              candidate={c}
+   333→   333→              onView={() => onViewCandidate(c.id)}
+   334→   334→              onEdit={() => onEditCandidate(c)}
+   335→   335→              isSelected={selectedIds.has(c.id)}
+   336→   336→              onToggleSelect={() => onToggleSelect(c.id)}
+   337→   337→            />
+   338→   338→          ))
+   339→   339→        )}
+   340→   340→      </div>
+   341→   341→    </div>
+   342→   342→  )
+   343→   343→}
+   344→   344→
+   345→   345→// ===== Main Component =====
+   346→   346→
+   347→   347→export function CandidatesPage() {
+   348→   348→  const navigate = useCRMStore((s) => s.navigate)
+   349→   349→  const selectedId = useCRMStore((s) => s.selectedId)
+   350→   350→  const candidateFilter = useCRMStore((s) => s.candidateFilter)
+   351→   351→  const setCandidateFilter = useCRMStore((s) => s.setCandidateFilter)
+   352→   352→  const queryClient = useQueryClient()
+   353→   353→
+   354→   354→  const [addDialogOpen, setAddDialogOpen] = useState(false)
+   355→   355→  const [importOpen, setImportOpen] = useState(false)
+   356→   356→  const [editCandidate, setEditCandidate] = useState<Candidate | null>(null)
+   357→   357→  const [activeTab, setActiveTab] = useState('list')
+   358→   358→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+   359→   359→  const [compareIds, setCompareIds] = useState<string[] | null>(null)
+   360→   360→
+   361→   361→  const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
+   362→   362→
+   363→   363→  const toggleSelect = useCallback((id: string) => {
+   364→   364→    setSelectedIds((prev) => {
+   365→   365→      const next = new Set(prev)
+   366→   366→      if (next.has(id)) {
+   367→   367→        next.delete(id)
+   368→   368→      } else {
+   369→   369→        next.add(id)
+   370→   370→      }
+   371→   371→      return next
+   372→   372→    })
+   373→   373→  }, [])
+   374→   374→
+   375→   375→  const deselectAll = useCallback(() => {
+   376→   376→    setSelectedIds(new Set())
+   377→   377→  }, [])
+   378→   378→
+   379→   379→  function handleBulkSuccess() {
+   380→   380→    setSelectedIds(new Set())
+   381→   381→    queryClient.invalidateQueries({ queryKey: ['candidates'] })
+   382→   382→  }
+   383→   383→
+   384→   384→  // Fetch candidates with filters
+   385→   385→  const { data, isLoading, error } = useQuery<{
+   386→   386→    data: Candidate[]
+   387→   387→    pagination: { page: number; limit: number; total: number; totalPages: number }
+   388→   388→  }>({
+   389→   389→    queryKey: ['candidates', candidateFilter],
+   390→   390→    queryFn: async () => {
+   391→   391→      const params = new URLSearchParams()
+   392→   392→      if (candidateFilter.search) params.set('search', candidateFilter.search)
+   393→   393→      if (candidateFilter.status && candidateFilter.status !== 'All')
+   394→   394→        params.set('status', candidateFilter.status)
+   395→   395→      if (candidateFilter.source && candidateFilter.source !== 'All')
+   396→   396→        params.set('source', candidateFilter.source)
+   397→   397→      const res = await fetch(`/api/candidates?${params.toString()}`)
+   398→   398→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   399→   399→      return res.json()
+   400→   400→    },
+   401→   401→  })
+   402→   402→
+   403→   403→  const candidates = data?.data || []
+   404→   404→
+   405→   405→  const selectAll = useCallback(() => {
+   406→   406→    setSelectedIds(new Set(candidates.map((c) => c.id)))
+   407→   407→  }, [candidates])
+   408→   408→
+   409→   409→  const isAllSelected = candidates.length > 0 && candidates.every((c) => selectedIds.has(c.id))
+   410→   410→  const isSomeSelected = !isAllSelected && candidates.some((c) => selectedIds.has(c.id))
+   411→   411→
+   412→   412→  // Quick status change mutation
+   413→   413→  const updateStatusMutation = useMutation({
+   414→   414→    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+   415→   415→      const res = await fetch(`/api/candidates/${id}`, {
+   416→   416→        method: 'PUT',
+   417→   417→        headers: { 'Content-Type': 'application/json' },
+   418→   418→        body: JSON.stringify({ status }),
+   419→   419→      })
+   420→   420→      if (!res.ok) throw new Error('Failed to update status')
+   421→   421→      return res.json()
+   422→   422→    },
+   423→   423→    onSuccess: () => {
+   424→   424→      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+   425→   425→      toast.success('Candidate status updated')
+   426→   426→    },
+   427→   427→    onError: () => {
+   428→   428→      toast.error('Failed to update candidate status')
+   429→   429→    },
+   430→   430→  })
+   431→   431→
+   432→   432→  // Delete mutation
+   433→   433→  const deleteMutation = useMutation({
+   434→   434→    mutationFn: async (id: string) => {
+   435→   435→      const res = await fetch(`/api/candidates/${id}`, { method: 'DELETE' })
+   436→   436→      if (!res.ok) throw new Error('Failed to delete candidate')
+   437→   437→      return res.json()
+   438→   438→    },
+   439→   439→    onSuccess: () => {
+   440→   440→      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+   441→   441→      toast.success('Candidate deleted successfully')
+   442→   442→    },
+   443→   443→    onError: () => {
+   444→   444→      toast.error('Failed to delete candidate')
+   445→   445→    },
+   446→   446→  })
+   447→   447→
+   448→   448→  // Group candidates by status for Kanban
+   449→   449→  const kanbanData = useMemo(() => {
+   450→   450→    const groups: Record<string, Candidate[]> = {}
+   451→   451→    ALL_STATUSES.forEach((s) => {
+   452→   452→      groups[s] = []
+   453→   453→    })
+   454→   454→    candidates.forEach((c) => {
+   455→   455→      if (groups[c.status]) {
+   456→   456→        groups[c.status].push(c)
+   457→   457→      } else {
+   458→   458→        groups['New'].push(c)
+   459→   459→      }
+   460→   460→    })
+   461→   461→    return groups
+   462→   462→  }, [candidates])
+   463→   463→
+   464→   464→  function handleViewCandidate(id: string) {
+   465→   465→    navigate('candidate-detail', id)
+   466→   466→  }
+   467→   467→
+   468→   468→  function handleEditCandidate(candidate: Candidate) {
+   469→   469→    setEditCandidate(candidate)
+   470→   470→    setAddDialogOpen(true)
+   471→   471→  }
+   472→   472→
+   473→   473→  function handleCloseDialog(open: boolean) {
+   474→   474→    setAddDialogOpen(open)
+   475→   475→    if (!open) setEditCandidate(null)
+   476→   476→  }
+   477→   477→
+   478→   478→  function handleCompare() {
+   479→   479→    const ids = Array.from(selectedIds).slice(0, 4)
+   480→   480→    setCompareIds(ids)
+   481→   481→  }
+   482→   482→
+   483→   483→  function handleCloseComparison() {
+   484→   484→    setCompareIds(null)
+   485→   485→  }
+   486→   486→
+   487→   487→  // If a candidate is selected, show detail view
+   488→   488→  if (selectedId) {
+   489→   489→    return <CandidateDetail candidateId={selectedId} />
+   490→   490→  }
+   491→   491→
+   492→   492→  return (
+   493→   493→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+   494→   494→      {/* Header */}
+   495→   495→      <div className="space-y-3">
+   496→   496→        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   497→   497→          <div className="flex items-center gap-3">
+   498→   498→            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+   499→   499→              <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+   500→   500→            </div>
+   501→   501→            <div>
+   502→   502→              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Candidates</h1>
+   503→   503→              <p className="mt-1 text-sm text-muted-foreground">
+   504→   504→                Manage and track your candidate pipeline
+   505→   505→                {data && (
+   506→   506→                  <span className="ml-1 font-medium text-foreground">
+   507→   507→                    ({data.pagination.total} total)
+   508→   508→                  </span>
+   509→   509→                )}
+   510→   510→              </p>
+   511→   511→            </div>
+   512→   512→          </div>
+   513→   513→        <div className="flex gap-2">
+   514→   514→          <Button
+   515→   515→            variant="outline"
+   516→   516→            size="sm"
+   517→   517→            className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+   518→   518→            onClick={() => setImportOpen(true)}
+   519→   519→          >
+   520→   520→            <Upload className="h-4 w-4" />
+   521→   521→            Import
+   522→   522→          </Button>
+   523→   523→          <Button
+   524→   524→            variant="outline"
+   525→   525→            size="sm"
+   526→   526→            className="gap-1.5"
+   527→   527→            onClick={() => {
+   528→   528→              const csvData = candidates.map((c) => ({
+   529→   529→                Name: `${c.firstName} ${c.lastName}`,
+   530→   530→                Email: c.email || '',
+   531→   531→                Phone: c.phone || '',
+   532→   532→                Title: c.title || '',
+   533→   533→                Status: c.status,
+   534→   534→                Source: c.source || '',
+   535→   535→                Experience: c.experience ?? '',
+   536→   536→                Location: c.location || '',
+   537→   537→                Skills: c.skills,
+   538→   538→                'Current CTC': c.currentCTC ?? '',
+   539→   539→                'Expected CTC': c.expectedCTC ?? '',
+   540→   540→                'Notice Period': c.noticePeriod ?? '',
+   541→   541→                'Job Title': c.job?.title || '',
+   542→   542→              }))
+   543→   543→              exportToCSV(csvData, 'candidates')
+   544→   544→            }}
+   545→   545→          >
+   546→   546→            <Download className="h-4 w-4" />
+   547→   547→            Export CSV
+   548→   548→          </Button>
+   549→   549→          <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-to-r from-primary to-primary/80 shadow-md hover:shadow-lg">
+   550→   550→            <Plus className="mr-2 h-4 w-4" />
+   551→   551→            {selectedIds.size > 0 ? `Add Candidate (${selectedIds.size} selected)` : 'Add Candidate'}
+   552→   552→          </Button>
+   553→   553→          {candidates.length > 0 && (
+   554→   554→            <div className="flex items-center gap-2">
+   555→   555→              <Checkbox
+   556→   556→                checked={isAllSelected}
+   557→   557→                ref={(el) => {
+   558→   558→                  if (el) {
+   559→   559→                    (el as unknown as { indeterminate: boolean }).indeterminate = isSomeSelected
+   560→   560→                  }
+   561→   561→                }}
+   562→   562→                onCheckedChange={(checked) => {
+   563→   563→                  if (checked) selectAll()
+   564→   564→                  else deselectAll()
+   565→   565→                }}
+   566→   566→                aria-label="Select all candidates"
+   567→   567→              />
+   568→   568→              <span className="hidden text-xs text-muted-foreground sm:inline">Select All</span>
+   569→   569→            </div>
+   570→   570→          )}
+   571→   571→        </div>
+   572→   572→      </div>
+   573→   573→      <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+   574→   574→      </div>
+   575→   575→
+   576→   576→      {/* Filters */}
+   577→   577→      <div className="flex flex-col gap-3 rounded-lg bg-muted/50 p-2 sm:flex-row sm:items-center">
+   578→   578→        <div className="relative flex-1 sm:max-w-xs">
+   579→   579→          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   580→   580→          <Input
+   581→   581→            placeholder="Search candidates..."
+   582→   582→            className="border-0 bg-background pl-9 shadow-sm"
+   583→   583→            value={candidateFilter.search}
+   584→   584→            onChange={(e) => setCandidateFilter({ search: e.target.value })}
+   585→   585→          />
+   586→   586→        </div>
+   587→   587→        <Select
+   588→   588→          value={candidateFilter.status}
+   589→   589→          onValueChange={(val) => setCandidateFilter({ status: val })}
+   590→   590→        >
+   591→   591→          <SelectTrigger className="w-full border-0 bg-background shadow-sm sm:w-[160px]">
+   592→   592→            <SelectValue placeholder="Status" />
+   593→   593→          </SelectTrigger>
+   594→   594→          <SelectContent>
+   595→   595→            <SelectItem value="All">All Statuses</SelectItem>
+   596→   596→            {ALL_STATUSES.map((status) => (
+   597→   597→              <SelectItem key={status} value={status}>
+   598→   598→                {status}
+   599→   599→              </SelectItem>
+   600→   600→            ))}
+   601→   601→          </SelectContent>
+   602→   602→        </Select>
+   603→   603→        <Select
+   604→   604→          value={candidateFilter.source}
+   605→   605→          onValueChange={(val) => setCandidateFilter({ source: val })}
+   606→   606→        >
+   607→   607→          <SelectTrigger className="w-full border-0 bg-background shadow-sm sm:w-[160px]">
+   608→   608→            <SelectValue placeholder="Source" />
+   609→   609→          </SelectTrigger>
+   610→   610→          <SelectContent>
+   611→   611→            <SelectItem value="All">All Sources</SelectItem>
+   612→   612→            {SOURCE_OPTIONS.map((source) => (
+   613→   613→              <SelectItem key={source} value={source}>
+   614→   614→                {source}
+   615→   615→              </SelectItem>
+   616→   616→            ))}
+   617→   617→          </SelectContent>
+   618→   618→        </Select>
+   619→   619→      </div>
+   620→   620→
+   621→   621→      {/* Bulk Actions Bar */}
+   622→   622→      <BulkActionsBar
+   623→   623→        selectedIds={selectedIdsArray}
+   624→   624→        onClearSelection={deselectAll}
+   625→   625→        onSuccess={handleBulkSuccess}
+   626→   626→        onCompare={handleCompare}
+   627→   627→      />
+   628→   628→
+   629→   629→      {/* Tabs: List / Pipeline */}
+   630→   630→      <Tabs value={activeTab} onValueChange={setActiveTab}>
+   631→   631→        <TabsList>
+   632→   632→          <TabsTrigger value="list" className="gap-1.5">
+   633→   633→            <LayoutList className="h-4 w-4" />
+   634→   634→            List
+   635→   635→          </TabsTrigger>
+   636→   636→          <TabsTrigger value="pipeline" className="gap-1.5">
+   637→   637→            <Kanban className="h-4 w-4" />
+   638→   638→            Pipeline
+   639→   639→          </TabsTrigger>
+   640→   640→        </TabsList>
+   641→   641→
+   642→   642→        {/* List View */}
+   643→   643→        <TabsContent value="list" className="mt-4">
+   644→   644→          {isLoading ? (
+   645→   645→            <Card>
+   646→   646→              <CardContent className="p-6">
+   647→   647→                <div className="flex items-center justify-center gap-3">
+   648→   648→                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   649→   649→                  <p className="text-sm text-muted-foreground">Loading candidates...</p>
+   650→   650→                </div>
+   651→   651→              </CardContent>
+   652→   652→            </Card>
+   653→   653→          ) : error ? (
+   654→   654→            <Card>
+   655→   655→              <CardContent className="p-6">
+   656→   656→                <p className="text-center text-sm text-destructive">
+   657→   657→                  Failed to load candidates. Please try again.
+   658→   658→                </p>
+   659→   659→              </CardContent>
+   660→   660→            </Card>
+   661→   661→          ) : candidates.length === 0 ? (
+   662→   662→            <Card>
+   663→   663→              <CardContent className="flex flex-col items-center gap-3 py-12">
+   664→   664→                <Users className="h-10 w-10 text-muted-foreground/40" />
+   665→   665→                <p className="text-sm font-medium text-muted-foreground">No candidates found</p>
+   666→   666→                <p className="text-xs text-muted-foreground/70">
+   667→   667→                  {candidateFilter.search ||
+   668→   668→                  candidateFilter.status !== 'All' ||
+   669→   669→                  candidateFilter.source !== 'All'
+   670→   670→                    ? 'Try adjusting your filters'
+   671→   671→                    : 'Click "Add Candidate" to get started'}
+   672→   672→                </p>
+   673→   673→              </CardContent>
+   674→   674→            </Card>
+   675→   675→          ) : (
+   676→   676→            <Card>
+   677→   677→              <div className="max-h-96 overflow-y-auto">
+   678→   678→                <Table>
+   679→   679→                  <TableHeader>
+   680→   680→                    <TableRow className="hover:bg-transparent">
+   681→   681→                      <TableHead className="w-10 text-xs">
+   682→   682→                        <Checkbox
+   683→   683→                          checked={isAllSelected}
+   684→   684→                          ref={(el) => {
+   685→   685→                            if (el) {
+   686→   686→                              (el as unknown as { indeterminate: boolean }).indeterminate = isSomeSelected
+   687→   687→                            }
+   688→   688→                          }}
+   689→   689→                          onCheckedChange={(checked) => {
+   690→   690→                            if (checked) selectAll()
+   691→   691→                            else deselectAll()
+   692→   692→                          }}
+   693→   693→                          aria-label="Select all candidates"
+   694→   694→                        />
+   695→   695→                      </TableHead>
+   696→   696→                      <TableHead className="text-xs">Name</TableHead>
+   697→   697→                      <TableHead className="hidden text-xs sm:table-cell">Email</TableHead>
+   698→   698→                      <TableHead className="hidden text-xs md:table-cell">Phone</TableHead>
+   699→   699→                      <TableHead className="hidden text-xs lg:table-cell">Title</TableHead>
+   700→   700→                      <TableHead className="text-xs">Status</TableHead>
+   701→   701→                      <TableHead className="hidden text-xs md:table-cell">Source</TableHead>
+   702→   702→                      <TableHead className="w-12 text-xs">Actions</TableHead>
+   703→   703→                    </TableRow>
+   704→   704→                  </TableHeader>
+   705→   705→                  <TableBody>
+   706→   706→                    {candidates.map((candidate, index) => {
+   707→   707→                      const initials = getInitials(
+   708→   708→                        candidate.firstName,
+   709→   709→                        candidate.lastName
+   710→   710→                      )
+   711→   711→                      return (
+   712→   712→                        <TableRow
+   713→   713→                          key={candidate.id}
+   714→   714→                          className={`cursor-pointer border-l-4 transition-colors hover:bg-muted/50 ${
+   715→   715→                            STATUS_BORDER_COLORS[candidate.status] || 'border-l-gray-400'
+   716→   716→                          } ${index % 2 === 1 ? 'bg-muted/30' : ''} ${selectedIds.has(candidate.id) ? 'bg-primary/5' : ''}`}
+   717→   717→                          onClick={() => handleViewCandidate(candidate.id)}
+   718→   718→                        >
+   719→   719→                          <TableCell onClick={(e) => e.stopPropagation()}>
+   720→   720→                            <Checkbox
+   721→   721→                              checked={selectedIds.has(candidate.id)}
+   722→   722→                              onCheckedChange={() => toggleSelect(candidate.id)}
+   723→   723→                              aria-label={`Select ${candidate.firstName} ${candidate.lastName}`}
+   724→   724→                            />
+   725→   725→                          </TableCell>
+   726→   726→                          <TableCell>
+   727→   727→                            <div className="flex items-center gap-3">
+   728→   728→                              <Avatar className="h-9 w-9 shrink-0 text-xs">
+   729→   729→                                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+   730→   730→                                  {initials}
+   731→   731→                                </AvatarFallback>
+   732→   732→                              </Avatar>
+   733→   733→                              <div className="min-w-0">
+   734→   734→                                <p className="truncate text-sm font-medium">
+   735→   735→                                  {candidate.firstName} {candidate.lastName}
+   736→   736→                                  {candidate.notes && (
+   737→   737→                                    <Tooltip>
+   738→   738→                                      <TooltipTrigger asChild>
+   739→   739→                                        <span className="ml-1.5 inline-flex" onClick={(e) => e.stopPropagation()}>
+   740→   740→                                          <MessageSquare className="h-3.5 w-3.5 text-amber-500" />
+   741→   741→                                        </span>
+   742→   742→                                      </TooltipTrigger>
+   743→   743→                                      <TooltipContent side="top" className="max-w-[250px]">
+   744→   744→                                        <p className="text-xs">{candidate.notes.length > 50 ? candidate.notes.slice(0, 50) + '...' : candidate.notes}</p>
+   745→   745→                                      </TooltipContent>
+   746→   746→                                    </Tooltip>
+   747→   747→                                  )}
+   748→   748→                                </p>
+   749→   749→                                <p className="truncate text-xs text-muted-foreground sm:hidden">
+   750→   750→                                  {candidate.email || '—'}
+   751→   751→                                </p>
+   752→   752→                              </div>
+   753→   753→                            </div>
+   754→   754→                          </TableCell>
+   755→   755→                          <TableCell className="hidden max-w-[200px] truncate text-xs sm:table-cell">
+   756→   756→                            {candidate.email || '—'}
+   757→   757→                          </TableCell>
+   758→   758→                          <TableCell className="hidden text-xs md:table-cell">
+   759→   759→                            {candidate.phone || '—'}
+   760→   760→                          </TableCell>
+   761→   761→                          <TableCell className="hidden max-w-[180px] truncate text-xs lg:table-cell">
+   762→   762→                            {candidate.title || '—'}
+   763→   763→                          </TableCell>
+   764→   764→                          <TableCell onClick={(e) => e.stopPropagation()}>
+   765→   765→                            <Popover>
+   766→   766→                              <PopoverTrigger asChild>
+   767→   767→                                <Badge
+   768→   768→                                  className={`cursor-pointer text-[10px] transition-transform hover:scale-105 ${
+   769→   769→                                    STATUS_COLORS[candidate.status] || ''
+   770→   770→                                  }`}
+   771→   771→                                >
+   772→   772→                                  {candidate.status}
+   773→   773→                                </Badge>
+   774→   774→                              </PopoverTrigger>
+   775→   775→                              <PopoverContent className="w-40 p-1" align="start">
+   776→   776→                                <div className="space-y-0.5">
+   777→   777→                                  {ALL_STATUSES.map((status) => (
+   778→   778→                                    <button
+   779→   779→                                      key={status}
+   780→   780→                                      onClick={() =>
+   781→   781→                                        updateStatusMutation.mutate({
+   782→   782→                                          id: candidate.id,
+   783→   783→                                          status,
+   784→   784→                                        })
+   785→   785→                                      }
+   786→   786→                                      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-muted ${
+   787→   787→                                        candidate.status === status
+   788→   788→                                          ? 'font-semibold'
+   789→   789→                                          : ''
+   790→   790→                                      }`}
+   791→   791→                                    >
+   792→   792→                                      <span
+   793→   793→                                        className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`}
+   794→   794→                                      />
+   795→   795→                                      {status}
+   796→   796→                                    </button>
+   797→   797→                                  ))}
+   798→   798→                                </div>
+   799→   799→                              </PopoverContent>
+   800→   800→                            </Popover>
+   801→   801→                          </TableCell>
+   802→   802→                          <TableCell className="hidden text-xs md:table-cell">
+   803→   803→                            {candidate.source || '—'}
+   804→   804→                          </TableCell>
+   805→   805→                          <TableCell>
+   806→   806→                            <DropdownMenu>
+   807→   807→                              <DropdownMenuTrigger asChild>
+   808→   808→                                <Button
+   809→   809→                                  variant="ghost"
+   810→   810→                                  size="icon"
+   811→   811→                                  className="h-8 w-8"
+   812→   812→                                  onClick={(e) => e.stopPropagation()}
+   813→   813→                                >
+   814→   814→                                  <MoreHorizontal className="h-4 w-4" />
+   815→   815→                                </Button>
+   816→   816→                              </DropdownMenuTrigger>
+   817→   817→                              <DropdownMenuContent align="end">
+   818→   818→                                <DropdownMenuItem
+   819→   819→                                  onClick={(e) => {
+   820→   820→                                    e.stopPropagation()
+   821→   821→                                    handleViewCandidate(candidate.id)
+   822→   822→                                  }}
+   823→   823→                                >
+   824→   824→                                  <Eye className="mr-2 h-3.5 w-3.5" />
+   825→   825→                                  View Details
+   826→   826→                                </DropdownMenuItem>
+   827→   827→                                <DropdownMenuItem
+   828→   828→                                  onClick={(e) => {
+   829→   829→                                    e.stopPropagation()
+   830→   830→                                    handleEditCandidate(candidate)
+   831→   831→                                  }}
+   832→   832→                                >
+   833→   833→                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+   834→   834→                                  Edit
+   835→   835→                                </DropdownMenuItem>
+   836→   836→                                <DropdownMenuItem
+   837→   837→                                  className="text-destructive focus:text-destructive"
+   838→   838→                                  onClick={(e) => {
+   839→   839→                                    e.stopPropagation()
+   840→   840→                                    deleteMutation.mutate(candidate.id)
+   841→   841→                                  }}
+   842→   842→                                >
+   843→   843→                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+   844→   844→                                  Delete
+   845→   845→                                </DropdownMenuItem>
+   846→   846→                              </DropdownMenuContent>
+   847→   847→                            </DropdownMenu>
+   848→   848→                          </TableCell>
+   849→   849→                        </TableRow>
+   850→   850→                      )
+   851→   851→                    })}
+   852→   852→                  </TableBody>
+   853→   853→                </Table>
+   854→   854→              </div>
+   855→   855→            </Card>
+   856→   856→          )}
+   857→   857→        </TabsContent>
+   858→   858→
+   859→   859→        {/* Pipeline / Kanban View */}
+   860→   860→        <TabsContent value="pipeline" className="mt-4">
+   861→   861→          {isLoading ? (
+   862→   862→            <Card>
+   863→   863→              <CardContent className="p-6">
+   864→   864→                <div className="flex items-center justify-center gap-3">
+   865→   865→                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   866→   866→                  <p className="text-sm text-muted-foreground">Loading pipeline...</p>
+   867→   867→                </div>
+   868→   868→              </CardContent>
+   869→   869→            </Card>
+   870→   870→          ) : (
+   871→   871→            <div className="flex gap-4 overflow-x-auto pb-4">
+   872→   872→              {ALL_STATUSES.map((status) => (
+   873→   873→                <KanbanColumn
+   874→   874→                  key={status}
+   875→   875→                  status={status}
+   876→   876→                  candidates={kanbanData[status] || []}
+   877→   877→                  onViewCandidate={handleViewCandidate}
+   878→   878→                  onEditCandidate={handleEditCandidate}
+   879→   879→                  selectedIds={selectedIds}
+   880→   880→                  onToggleSelect={toggleSelect}
+   881→   881→                />
+   882→   882→              ))}
+   883→   883→            </div>
+   884→   884→          )}
+   885→   885→        </TabsContent>
+   886→   886→      </Tabs>
+   887→   887→
+   888→   888→      {/* Add/Edit Dialog */}
+   889→   889→      <AddCandidateDialog
+   890→   890→        open={addDialogOpen}
+   891→   891→        onOpenChange={handleCloseDialog}
+   892→   892→        editCandidate={editCandidate}
+   893→   893→      />
+   894→   894→
+   895→   895→      {/* CSV Import Dialog */}
+   896→   896→      <CsvImportDialog open={importOpen} onOpenChange={setImportOpen} />
+   897→   897→
+   898→   898→      {/* Candidate Comparison Overlay */}
+   899→   899→      {compareIds && (
+   900→   900→        <CandidateComparison
+   901→   901→          candidateIds={compareIds}
+   902→   902→          onClose={handleCloseComparison}
+   903→   903→        />
+   904→   904→      )}
+   905→   905→    </div>
+   906→   906→  )
+   907→   907→}
+   908→   908→

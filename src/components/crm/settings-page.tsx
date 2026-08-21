@@ -95,7 +95,7 @@ function ProfileTab() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Profile Information</CardTitle>
           <CardDescription>Manage your account details and profile information.</CardDescription>
@@ -221,7 +221,7 @@ function AppearanceTab() {
   return (
     <div className="space-y-6">
       {/* Theme Selection */}
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Theme</CardTitle>
           <CardDescription>Select your preferred color theme for the application.</CardDescription>
@@ -236,7 +236,7 @@ function AppearanceTab() {
                   key={option.value}
                   onClick={() => setTheme(option.value)}
                   className={cn(
-                    'relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all hover:bg-accent/50 cursor-pointer',
+                    'card-glass relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 hover:bg-accent/50 hover:-translate-y-1 hover:shadow-md cursor-pointer',
                     isActive
                       ? 'border-primary bg-primary/5 shadow-sm'
                       : 'border-muted hover:border-muted-foreground/30'
@@ -261,7 +261,7 @@ function AppearanceTab() {
       </Card>
 
       {/* Compact Mode */}
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Display Options</CardTitle>
           <CardDescription>Customize the display density and layout preferences.</CardDescription>
@@ -343,7 +343,7 @@ function NotificationsTab() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Notification Preferences</CardTitle>
           <CardDescription>Choose which notifications you would like to receive.</CardDescription>
@@ -526,7 +526,7 @@ function DataManagementTab() {
   return (
     <div className="space-y-6">
       {/* Database Info */}
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Database Overview</CardTitle>
           <CardDescription>Current statistics for your RecruitPro database.</CardDescription>
@@ -562,7 +562,7 @@ function DataManagementTab() {
       </Card>
 
       {/* Actions */}
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Data Actions</CardTitle>
           <CardDescription>Export, clear, or reseed your application data.</CardDescription>
@@ -652,7 +652,7 @@ function AboutTab() {
   return (
     <div className="space-y-6">
       {/* App Branding Card */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <div className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-background p-8">
           <div className="flex flex-col items-center gap-4">
             <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
@@ -688,7 +688,7 @@ function AboutTab() {
       </Card>
 
       {/* Tech Stack Card */}
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
         <CardHeader>
           <CardTitle className="text-lg">Built With</CardTitle>
           <CardDescription>The technologies powering RecruitPro CRM.</CardDescription>

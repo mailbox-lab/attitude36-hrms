@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCRMStore } from '@/stores/crm-store'
 import { ClientDetail } from './client-detail'
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Plus, Building2, MapPin, Mail, Phone, Briefcase, UserCheck, Cpu, Heart, GraduationCap, Factory, ShoppingBag, Landmark, Radio, Tv, Lightbulb, Truck, Car, Pill, Zap } from 'lucide-react'
+import { Search, Plus, Building2, MapPin, Mail, Phone, Briefcase, UserCheck, Cpu, Heart, GraduationCap, Factory, ShoppingBag, Landmark, Radio, Tv, Lightbulb, Truck, Car, Pill, Zap, CalendarDays, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ===== Types =====
@@ -200,24 +200,46 @@ export function ClientsPage() {
   const navigate = useCRMStore((s) => s.navigate)
   const selectedId = useCRMStore((s) => s.selectedId)
   const queryClient = useQueryClient()
+  const clientFilter = useCRMStore((s) => s.clientFilter)
+  const setClientFilter = useCRMStore((s) => s.setClientFilter)
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editClient, setEditClient] = useState<Client | null>(null)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
   const [industryFilter, setIndustryFilter] = useState('All')
+
+  // Date range helpers
+  const todayStr = new Date().toISOString().split('T')[0]
+  const getTodayRange = useCallback(() => ({ fromDate: todayStr, toDate: todayStr }), [todayStr])
+  const getThisWeekRange = useCallback(() => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return { fromDate: monday.toISOString().split('T')[0], toDate: sunday.toISOString().split('T')[0] }
+  }, [])
+  const getThisMonthRange = useCallback(() => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return { fromDate: firstDay.toISOString().split('T')[0], toDate: lastDay.toISOString().split('T')[0] }
+  }, [])
+  const hasDateFilter = !!(clientFilter.fromDate && clientFilter.toDate)
 
   // Fetch clients (note: /api/clients as specified)
   const { data, isLoading, error } = useQuery<{
     data: Client[]
     pagination: { page: number; limit: number; total: number; totalPages: number }
   }>({
-    queryKey: ['clients', search, statusFilter, industryFilter],
+    queryKey: ['clients', clientFilter, industryFilter],
     queryFn: async () => {
       const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (statusFilter && statusFilter !== 'All') params.set('status', statusFilter)
+      if (clientFilter.search) params.set('search', clientFilter.search)
+      if (clientFilter.status && clientFilter.status !== 'All') params.set('status', clientFilter.status)
       if (industryFilter && industryFilter !== 'All') params.set('industry', industryFilter)
+      if (clientFilter.fromDate) params.set('fromDate', clientFilter.fromDate)
+      if (clientFilter.toDate) params.set('toDate', clientFilter.toDate)
       const res = await fetch(`/api/clients?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch clients')
       return res.json()
@@ -283,11 +305,11 @@ export function ClientsPage() {
             <Input
               placeholder="Search clients..."
               className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={clientFilter.search}
+              onChange={(e) => setClientFilter({ search: e.target.value })}
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={clientFilter.status} onValueChange={(val) => setClientFilter({ status: val })}>
             <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -311,6 +333,75 @@ export function ClientsPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="rounded-lg bg-muted/50 p-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Range</span>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={clientFilter.fromDate || ''}
+                placeholder="From"
+                onChange={(e) => {
+                  setClientFilter({ fromDate: e.target.value, toDate: clientFilter.toDate })
+                }}
+              />
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={clientFilter.toDate || ''}
+                placeholder="To"
+                onChange={(e) => {
+                  setClientFilter({ fromDate: clientFilter.fromDate, toDate: e.target.value })
+                }}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={clientFilter.fromDate === todayStr && clientFilter.toDate === todayStr ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setClientFilter(getTodayRange())}
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setClientFilter(getThisWeekRange())}
+              >
+                This Week
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setClientFilter(getThisMonthRange())}
+              >
+                This Month
+              </Button>
+              {hasDateFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive btn-press"
+                  onClick={() => setClientFilter({ fromDate: '', toDate: '' })}
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -341,7 +432,7 @@ export function ClientsPage() {
             <div className="text-center">
               <p className="text-sm font-medium text-muted-foreground">No clients found</p>
               <p className="mt-1 text-xs text-muted-foreground/70">
-                {search || statusFilter !== 'All' || industryFilter !== 'All'
+                {clientFilter.search || clientFilter.status !== 'All' || industryFilter !== 'All'
                   ? 'Try adjusting your search or filter criteria'
                   : 'Add your first client company to begin managing hiring relationships'}
               </p>

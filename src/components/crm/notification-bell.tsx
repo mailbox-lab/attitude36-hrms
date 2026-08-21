@@ -411,7 +411,7 @@ export function NotificationBell() {
             className="h-auto w-full justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
             onClick={() => {
               setOpen(false)
-              navigate('activity-feed')
+              navigate('notifications')
             }}
           >
             View all notifications

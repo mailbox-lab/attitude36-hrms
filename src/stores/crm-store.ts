@@ -15,6 +15,7 @@ export type CRMView =
   | 'employees'
   | 'employee-detail'
   | 'activity-feed'
+  | 'notifications'
   | 'analytics'
   | 'settings'
 
@@ -22,6 +23,8 @@ export type CandidateFilter = {
   status: string
   search: string
   source: string
+  fromDate: string
+  toDate: string
 }
 
 export type JobFilter = {
@@ -43,6 +46,20 @@ export type LeaveFilter = {
   search: string
 }
 
+export type ClientFilter = {
+  status: string
+  search: string
+  fromDate: string
+  toDate: string
+}
+
+export type PlacementFilter = {
+  status: string
+  search: string
+  fromDate: string
+  toDate: string
+}
+
 interface CRMState {
   currentView: CRMView
   selectedId: string | null
@@ -51,6 +68,8 @@ interface CRMState {
   jobFilter: JobFilter
   attendanceFilter: AttendanceFilter
   leaveFilter: LeaveFilter
+  clientFilter: ClientFilter
+  placementFilter: PlacementFilter
 
   navigate: (view: CRMView, id?: string) => void
   toggleSidebar: () => void
@@ -59,16 +78,20 @@ interface CRMState {
   setJobFilter: (filter: Partial<JobFilter>) => void
   setAttendanceFilter: (filter: Partial<AttendanceFilter>) => void
   setLeaveFilter: (filter: Partial<LeaveFilter>) => void
+  setClientFilter: (filter: Partial<ClientFilter>) => void
+  setPlacementFilter: (filter: Partial<PlacementFilter>) => void
 }
 
 export const useCRMStore = create<CRMState>((set) => ({
   currentView: 'dashboard',
   selectedId: null,
   sidebarOpen: true,
-  candidateFilter: { status: 'All', search: '', source: 'All' },
+  candidateFilter: { status: 'All', search: '', source: 'All', fromDate: '', toDate: '' },
   jobFilter: { status: 'All', priority: 'All', search: '' },
   attendanceFilter: { date: new Date().toISOString().split('T')[0], fromDate: '', toDate: '', status: 'All' },
   leaveFilter: { status: 'All', type: 'All', search: '' },
+  clientFilter: { status: 'All', search: '', fromDate: '', toDate: '' },
+  placementFilter: { status: 'All', search: '', fromDate: '', toDate: '' },
 
   navigate: (view, id) => set({ currentView: view, selectedId: id ?? null }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
@@ -81,4 +104,8 @@ export const useCRMStore = create<CRMState>((set) => ({
     set((s) => ({ attendanceFilter: { ...s.attendanceFilter, ...filter } })),
   setLeaveFilter: (filter) =>
     set((s) => ({ leaveFilter: { ...s.leaveFilter, ...filter } })),
+  setClientFilter: (filter) =>
+    set((s) => ({ clientFilter: { ...s.clientFilter, ...filter } })),
+  setPlacementFilter: (filter) =>
+    set((s) => ({ placementFilter: { ...s.placementFilter, ...filter } })),
 }))

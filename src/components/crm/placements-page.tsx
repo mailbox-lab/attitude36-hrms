@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
@@ -72,8 +72,11 @@ import {
   Download,
   ChevronsUpDown,
   Search,
+  CalendarDays,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useCRMStore } from '@/stores/crm-store'
 
 // ===== Types =====
 
@@ -315,7 +318,7 @@ function RevenueCard({
 }) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className={cn('rounded-xl border-0 shadow-sm', gradient)}>
+      <Card className={cn('stat-card-hover rounded-xl border-0 shadow-sm', gradient)}>
         <CardContent className="p-5">
           <div className="flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20">
@@ -760,14 +763,38 @@ function AddPlacementDialog({
 
 export function PlacementsPage() {
   const queryClient = useQueryClient()
-  const [statusFilter, setStatusFilter] = useState('All')
+  const placementFilter = useCRMStore((s) => s.placementFilter)
+  const setPlacementFilter = useCRMStore((s) => s.setPlacementFilter)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
 
+  // Date range helpers
+  const todayStr = new Date().toISOString().split('T')[0]
+  const getTodayRange = useCallback(() => ({ fromDate: todayStr, toDate: todayStr }), [todayStr])
+  const getThisWeekRange = useCallback(() => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return { fromDate: monday.toISOString().split('T')[0], toDate: sunday.toISOString().split('T')[0] }
+  }, [])
+  const getThisMonthRange = useCallback(() => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return { fromDate: firstDay.toISOString().split('T')[0], toDate: lastDay.toISOString().split('T')[0] }
+  }, [])
+  const hasDateFilter = !!(placementFilter.fromDate && placementFilter.toDate)
+
   const { data, isLoading, error } = useQuery<{ data: Placement[] }>({
-    queryKey: ['placements', statusFilter],
+    queryKey: ['placements', placementFilter],
     queryFn: async () => {
       const params = new URLSearchParams()
-      if (statusFilter !== 'All') params.set('status', statusFilter)
+      if (placementFilter.status !== 'All') params.set('status', placementFilter.status)
+      if (placementFilter.search) params.set('search', placementFilter.search)
+      if (placementFilter.fromDate) params.set('fromDate', placementFilter.fromDate)
+      if (placementFilter.toDate) params.set('toDate', placementFilter.toDate)
       const res = await fetch(`/api/placements?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch placements')
       return res.json()
@@ -917,7 +944,7 @@ export function PlacementsPage() {
       >
         <div className="rounded-lg bg-muted/50 p-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={placementFilter.status} onValueChange={(val) => setPlacementFilter({ status: val })}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -932,6 +959,75 @@ export function PlacementsPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Date Range Filter */}
+      <div className="rounded-lg bg-muted/50 p-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Range</span>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={placementFilter.fromDate || ''}
+                placeholder="From"
+                onChange={(e) => {
+                  setPlacementFilter({ fromDate: e.target.value, toDate: placementFilter.toDate })
+                }}
+              />
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={placementFilter.toDate || ''}
+                placeholder="To"
+                onChange={(e) => {
+                  setPlacementFilter({ fromDate: placementFilter.fromDate, toDate: e.target.value })
+                }}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={placementFilter.fromDate === todayStr && placementFilter.toDate === todayStr ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setPlacementFilter(getTodayRange())}
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setPlacementFilter(getThisWeekRange())}
+              >
+                This Week
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 btn-press"
+                onClick={() => setPlacementFilter(getThisMonthRange())}
+              >
+                This Month
+              </Button>
+              {hasDateFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive btn-press"
+                  onClick={() => setPlacementFilter({ fromDate: '', toDate: '' })}
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Table / Empty State */}
       {isLoading ? (
@@ -952,7 +1048,7 @@ export function PlacementsPage() {
           </CardContent>
         </Card>
       ) : placements.length === 0 ? (
-        <EmptyState isFiltered={statusFilter !== 'All'} />
+        <EmptyState isFiltered={placementFilter.status !== 'All' || hasDateFilter} />
       ) : (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -985,7 +1081,7 @@ export function PlacementsPage() {
                         exit={{ opacity: 0, x: 8 }}
                         transition={{ duration: 0.2 }}
                         className={cn(
-                          'border-l-4 hover:bg-muted/50',
+                          'table-row-hover border-l-4',
                           STATUS_BORDER_COLORS[placement.status] || 'border-l-gray-300'
                         )}
                       >

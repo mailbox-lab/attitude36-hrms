@@ -1,0 +1,783 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useCallback } from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import { useTheme } from 'next-themes'
+     6→import { toast } from 'sonner'
+     7→import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+     8→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+     9→import { Button } from '@/components/ui/button'
+    10→import { Switch } from '@/components/ui/switch'
+    11→import { Input } from '@/components/ui/input'
+    12→import { Label } from '@/components/ui/label'
+    13→import { Separator } from '@/components/ui/separator'
+    14→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    15→import { Badge } from '@/components/ui/badge'
+    16→import {
+    17→  AlertDialog,
+    18→  AlertDialogAction,
+    19→  AlertDialogCancel,
+    20→  AlertDialogContent,
+    21→  AlertDialogDescription,
+    22→  AlertDialogFooter,
+    23→  AlertDialogHeader,
+    24→  AlertDialogTitle,
+    25→  AlertDialogTrigger,
+    26→} from '@/components/ui/alert-dialog'
+    27→import {
+    28→  User,
+    29→  Palette,
+    30→  Bell,
+    31→  Database,
+    32→  Info,
+    33→  Save,
+    34→  Download,
+    35→  Trash2,
+    36→  RotateCcw,
+    37→  Sun,
+    38→  Moon,
+    39→  Monitor,
+    40→  Check,
+    41→  Loader2,
+    42→  Settings as SettingsIcon,
+    43→} from 'lucide-react'
+    44→import { useCRMStore } from '@/stores/crm-store'
+    45→import { cn } from '@/lib/utils'
+    46→
+    47→// ===================== Profile Tab =====================
+    48→function ProfileTab() {
+    49→  const [name, setName] = useState('')
+    50→  const [email, setEmail] = useState('')
+    51→  const [phone, setPhone] = useState('')
+    52→  const [role, setRole] = useState('')
+    53→  const [department, setDepartment] = useState('')
+    54→  const [saving, setSaving] = useState(false)
+    55→
+    56→  useEffect(() => {
+    57→    async function loadEmployee() {
+    58→      try {
+    59→        const res = await fetch('/api/employees')
+    60→        if (res.ok) {
+    61→          const json = await res.json()
+    62→          const employees = json.data || json
+    63→          if (Array.isArray(employees) && employees.length > 0) {
+    64→            const emp = employees[0]
+    65→            setName(emp.name || '')
+    66→            setEmail(emp.email || '')
+    67→            setPhone(emp.phone || '')
+    68→            setRole(emp.role || '')
+    69→            setDepartment(emp.department || '')
+    70→          }
+    71→        }
+    72→      } catch {
+    73→        // silently fail
+    74→      }
+    75→    }
+    76→    loadEmployee()
+    77→  }, [])
+    78→
+    79→  const getInitials = (name: string) => {
+    80→    return name
+    81→      .split(' ')
+    82→      .map((n) => n[0])
+    83→      .join('')
+    84→      .toUpperCase()
+    85→      .slice(0, 2)
+    86→  }
+    87→
+    88→  const handleSave = async () => {
+    89→    setSaving(true)
+    90→    // Simulate save with a small delay
+    91→    await new Promise((resolve) => setTimeout(resolve, 800))
+    92→    setSaving(false)
+    93→    toast.success('Profile updated successfully')
+    94→  }
+    95→
+    96→  return (
+    97→    <div className="space-y-6">
+    98→      <Card>
+    99→        <CardHeader>
+   100→          <CardTitle className="text-lg">Profile Information</CardTitle>
+   101→          <CardDescription>Manage your account details and profile information.</CardDescription>
+   102→        </CardHeader>
+   103→        <CardContent>
+   104→          <div className="flex flex-col sm:flex-row gap-6">
+   105→            {/* Avatar Section */}
+   106→            <div className="flex flex-col items-center gap-3">
+   107→              <Avatar className="h-24 w-24">
+   108→                <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+   109→                  {name ? getInitials(name) : 'RP'}
+   110→                </AvatarFallback>
+   111→              </Avatar>
+   112→              <Badge variant="secondary" className="text-xs">
+   113→                {role || 'Recruiter'}
+   114→              </Badge>
+   115→            </div>
+   116→
+   117→            {/* Form Fields */}
+   118→            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+   119→              <div className="space-y-2">
+   120→                <Label htmlFor="name">Full Name</Label>
+   121→                <Input
+   122→                  id="name"
+   123→                  value={name}
+   124→                  onChange={(e) => setName(e.target.value)}
+   125→                  placeholder="Enter your name"
+   126→                />
+   127→              </div>
+   128→              <div className="space-y-2">
+   129→                <Label htmlFor="email">Email Address</Label>
+   130→                <Input
+   131→                  id="email"
+   132→                  type="email"
+   133→                  value={email}
+   134→                  onChange={(e) => setEmail(e.target.value)}
+   135→                  placeholder="Enter your email"
+   136→                />
+   137→              </div>
+   138→              <div className="space-y-2">
+   139→                <Label htmlFor="phone">Phone Number</Label>
+   140→                <Input
+   141→                  id="phone"
+   142→                  value={phone}
+   143→                  onChange={(e) => setPhone(e.target.value)}
+   144→                  placeholder="Enter your phone number"
+   145→                />
+   146→              </div>
+   147→              <div className="space-y-2">
+   148→                <Label htmlFor="role">Role</Label>
+   149→                <Input
+   150→                  id="role"
+   151→                  value={role}
+   152→                  disabled
+   153→                  className="bg-muted cursor-not-allowed"
+   154→                />
+   155→              </div>
+   156→              <div className="space-y-2 md:col-span-2">
+   157→                <Label htmlFor="department">Department</Label>
+   158→                <Input
+   159→                  id="department"
+   160→                  value={department}
+   161→                  onChange={(e) => setDepartment(e.target.value)}
+   162→                  placeholder="Enter your department"
+   163→                />
+   164→              </div>
+   165→            </div>
+   166→          </div>
+   167→          <Separator className="my-6" />
+   168→          <div className="flex justify-end">
+   169→            <Button onClick={handleSave} disabled={saving}>
+   170→              {saving ? (
+   171→                <>
+   172→                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   173→                  Saving...
+   174→                </>
+   175→              ) : (
+   176→                <>
+   177→                  <Save className="h-4 w-4 mr-2" />
+   178→                  Save Changes
+   179→                </>
+   180→              )}
+   181→            </Button>
+   182→          </div>
+   183→        </CardContent>
+   184→      </Card>
+   185→    </div>
+   186→  )
+   187→}
+   188→
+   189→// ===================== Appearance Tab =====================
+   190→function AppearanceTab() {
+   191→  const { theme, setTheme } = useTheme()
+   192→  const [compactMode, setCompactMode] = useState(() => {
+   193→    if (typeof window === 'undefined') return false
+   194→    const cm = localStorage.getItem('recruitpro-compact-mode')
+   195→    return cm === null ? false : cm === 'true'
+   196→  })
+   197→  const [sidebarDefault, setSidebarDefault] = useState(() => {
+   198→    if (typeof window === 'undefined') return true
+   199→    const sd = localStorage.getItem('recruitpro-sidebar-default')
+   200→    return sd === null ? true : sd === 'true'
+   201→  })
+   202→
+   203→  const handleCompactChange = (checked: boolean) => {
+   204→    setCompactMode(checked)
+   205→    localStorage.setItem('recruitpro-compact-mode', String(checked))
+   206→    toast.success(checked ? 'Compact mode enabled' : 'Compact mode disabled')
+   207→  }
+   208→
+   209→  const handleSidebarDefault = (checked: boolean) => {
+   210→    setSidebarDefault(checked)
+   211→    localStorage.setItem('recruitpro-sidebar-default', String(checked))
+   212→    toast.success(checked ? 'Sidebar will default to expanded' : 'Sidebar will default to collapsed')
+   213→  }
+   214→
+   215→  const themeOptions = [
+   216→    { value: 'light', label: 'Light', icon: Sun },
+   217→    { value: 'dark', label: 'Dark', icon: Moon },
+   218→    { value: 'system', label: 'System', icon: Monitor },
+   219→  ] as const
+   220→
+   221→  return (
+   222→    <div className="space-y-6">
+   223→      {/* Theme Selection */}
+   224→      <Card>
+   225→        <CardHeader>
+   226→          <CardTitle className="text-lg">Theme</CardTitle>
+   227→          <CardDescription>Select your preferred color theme for the application.</CardDescription>
+   228→        </CardHeader>
+   229→        <CardContent>
+   230→          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   231→            {themeOptions.map((option) => {
+   232→              const Icon = option.icon
+   233→              const isActive = theme === option.value
+   234→              return (
+   235→                <button
+   236→                  key={option.value}
+   237→                  onClick={() => setTheme(option.value)}
+   238→                  className={cn(
+   239→                    'relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all hover:bg-accent/50 cursor-pointer',
+   240→                    isActive
+   241→                      ? 'border-primary bg-primary/5 shadow-sm'
+   242→                      : 'border-muted hover:border-muted-foreground/30'
+   243→                  )}
+   244→                >
+   245→                  {isActive && (
+   246→                    <div className="absolute top-2 right-2">
+   247→                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+   248→                        <Check className="h-3 w-3 text-primary-foreground" />
+   249→                      </div>
+   250→                    </div>
+   251→                  )}
+   252→                  <Icon className={cn('h-8 w-8', isActive ? 'text-primary' : 'text-muted-foreground')} />
+   253→                  <span className={cn('text-sm font-medium', isActive ? 'text-primary' : 'text-foreground')}>
+   254→                    {option.label}
+   255→                  </span>
+   256→                </button>
+   257→              )
+   258→            })}
+   259→          </div>
+   260→        </CardContent>
+   261→      </Card>
+   262→
+   263→      {/* Compact Mode */}
+   264→      <Card>
+   265→        <CardHeader>
+   266→          <CardTitle className="text-lg">Display Options</CardTitle>
+   267→          <CardDescription>Customize the display density and layout preferences.</CardDescription>
+   268→        </CardHeader>
+   269→        <CardContent className="space-y-6">
+   270→          <div className="flex items-center justify-between">
+   271→            <div className="space-y-0.5">
+   272→              <Label className="text-sm font-medium">Compact Mode</Label>
+   273→              <p className="text-xs text-muted-foreground">Reduce spacing and padding for a denser layout.</p>
+   274→            </div>
+   275→            <Switch checked={compactMode} onCheckedChange={handleCompactChange} />
+   276→          </div>
+   277→          <Separator />
+   278→          <div className="flex items-center justify-between">
+   279→            <div className="space-y-0.5">
+   280→              <Label className="text-sm font-medium">Sidebar Default State</Label>
+   281→              <p className="text-xs text-muted-foreground">
+   282→                {sidebarDefault ? 'Sidebar starts expanded on page load.' : 'Sidebar starts collapsed on page load.'}
+   283→              </p>
+   284→            </div>
+   285→            <Switch checked={sidebarDefault} onCheckedChange={handleSidebarDefault} />
+   286→          </div>
+   287→        </CardContent>
+   288→      </Card>
+   289→    </div>
+   290→  )
+   291→}
+   292→
+   293→// ===================== Notifications Tab =====================
+   294→function NotificationsTab() {
+   295→  const lsBool = (key: string, fallback: boolean) => {
+   296→    if (typeof window === 'undefined') return fallback
+   297→    const val = localStorage.getItem(key)
+   298→    return val === null ? fallback : val === 'true'
+   299→  }
+   300→
+   301→  const [emailNotifications, setEmailNotifications] = useState(() => lsBool('recruitpro-notif-email', true))
+   302→  const [interviewReminders, setInterviewReminders] = useState(() => lsBool('recruitpro-notif-interview', true))
+   303→  const [leaveAlerts, setLeaveAlerts] = useState(() => lsBool('recruitpro-notif-leave', true))
+   304→  const [placementUpdates, setPlacementUpdates] = useState(() => lsBool('recruitpro-notif-placement', true))
+   305→
+   306→  const toggleSetting = (
+   307→    key: string,
+   308→    value: boolean,
+   309→    setter: (v: boolean) => void,
+   310→    label: string
+   311→  ) => {
+   312→    setter(value)
+   313→    localStorage.setItem(key, String(value))
+   314→    toast.success(`${label} ${value ? 'enabled' : 'disabled'}`)
+   315→  }
+   316→
+   317→  const notificationItems = [
+   318→    {
+   319→      label: 'Email Notifications',
+   320→      description: 'Receive email notifications for important events and updates.',
+   321→      value: emailNotifications,
+   322→      setter: (v: boolean) => toggleSetting('recruitpro-notif-email', v, setEmailNotifications, 'Email Notifications'),
+   323→    },
+   324→    {
+   325→      label: 'Interview Reminders',
+   326→      description: 'Get reminded about upcoming interviews with candidates.',
+   327→      value: interviewReminders,
+   328→      setter: (v: boolean) => toggleSetting('recruitpro-notif-interview', v, setInterviewReminders, 'Interview Reminders'),
+   329→    },
+   330→    {
+   331→      label: 'Leave Request Alerts',
+   332→      description: 'Receive alerts when new leave requests are submitted.',
+   333→      value: leaveAlerts,
+   334→      setter: (v: boolean) => toggleSetting('recruitpro-notif-leave', v, setLeaveAlerts, 'Leave Request Alerts'),
+   335→    },
+   336→    {
+   337→      label: 'Placement Updates',
+   338→      description: 'Get notified about placement status changes and milestones.',
+   339→      value: placementUpdates,
+   340→      setter: (v: boolean) => toggleSetting('recruitpro-notif-placement', v, setPlacementUpdates, 'Placement Updates'),
+   341→    },
+   342→  ]
+   343→
+   344→  return (
+   345→    <div className="space-y-6">
+   346→      <Card>
+   347→        <CardHeader>
+   348→          <CardTitle className="text-lg">Notification Preferences</CardTitle>
+   349→          <CardDescription>Choose which notifications you would like to receive.</CardDescription>
+   350→        </CardHeader>
+   351→        <CardContent className="space-y-6">
+   352→          {notificationItems.map((item, index) => (
+   353→            <div key={item.label}>
+   354→              <div className="flex items-center justify-between">
+   355→                <div className="space-y-0.5 pr-4">
+   356→                  <Label className="text-sm font-medium">{item.label}</Label>
+   357→                  <p className="text-xs text-muted-foreground">{item.description}</p>
+   358→                </div>
+   359→                <Switch checked={item.value} onCheckedChange={item.setter} />
+   360→              </div>
+   361→              {index < notificationItems.length - 1 && <Separator className="mt-6" />}
+   362→            </div>
+   363→          ))}
+   364→        </CardContent>
+   365→      </Card>
+   366→    </div>
+   367→  )
+   368→}
+   369→
+   370→// ===================== Data Management Tab =====================
+   371→function DataManagementTab() {
+   372→  const [stats, setStats] = useState({
+   373→    totalCandidates: 0,
+   374→    totalClients: 0,
+   375→    totalJobs: 0,
+   376→    totalEmployees: 0,
+   377→  })
+   378→  const [statsLoading, setStatsLoading] = useState(true)
+   379→  const [exporting, setExporting] = useState(false)
+   380→  const [clearing, setClearing] = useState(false)
+   381→  const [reseeding, setReseeding] = useState(false)
+   382→
+   383→  const fetchStats = useCallback(async () => {
+   384→    try {
+   385→      setStatsLoading(true)
+   386→      const [dashRes, clientRes, empRes] = await Promise.all([
+   387→        fetch('/api/dashboard'),
+   388→        fetch('/api/clients'),
+   389→        fetch('/api/employees?activeOnly=false'),
+   390→      ])
+   391→
+   392→      const dashData = dashRes.ok ? await dashRes.json() : {}
+   393→      const clientData = clientRes.ok ? await clientRes.json() : { data: [] }
+   394→      const empData = empRes.ok ? await empRes.json() : { data: [] }
+   395→
+   396→      const clientList = clientData.data || clientData || []
+   397→      const empList = empData.data || empData || []
+   398→
+   399→      // Total clients from API (all, not just active)
+   400→      const totalClients = Array.isArray(clientList) ? clientList.length : 0
+   401→      const totalEmployees = Array.isArray(empList) ? empList.length : 0
+   402→
+   403→      // Total jobs: we need open + closed. The dashboard gives us openJobs.
+   404→      // For total, we fetch from the jobs API
+   405→      const jobsRes = await fetch('/api/jobs')
+   406→      const jobsData = jobsRes.ok ? await jobsRes.json() : { data: [] }
+   407→      const jobList = jobsData.data || jobsData || []
+   408→      const totalJobs = Array.isArray(jobList) ? jobList.length : 0
+   409→
+   410→      setStats({
+   411→        totalCandidates: dashData.totalCandidates || 0,
+   412→        totalClients,
+   413→        totalJobs,
+   414→        totalEmployees,
+   415→      })
+   416→    } catch {
+   417→      // silently fail
+   418→    } finally {
+   419→      setStatsLoading(false)
+   420→    }
+   421→  }, [])
+   422→
+   423→  useEffect(() => {
+   424→    fetchStats()
+   425→  }, [fetchStats])
+   426→
+   427→  const handleExport = async () => {
+   428→    setExporting(true)
+   429→    try {
+   430→      const res = await fetch('/api/candidates')
+   431→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   432→      const json = await res.json()
+   433→      const candidates = json.data || json || []
+   434→
+   435→      if (candidates.length === 0) {
+   436→        toast.error('No candidates to export')
+   437→        setExporting(false)
+   438→        return
+   439→      }
+   440→
+   441→      // Build CSV
+   442→      const headers = ['Name', 'Email', 'Phone', 'Title', 'Location', 'Experience', 'Status', 'Source', 'Rating']
+   443→      const rows = candidates.map((c: Record<string, unknown>) => [
+   444→        `${c.firstName || ''} ${c.lastName || ''}`.trim(),
+   445→        c.email || '',
+   446→        c.phone || '',
+   447→        c.title || '',
+   448→        c.location || '',
+   449→        c.experience ?? '',
+   450→        c.status || '',
+   451→        c.source || '',
+   452→        c.rating ?? '',
+   453→      ])
+   454→
+   455→      const csvContent = [headers, ...rows]
+   456→        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+   457→        .join('\n')
+   458→
+   459→      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+   460→      const url = URL.createObjectURL(blob)
+   461→      const link = document.createElement('a')
+   462→      link.href = url
+   463→      link.download = `recruitpro-candidates-${new Date().toISOString().split('T')[0]}.csv`
+   464→      link.click()
+   465→      URL.revokeObjectURL(url)
+   466→
+   467→      toast.success(`Exported ${candidates.length} candidates to CSV`)
+   468→    } catch {
+   469→      toast.error('Failed to export data')
+   470→    } finally {
+   471→      setExporting(false)
+   472→    }
+   473→  }
+   474→
+   475→  const handleClearAll = async () => {
+   476→    setClearing(true)
+   477→    try {
+   478→      // Delete all data by model type
+   479→      const models = ['placements', 'interviews', 'leave', 'attendance', 'candidates', 'jobs', 'clients', 'employees']
+   480→      await Promise.all(
+   481→        models.map(async (model) => {
+   482→          // Fetch all IDs first, then delete individually
+   483→          try {
+   484→            const res = await fetch(`/api/${model}`)
+   485→            if (!res.ok) return
+   486→            const json = await res.json()
+   487→            const items = json.data || json || []
+   488→            if (Array.isArray(items)) {
+   489→              await Promise.all(
+   490→                items.map((item: Record<string, unknown>) =>
+   491→                  fetch(`/api/${model}/${item.id}`, { method: 'DELETE' }).catch(() => {})
+   492→                )
+   493→              )
+   494→            }
+   495→          } catch {
+   496→            // continue
+   497→          }
+   498→        })
+   499→      )
+   500→      toast.success('All data has been cleared successfully')
+   501→      fetchStats()
+   502→    } catch {
+   503→      toast.error('Failed to clear data')
+   504→    } finally {
+   505→      setClearing(false)
+   506→    }
+   507→  }
+   508→
+   509→  const handleReseed = async () => {
+   510→    setReseeding(true)
+   511→    try {
+   512→      const res = await fetch('/api/seed', { method: 'POST' })
+   513→      if (res.ok) {
+   514→        toast.success('Sample data has been reseeded successfully')
+   515→        fetchStats()
+   516→      } else {
+   517→        toast.error('Failed to reseed data')
+   518→      }
+   519→    } catch {
+   520→      toast.error('Failed to reseed data')
+   521→    } finally {
+   522→      setReseeding(false)
+   523→    }
+   524→  }
+   525→
+   526→  return (
+   527→    <div className="space-y-6">
+   528→      {/* Database Info */}
+   529→      <Card>
+   530→        <CardHeader>
+   531→          <CardTitle className="text-lg">Database Overview</CardTitle>
+   532→          <CardDescription>Current statistics for your RecruitPro database.</CardDescription>
+   533→        </CardHeader>
+   534→        <CardContent>
+   535→          {statsLoading ? (
+   536→            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   537→              {Array.from({ length: 4 }).map((_, i) => (
+   538→                <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+   539→              ))}
+   540→            </div>
+   541→          ) : (
+   542→            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   543→              <div className="rounded-lg border bg-card p-4 text-center">
+   544→                <p className="text-2xl font-bold text-primary">{stats.totalCandidates}</p>
+   545→                <p className="text-xs text-muted-foreground mt-1">Total Candidates</p>
+   546→              </div>
+   547→              <div className="rounded-lg border bg-card p-4 text-center">
+   548→                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.totalClients}</p>
+   549→                <p className="text-xs text-muted-foreground mt-1">Total Clients</p>
+   550→              </div>
+   551→              <div className="rounded-lg border bg-card p-4 text-center">
+   552→                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.totalJobs}</p>
+   553→                <p className="text-xs text-muted-foreground mt-1">Total Jobs</p>
+   554→              </div>
+   555→              <div className="rounded-lg border bg-card p-4 text-center">
+   556→                <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.totalEmployees}</p>
+   557→                <p className="text-xs text-muted-foreground mt-1">Total Employees</p>
+   558→              </div>
+   559→            </div>
+   560→          )}
+   561→        </CardContent>
+   562→      </Card>
+   563→
+   564→      {/* Actions */}
+   565→      <Card>
+   566→        <CardHeader>
+   567→          <CardTitle className="text-lg">Data Actions</CardTitle>
+   568→          <CardDescription>Export, clear, or reseed your application data.</CardDescription>
+   569→        </CardHeader>
+   570→        <CardContent className="space-y-4">
+   571→          <div className="flex flex-col sm:flex-row gap-3">
+   572→            <Button
+   573→              variant="outline"
+   574→              onClick={handleExport}
+   575→              disabled={exporting}
+   576→              className="flex-1 sm:flex-none"
+   577→            >
+   578→              {exporting ? (
+   579→                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   580→              ) : (
+   581→                <Download className="h-4 w-4 mr-2" />
+   582→              )}
+   583→              Export All Data (CSV)
+   584→            </Button>
+   585→
+   586→            <AlertDialog>
+   587→              <AlertDialogTrigger asChild>
+   588→                <Button
+   589→                  variant="destructive"
+   590→                  disabled={clearing}
+   591→                  className="flex-1 sm:flex-none"
+   592→                >
+   593→                  {clearing ? (
+   594→                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   595→                  ) : (
+   596→                    <Trash2 className="h-4 w-4 mr-2" />
+   597→                  )}
+   598→                  Clear All Data
+   599→                </Button>
+   600→              </AlertDialogTrigger>
+   601→              <AlertDialogContent>
+   602→                <AlertDialogHeader>
+   603→                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+   604→                  <AlertDialogDescription>
+   605→                    This action cannot be undone. This will permanently delete all candidates,
+   606→                    clients, jobs, interviews, placements, attendance records, leave requests,
+   607→                    and employees from your database.
+   608→                  </AlertDialogDescription>
+   609→                </AlertDialogHeader>
+   610→                <AlertDialogFooter>
+   611→                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+   612→                  <AlertDialogAction
+   613→                    onClick={handleClearAll}
+   614→                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+   615→                  >
+   616→                    Yes, delete everything
+   617→                  </AlertDialogAction>
+   618→                </AlertDialogFooter>
+   619→              </AlertDialogContent>
+   620→            </AlertDialog>
+   621→
+   622→            <Button
+   623→              variant="outline"
+   624→              onClick={handleReseed}
+   625→              disabled={reseeding}
+   626→              className="flex-1 sm:flex-none"
+   627→            >
+   628→              {reseeding ? (
+   629→                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   630→              ) : (
+   631→                <RotateCcw className="h-4 w-4 mr-2" />
+   632→              )}
+   633→              Reseed Sample Data
+   634→            </Button>
+   635→          </div>
+   636→        </CardContent>
+   637→      </Card>
+   638→    </div>
+   639→  )
+   640→}
+   641→
+   642→// ===================== About Tab =====================
+   643→function AboutTab() {
+   644→  const techStack = [
+   645→    { name: 'Next.js 16', color: 'bg-foreground' },
+   646→    { name: 'TypeScript', color: 'bg-cyan-600' },
+   647→    { name: 'Tailwind CSS', color: 'bg-cyan-500' },
+   648→    { name: 'shadcn/ui', color: 'bg-neutral-800 dark:bg-neutral-200' },
+   649→    { name: 'Prisma', color: 'bg-violet-500' },
+   650→  ]
+   651→
+   652→  return (
+   653→    <div className="space-y-6">
+   654→      {/* App Branding Card */}
+   655→      <Card className="overflow-hidden">
+   656→        <div className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-background p-8">
+   657→          <div className="flex flex-col items-center gap-4">
+   658→            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
+   659→              <span className="text-3xl font-bold text-primary-foreground">R</span>
+   660→            </div>
+   661→            <div className="text-center">
+   662→              <h2 className="text-2xl font-bold tracking-tight">RecruitPro CRM</h2>
+   663→              <p className="text-sm text-muted-foreground mt-1">Modern Recruitment Management System</p>
+   664→            </div>
+   665→          </div>
+   666→        </div>
+   667→        <Separator />
+   668→        <CardContent className="pt-6">
+   669→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   670→            <div className="space-y-1">
+   671→              <p className="text-xs text-muted-foreground">Version</p>
+   672→              <p className="text-sm font-medium">1.0.0</p>
+   673→            </div>
+   674→            <div className="space-y-1">
+   675→              <p className="text-xs text-muted-foreground">License</p>
+   676→              <p className="text-sm font-medium">Proprietary</p>
+   677→            </div>
+   678→            <div className="space-y-1">
+   679→              <p className="text-xs text-muted-foreground">Environment</p>
+   680→              <Badge variant="outline" className="text-xs">Production</Badge>
+   681→            </div>
+   682→            <div className="space-y-1">
+   683→              <p className="text-xs text-muted-foreground">Database</p>
+   684→              <p className="text-sm font-medium">SQLite</p>
+   685→            </div>
+   686→          </div>
+   687→        </CardContent>
+   688→      </Card>
+   689→
+   690→      {/* Tech Stack Card */}
+   691→      <Card>
+   692→        <CardHeader>
+   693→          <CardTitle className="text-lg">Built With</CardTitle>
+   694→          <CardDescription>The technologies powering RecruitPro CRM.</CardDescription>
+   695→        </CardHeader>
+   696→        <CardContent>
+   697→          <div className="flex flex-wrap gap-2">
+   698→            {techStack.map((tech) => (
+   699→              <div
+   700→                key={tech.name}
+   701→                className="flex items-center gap-2 rounded-lg border px-3 py-2"
+   702→              >
+   703→                <div className={cn('h-2.5 w-2.5 rounded-full', tech.color)} />
+   704→                <span className="text-sm font-medium">{tech.name}</span>
+   705→              </div>
+   706→            ))}
+   707→          </div>
+   708→        </CardContent>
+   709→      </Card>
+   710→
+   711→      {/* Copyright */}
+   712→      <p className="text-center text-xs text-muted-foreground">
+   713→        © 2025 RecruitPro CRM. All rights reserved.
+   714→      </p>
+   715→    </div>
+   716→  )
+   717→}
+   718→
+   719→// ===================== Main Settings Page =====================
+   720→export function SettingsPage() {
+   721→  return (
+   722→    <motion.div
+   723→      initial={{ opacity: 0, y: 12 }}
+   724→      animate={{ opacity: 1, y: 0 }}
+   725→      transition={{ duration: 0.3, ease: 'easeOut' }}
+   726→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   727→    >
+   728→      <div className="space-y-3">
+   729→        <div className="flex items-center gap-3">
+   730→          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-950">
+   731→            <SettingsIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+   732→          </div>
+   733→          <div>
+   734→            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
+   735→            <p className="mt-1 text-sm text-muted-foreground">Manage your application preferences and account settings</p>
+   736→          </div>
+   737→        </div>
+   738→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-rose-400 to-pink-400" />
+   739→      </div>
+   740→
+   741→      <Tabs defaultValue="profile" className="w-full">
+   742→        <TabsList className="w-full sm:w-auto">
+   743→          <TabsTrigger value="profile" className="gap-1.5">
+   744→            <User className="h-3.5 w-3.5" />
+   745→            <span className="hidden sm:inline">Profile</span>
+   746→          </TabsTrigger>
+   747→          <TabsTrigger value="appearance" className="gap-1.5">
+   748→            <Palette className="h-3.5 w-3.5" />
+   749→            <span className="hidden sm:inline">Appearance</span>
+   750→          </TabsTrigger>
+   751→          <TabsTrigger value="notifications" className="gap-1.5">
+   752→            <Bell className="h-3.5 w-3.5" />
+   753→            <span className="hidden sm:inline">Notifications</span>
+   754→          </TabsTrigger>
+   755→          <TabsTrigger value="data" className="gap-1.5">
+   756→            <Database className="h-3.5 w-3.5" />
+   757→            <span className="hidden sm:inline">Data</span>
+   758→          </TabsTrigger>
+   759→          <TabsTrigger value="about" className="gap-1.5">
+   760→            <Info className="h-3.5 w-3.5" />
+   761→            <span className="hidden sm:inline">About</span>
+   762→          </TabsTrigger>
+   763→        </TabsList>
+   764→
+   765→        <TabsContent value="profile" className="mt-6">
+   766→          <ProfileTab />
+   767→        </TabsContent>
+   768→        <TabsContent value="appearance" className="mt-6">
+   769→          <AppearanceTab />
+   770→        </TabsContent>
+   771→        <TabsContent value="notifications" className="mt-6">
+   772→          <NotificationsTab />
+   773→        </TabsContent>
+   774→        <TabsContent value="data" className="mt-6">
+   775→          <DataManagementTab />
+   776→        </TabsContent>
+   777→        <TabsContent value="about" className="mt-6">
+   778→          <AboutTab />
+   779→        </TabsContent>
+   780→      </Tabs>
+   781→    </motion.div>
+   782→  )
+   783→}

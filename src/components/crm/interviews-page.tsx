@@ -680,7 +680,7 @@ export function InterviewsPage() {
               </TableHeader>
               <TableBody>
                 {interviews.map((interview, idx) => (
-                  <TableRow key={interview.id} className={`border-l-4 ${STATUS_BORDER_COLORS[interview.status] || 'border-l-gray-300'} ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}>
+                  <TableRow key={interview.id} className={`table-row-hover border-l-4 ${STATUS_BORDER_COLORS[interview.status] || 'border-l-gray-300'} ${idx % 2 === 1 ? 'bg-muted/30' : ''}`}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 shrink-0 text-muted-foreground" />
