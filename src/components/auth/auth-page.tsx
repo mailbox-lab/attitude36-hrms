@@ -25,10 +25,10 @@ import {
 } from 'lucide-react'
 
 const demoAccounts = [
-  { role: 'FOUNDER' as UserRole, email: 'arjun@attitude360.com', password: 'password123' },
-  { role: 'COFOUNDER' as UserRole, email: 'priya@attitude360.com', password: 'password123' },
-  { role: 'HR' as UserRole, email: 'rahul@attitude360.com', password: 'password123' },
-  { role: 'EMPLOYEE' as UserRole, email: 'vikram@attitude360.com', password: 'password123' },
+  { role: 'FOUNDER' as UserRole, email: 'arjun@attitude360.com', password: 'founder123' },
+  { role: 'COFOUNDER' as UserRole, email: 'priya@attitude360.com', password: 'founder123' },
+  { role: 'HR' as UserRole, email: 'rahul@attitude360.com', password: 'hr123' },
+  { role: 'EMPLOYEE' as UserRole, email: 'vikram@attitude360.com', password: 'emp123' },
 ]
 
 const departments = ['Engineering', 'HR', 'Sales', 'Marketing', 'Finance', 'Operations', 'Design', 'Other']
@@ -54,7 +54,7 @@ function LeftPanel() {
         </div>
 
         <div className="space-y-4 mt-12">
-          {['Attendance Tracking', 'Leave Management', 'Recruitment Pipeline'].map((feature) => (
+          {['Attendance Tracking', 'Leave Management', 'Org Hierarchy', 'Role-Based Access'].map((feature) => (
             <div key={feature} className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
                 <Check className="h-4 w-4" />

@@ -18,6 +18,7 @@ export type CRMView =
   | 'notifications'
   | 'analytics'
   | 'settings'
+  | 'org-hierarchy'
   | 'my-dashboard'
   | 'my-attendance'
   | 'my-leave'

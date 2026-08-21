@@ -9,23 +9,29 @@ datasource db {
 
 // ===== EMPLOYEES (Users with auth) =====
 model Employee {
-  id         String   @id @default(cuid())
-  name       String
-  email      String   @unique
-  phone      String?
-  password   String?                          // bcrypt hash, null = no login yet
-  role       String   @default("EMPLOYEE")   // FOUNDER, COFOUNDER, HR, EMPLOYEE
-  department String?
-  avatar     String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  password      String?                          // bcrypt hash, null = no login yet
+  role          String    @default("EMPLOYEE")   // FOUNDER, COFOUNDER, HR, EMPLOYEE
+  department    String?
+  designation   String?
+  avatar        String?
+  isActive      Boolean   @default(true)
+  reportingToId String?                           // Hierarchy: direct manager/reporting line
+  reportingTo   Employee?  @relation("ReportingTo", fields: [reportingToId], references: [id])
+  reportees     Employee[] @relation("ReportingTo")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   attendance    Attendance[]
   leaveRequests LeaveRequest[]
   leaveBalances LeaveBalance[]
   placements    Placement[]  @relation("PlacementRecruiter")
   activities    ActivityLog[]
+  approvedLeavesL1 LeaveRequest[] @relation("ApproverL1")
+  approvedLeavesL2 LeaveRequest[] @relation("ApproverL2")
   assignedJobs  JobOpening[]  @relation("JobRecruiter")
 }
 
@@ -180,19 +186,28 @@ model LeaveBalance {
 
 // ===== LEAVE REQUESTS =====
 model LeaveRequest {
-  id          String   @id @default(cuid())
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
-  type        String
-  startDate   DateTime
-  endDate     DateTime
-  totalDays   Float
-  reason      String?
-  status      String   @default("Pending")
-  approvedBy  String?
-  approvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String    @id @default(cuid())
+  employeeId        String
+  employee          Employee   @relation(fields: [employeeId], references: [id])
+  type              String
+  startDate         DateTime
+  endDate           DateTime
+  totalDays         Float
+  reason            String?
+  status            String    @default("Pending")   // Pending, Approved, Rejected, Cancelled
+  approvalStep      Int?                                 // 1 = L1 pending, 2 = L2 pending, null = finalized
+  approverRole      String?                              // Who should approve next: HR or FOUNDER/COFOUNDER
+  approvedByLevel1  String?
+  approvedByL1      Employee?  @relation("ApproverL1", fields: [approvedByLevel1], references: [id])
+  approvedAtLevel1  DateTime?
+  remarkL1          String?
+  approvedByLevel2  String?
+  approvedByL2      Employee?  @relation("ApproverL2", fields: [approvedByLevel2], references: [id])
+  approvedAtLevel2  DateTime?
+  remarkL2          String?
+  rejectionReason   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 // ===== ACTIVITY LOG =====

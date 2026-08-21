@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Users,
   Briefcase,
@@ -18,12 +19,15 @@ import {
   ArrowRight,
   BarChart3,
   Activity,
+  Shield,
+  ChevronRight,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCRMStore } from '@/stores/crm-store'
 import type { CRMView } from '@/stores/crm-store'
+import { useAuth } from '@/lib/use-auth'
 import { motion } from 'framer-motion'
 import {
   BarChart,
@@ -968,6 +972,102 @@ function QuickActionButton({
   )
 }
 
+// ===== Pending Approvals Widget =====
+
+function PendingApprovalsWidget() {
+  const { role } = useAuth()
+  const navigate = useCRMStore((s) => s.navigate)
+
+  const { data: pendingData, isLoading } = useQuery<{ data: Array<{ id: string; employee: { name: string; role: string; designation: string | null }; type: string; totalDays: number; startDate: string; approverRole: string | null }> }>({
+    queryKey: ['dashboard-pending-approvals', role],
+    queryFn: async () => {
+      if (role === 'EMPLOYEE') return { data: [] }
+      const params = new URLSearchParams({ view: 'pending-approvals', pendingFor: role })
+      const res = await fetch(`/api/leave?${params.toString()}`)
+      if (!res.ok) return { data: [] }
+      return res.json()
+    },
+    enabled: role !== 'EMPLOYEE',
+    staleTime: 1000 * 60,
+    refetchInterval: 1000 * 60 * 2,
+  })
+
+  const pendingItems = pendingData?.data ?? []
+
+  if (role === 'EMPLOYEE' || (pendingItems.length === 0 && !isLoading)) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+    >
+      <Card className="card-glass border-2 border-amber-200/60 dark:border-amber-900/40 bg-gradient-to-r from-amber-50/50 to-orange-50/30 dark:from-amber-950/10 dark:to-orange-950/10">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+                <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                {pendingItems.length > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {pendingItems.length}
+                  </span>
+                )}
+              </div>
+              <div>
+                <CardTitle className="text-base">Pending Approvals</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {role === 'HR' ? 'Employee leaves awaiting your approval' : 'HR leaves awaiting your approval'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('leave')}
+              className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors"
+            >
+              View All <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : pendingItems.length > 0 ? (
+            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+              {pendingItems.slice(0, 5).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-lg border border-amber-200/50 dark:border-amber-900/30 bg-white/50 dark:bg-white/5 p-2.5 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors cursor-pointer"
+                  onClick={() => navigate('leave')}
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {item.employee.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.employee.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.type} · {item.totalDays} day{item.totalDays > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 text-[10px] shrink-0">
+                    {item.approverRole === 'HR' ? '→ HR' : '→ Founder'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No pending approvals</p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+
 // ===== Main Dashboard Page =====
 
 export function DashboardPage() {
@@ -1199,6 +1299,8 @@ export function DashboardPage() {
         </Card>
       </motion.div>
 
+      {/* Pending Approvals Widget - for HR and above */}
+      <PendingApprovalsWidget />
       {/* Charts Section */}
       <section>
         <div className="mb-4 flex items-center gap-3">

@@ -16,6 +16,7 @@ export async function POST() {
     await db.client.deleteMany();
 
     // ===== EMPLOYEES =====
+    // Hierarchy: Founder/Co-Founder → HR → Employees
     const employees = await Promise.all([
       db.employee.create({
         data: {
@@ -24,6 +25,7 @@ export async function POST() {
           phone: '+91-9876543210',
           password: hashSync('founder123', 10),
           role: 'FOUNDER',
+          designation: 'Founder & CEO',
           department: 'Leadership',
           isActive: true,
         },
@@ -35,6 +37,7 @@ export async function POST() {
           phone: '+91-9876543211',
           password: hashSync('founder123', 10),
           role: 'COFOUNDER',
+          designation: 'Co-Founder & CTO',
           department: 'Leadership',
           isActive: true,
         },
@@ -46,7 +49,9 @@ export async function POST() {
           phone: '+91-9876543212',
           password: hashSync('hr123', 10),
           role: 'HR',
+          designation: 'HR Manager',
           department: 'Human Resources',
+          reportingToId: undefined, // Will be set after founder creation
           isActive: true,
         },
       }),
@@ -57,7 +62,9 @@ export async function POST() {
           phone: '+91-9876543213',
           password: hashSync('hr123', 10),
           role: 'HR',
+          designation: 'Senior HR Executive',
           department: 'Human Resources',
+          reportingToId: undefined, // Will be set after founder creation
           isActive: true,
         },
       }),
@@ -68,7 +75,9 @@ export async function POST() {
           phone: '+91-9876543214',
           password: hashSync('emp123', 10),
           role: 'EMPLOYEE',
+          designation: 'Recruiter',
           department: 'Recruitment',
+          reportingToId: undefined, // Will be set after HR creation
           isActive: true,
         },
       }),
@@ -79,11 +88,49 @@ export async function POST() {
           phone: '+91-9876543215',
           password: hashSync('emp123', 10),
           role: 'EMPLOYEE',
+          designation: 'Senior Recruiter',
           department: 'Recruitment',
+          reportingToId: undefined, // Will be set after HR creation
+          isActive: true,
+        },
+      }),
+      db.employee.create({
+        data: {
+          name: 'Kiran Rao',
+          email: 'kiran@attitude360.com',
+          phone: '+91-9876543216',
+          password: hashSync('emp123', 10),
+          role: 'EMPLOYEE',
+          designation: 'Marketing Associate',
+          department: 'Marketing',
+          reportingToId: undefined,
+          isActive: true,
+        },
+      }),
+      db.employee.create({
+        data: {
+          name: 'Deepak Joshi',
+          email: 'deepak@attitude360.com',
+          phone: '+91-9876543217',
+          password: hashSync('emp123', 10),
+          role: 'EMPLOYEE',
+          designation: 'Finance Analyst',
+          department: 'Finance',
+          reportingToId: undefined,
           isActive: true,
         },
       }),
     ]);
+
+    // Set up reporting hierarchy
+    // HR reports to Founder
+    await db.employee.update({ where: { id: employees[2].id }, data: { reportingToId: employees[0].id } });
+    await db.employee.update({ where: { id: employees[3].id }, data: { reportingToId: employees[0].id } });
+    // Employees report to HR
+    await db.employee.update({ where: { id: employees[4].id }, data: { reportingToId: employees[2].id } });
+    await db.employee.update({ where: { id: employees[5].id }, data: { reportingToId: employees[2].id } });
+    await db.employee.update({ where: { id: employees[6].id }, data: { reportingToId: employees[3].id } });
+    await db.employee.update({ where: { id: employees[7].id }, data: { reportingToId: employees[3].id } });
 
     // ===== CLIENTS =====
     const clients = await Promise.all([
@@ -490,13 +537,77 @@ export async function POST() {
     );
 
     // ===== LEAVE REQUESTS =====
+    // Hierarchy-based: Employee leave → needs HR approval, HR leave → needs Founder approval
+    // Founder/Co-Founder leave → auto-approved
     const leaveRequestData = [
-      { employeeId: employees[0].id, type: 'Casual Leave', startDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), totalDays: 3, reason: 'Family function', status: 'Approved', approvedBy: 'admin' },
-      { employeeId: employees[1].id, type: 'Sick Leave', startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), totalDays: 1, reason: 'Not feeling well, doctor appointment', status: 'Approved', approvedBy: 'rahul@attitude360.com' },
-      { employeeId: employees[2].id, type: 'Casual Leave', startDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000), totalDays: 3, reason: 'Travel plans', status: 'Pending', approvedBy: null },
-      { employeeId: employees[3].id, type: 'Earned Leave', startDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 19 * 24 * 60 * 60 * 1000), totalDays: 5, reason: 'Vacation with family', status: 'Pending', approvedBy: null },
-      { employeeId: employees[4].id, type: 'Casual Leave', startDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), totalDays: 1, reason: 'Personal work', status: 'Rejected', approvedBy: 'rahul@attitude360.com' },
-      { employeeId: employees[5].id, type: 'Earned Leave', startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), endDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), totalDays: 8, reason: 'International travel', status: 'Pending', approvedBy: null },
+      // Founder (auto-approved)
+      {
+        employeeId: employees[0].id, type: 'Casual Leave',
+        startDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        totalDays: 3, reason: 'Family function',
+        status: 'Approved', approvalStep: null, approverRole: null,
+      },
+      // Co-Founder (auto-approved)
+      {
+        employeeId: employees[1].id, type: 'Sick Leave',
+        startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        totalDays: 1, reason: 'Not feeling well, doctor appointment',
+        status: 'Approved', approvalStep: null, approverRole: null,
+      },
+      // HR (needs Founder approval) - Pending
+      {
+        employeeId: employees[2].id, type: 'Casual Leave',
+        startDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
+        totalDays: 3, reason: 'Travel plans',
+        status: 'Pending', approvalStep: 1, approverRole: 'FOUNDER_OR_COFOUNDER',
+      },
+      // HR (needs Founder approval) - Pending
+      {
+        employeeId: employees[3].id, type: 'Earned Leave',
+        startDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 19 * 24 * 60 * 60 * 1000),
+        totalDays: 5, reason: 'Vacation with family',
+        status: 'Pending', approvalStep: 1, approverRole: 'FOUNDER_OR_COFOUNDER',
+      },
+      // Employee (needs HR approval) - Rejected by HR
+      {
+        employeeId: employees[4].id, type: 'Casual Leave',
+        startDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+        totalDays: 1, reason: 'Personal work',
+        status: 'Rejected', approvalStep: null, approverRole: null,
+        approvedByLevel1: employees[2].id, approvedAtLevel1: new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000),
+        remarkL1: 'Critical project deadline, cannot approve.', rejectionReason: 'Critical project deadline, cannot approve.',
+      },
+      // Employee (needs HR approval) - Pending
+      {
+        employeeId: employees[5].id, type: 'Earned Leave',
+        startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+        totalDays: 8, reason: 'International travel',
+        status: 'Pending', approvalStep: 1, approverRole: 'HR',
+      },
+      // Employee (needs HR approval) - Pending
+      {
+        employeeId: employees[6].id, type: 'Sick Leave',
+        startDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
+        totalDays: 2, reason: 'Fever and cold, need rest',
+        status: 'Pending', approvalStep: 1, approverRole: 'HR',
+      },
+      // Employee (needs HR approval) - Approved
+      {
+        employeeId: employees[7].id, type: 'Casual Leave',
+        startDate: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+        totalDays: 2, reason: 'Family event',
+        status: 'Approved', approvalStep: null, approverRole: null,
+        approvedByLevel1: employees[3].id, approvedAtLevel1: new Date(now.getTime() - 16 * 24 * 60 * 60 * 1000),
+        remarkL1: 'Approved. Have a good time!',
+      },
     ];
 
     await Promise.all(

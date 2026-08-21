@@ -27,6 +27,7 @@ const ActivityFeedPage = lazy(() => import('@/components/crm/activity-feed-page'
 const NotificationCenter = lazy(() => import('@/components/crm/notification-center').then(m => ({ default: m.NotificationCenter })))
 const AnalyticsPage = lazy(() => import('@/components/crm/analytics-page').then(m => ({ default: m.AnalyticsPage })))
 const SettingsPage = lazy(() => import('@/components/crm/settings-page').then(m => ({ default: m.SettingsPage })))
+const OrgHierarchyPage = lazy(() => import('@/components/crm/org-hierarchy-page').then(m => ({ default: m.OrgHierarchyPage })))
 
 function PageLoader() {
   return (
@@ -135,6 +136,8 @@ function CRMApp() {
         return <NotificationCenter />
       case 'analytics':
         return <AnalyticsPage />
+      case 'org-hierarchy':
+        return <OrgHierarchyPage />
       case 'settings':
       case 'my-profile':
         return <SettingsPage />

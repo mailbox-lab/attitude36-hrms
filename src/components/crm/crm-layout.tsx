@@ -32,6 +32,7 @@ import {
   Bell,
   Keyboard,
   LogOut,
+  Network,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -64,6 +65,7 @@ const allNavItems: { icon: typeof LayoutDashboard; label: string; view: CRMView;
   { icon: Activity, label: 'Activity', view: 'activity-feed', section: 'TRACKING' },
   { icon: Bell, label: 'Notifications', view: 'notifications', section: 'NOTIFICATIONS' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
+  { icon: Network, label: 'Org Hierarchy', view: 'org-hierarchy', badge: 'Tree', badgeColor: 'bg-amber-500' },
   { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-violet-500' },
   { icon: Settings, label: 'Settings', view: 'settings', section: 'System' },
 ]
@@ -336,7 +338,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v2.0.0
+                v2.1.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with <span className="animate-dot-pulse inline-block">♥</span> in India</span>
