@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -107,21 +108,21 @@ const INTERVIEW_TYPES = ['Phone', 'Technical', 'HR', 'Managerial', 'Final']
 const EDITABLE_STATUSES = ['Scheduled', 'Completed', 'Cancelled', 'No-Show']
 
 const STATUS_COLORS: Record<string, string> = {
-  Scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  Scheduled: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
   Completed: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
   'No-Show': 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
 }
 
 const STATUS_BORDER_COLORS: Record<string, string> = {
-  Scheduled: 'border-l-blue-500',
+  Scheduled: 'border-l-cyan-500',
   Completed: 'border-l-green-500',
   Cancelled: 'border-l-red-500',
   'No-Show': 'border-l-orange-500',
 }
 
 const TYPE_DOT_COLORS: Record<string, string> = {
-  Phone: 'bg-sky-500',
+  Phone: 'bg-cyan-500',
   Technical: 'bg-violet-500',
   HR: 'bg-amber-500',
   Managerial: 'bg-emerald-500',
@@ -129,7 +130,7 @@ const TYPE_DOT_COLORS: Record<string, string> = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  Phone: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400',
+  Phone: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
   Technical: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
   HR: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
   Managerial: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
@@ -592,24 +593,35 @@ export function InterviewsPage() {
   })
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+    >
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Interviews</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Schedule and manage candidate interviews
-            {data && (
-              <span className="ml-1 font-medium text-foreground">
-                ({interviews.length} interviews)
-              </span>
-            )}
-          </p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-950">
+              <CalendarClock className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Interviews</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Schedule and manage candidate interviews</p>
+            </div>
+          </div>
+          <Button onClick={() => setScheduleDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Schedule Interview
+          </Button>
         </div>
-        <Button onClick={() => setScheduleDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Schedule Interview
-        </Button>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400" />
+        {data && (
+          <p className="text-sm text-muted-foreground">
+            {interviews.length} interviews
+          </p>
+        )}
       </div>
 
       {/* View Toggle */}
@@ -694,14 +706,14 @@ export function InterviewsPage() {
         )
         if (todayInterviews.length === 0) return null
         return (
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
+          <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 dark:border-cyan-900 dark:bg-cyan-950/30">
             <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300">Today's Interviews ({todayInterviews.length})</h3>
+              <CalendarDays className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              <h3 className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">Today's Interviews ({todayInterviews.length})</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {todayInterviews.map((i) => (
-                <div key={i.id} className="flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs shadow-sm dark:bg-blue-950/50">
+                <div key={i.id} className="flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs shadow-sm dark:bg-cyan-950/50">
                   <span className="font-medium">{i.candidate.firstName} {i.candidate.lastName}</span>
                   <span className="text-muted-foreground">•</span>
                   <Badge className={`text-[10px] ${TYPE_COLORS[i.type] || ''}`}>{i.type}</Badge>
@@ -887,6 +899,6 @@ export function InterviewsPage() {
         }}
         interview={feedbackInterview}
       />
-    </div>
+    </motion.div>
   )
 }

@@ -835,34 +835,40 @@ export function PlacementsPage() {
       transition={{ duration: 0.35, ease: 'easeOut' }}
     >
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Placements</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track candidate placements and commissions
-            {data && (
-              <span className="ml-1 font-medium text-foreground">
-                ({placements.length} total)
-              </span>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+              <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Placements</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Track candidate placements and commissions</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {placements.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportToCSV(placements)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
             )}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {placements.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => exportToCSV(placements)}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Placement
             </Button>
-          )}
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Placement
-          </Button>
+          </div>
         </div>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400" />
+        {data && (
+          <p className="text-sm text-muted-foreground">
+            {placements.length} total
+          </p>
+        )}
       </div>
 
       {/* Revenue Overview Cards */}

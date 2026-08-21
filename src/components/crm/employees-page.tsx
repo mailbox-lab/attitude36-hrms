@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { useCRMStore } from '@/stores/crm-store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -331,10 +333,12 @@ function EmployeeCard({
   employee,
   onEdit,
   onDelete,
+  onClick,
 }: {
   employee: Employee
   onEdit: () => void
   onDelete: () => void
+  onClick: () => void
 }) {
   const initials = getInitials(employee.name)
 
@@ -342,7 +346,10 @@ function EmployeeCard({
     <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer min-w-0"
+            onClick={onClick}
+          >
             <Avatar className="h-12 w-12">
               {employee.avatar && <AvatarImage src={employee.avatar} alt={employee.name} />}
               <AvatarFallback className={`${AVATAR_GRADIENTS[employee.role] || 'bg-gradient-to-br from-gray-400 to-gray-600'} text-sm font-semibold text-white`}>
@@ -350,7 +357,7 @@ function EmployeeCard({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold">{employee.name}</h3>
+              <h3 className="truncate text-sm font-semibold hover:text-primary transition-colors">{employee.name}</h3>
               <div className="mt-1 flex items-center gap-1.5">
                 <Badge
                   className={`text-[10px] ${ROLE_COLORS[employee.role] || ''}`}
@@ -443,6 +450,7 @@ function EmployeeCard({
 // ===== Main Component =====
 
 export function EmployeesPage() {
+  const { navigate } = useCRMStore()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('All')
@@ -511,24 +519,35 @@ export function EmployeesPage() {
   const inactiveCount = employees.length - activeCount
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+    >
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Employees</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your recruitment team members
-            {data && (
-              <span className="ml-1 font-medium text-foreground">
-                ({employees.length} total, {activeCount} active)
-              </span>
-            )}
-          </p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+              <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Employees</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Manage your recruitment team members</p>
+            </div>
+          </div>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Employee
+          </Button>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Employee
-        </Button>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+        {data && (
+          <p className="text-sm text-muted-foreground">
+            ({employees.length} total, {activeCount} active)
+          </p>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -536,8 +555,8 @@ export function EmployeesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-950">
-                <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
+                <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{employees.length}</p>
@@ -575,8 +594,8 @@ export function EmployeesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-950">
-                <Briefcase className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
+                <Briefcase className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -666,6 +685,7 @@ export function EmployeesPage() {
               employee={employee}
               onEdit={() => handleEdit(employee)}
               onDelete={() => deleteMutation.mutate(employee.id)}
+              onClick={() => navigate('employee-detail', employee.id)}
             />
           ))}
         </div>
@@ -676,6 +696,6 @@ export function EmployeesPage() {
         open={addDialogOpen}
         onOpenChange={handleCloseDialog}
       />
-    </div>
+    </motion.div>
   )
 }

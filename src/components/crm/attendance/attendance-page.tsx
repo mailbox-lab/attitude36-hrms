@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCRMStore } from '@/stores/crm-store'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Clock, LogIn, LogOut, CalendarDays, Download } from 'lucide-react'
+import { Clock, LogIn, LogOut, CalendarDays, Download, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { exportToCSV } from '@/lib/export-csv'
 
@@ -403,10 +404,15 @@ export function AttendancePage() {
   const { data: filteredData, isLoading: tableLoading } = useQuery<{
     data: AttendanceRecord[]
   }>({
-    queryKey: ['attendance', attendanceFilter.date, attendanceFilter.status],
+    queryKey: ['attendance', attendanceFilter.date, attendanceFilter.status, attendanceFilter.fromDate, attendanceFilter.toDate],
     queryFn: async () => {
       const params = new URLSearchParams()
-      if (attendanceFilter.date) params.set('date', attendanceFilter.date)
+      if (attendanceFilter.fromDate && attendanceFilter.toDate) {
+        params.set('startDate', attendanceFilter.fromDate)
+        params.set('endDate', attendanceFilter.toDate)
+      } else if (attendanceFilter.date) {
+        params.set('date', attendanceFilter.date)
+      }
       if (attendanceFilter.status && attendanceFilter.status !== 'All') {
         params.set('status', attendanceFilter.status)
       }
@@ -417,6 +423,38 @@ export function AttendancePage() {
   })
 
   const records = filteredData?.data ?? []
+
+  // Date range helpers
+  const getTodayRange = useCallback(() => {
+    return { fromDate: todayStr, toDate: todayStr, date: '' }
+  }, [todayStr])
+
+  const getThisWeekRange = useCallback(() => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return {
+      fromDate: monday.toISOString().split('T')[0],
+      toDate: sunday.toISOString().split('T')[0],
+      date: '',
+    }
+  }, [])
+
+  const getThisMonthRange = useCallback(() => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return {
+      fromDate: firstDay.toISOString().split('T')[0],
+      toDate: lastDay.toISOString().split('T')[0],
+      date: '',
+    }
+  }, [])
+
+  const hasCustomRange = !!(attendanceFilter.fromDate && attendanceFilter.toDate)
 
   // Clock In mutation
   const clockInMutation = useMutation({
@@ -477,42 +515,53 @@ export function AttendancePage() {
   const recordCount = records.length
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+    >
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Attendance</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track daily employee attendance and working hours
-            {records.length > 0 && (
-              <span className="ml-1 font-medium text-foreground">
-                ({recordCount} record{recordCount !== 1 ? 's' : ''})
-              </span>
-            )}
-          </p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-950">
+              <CalendarDays className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Attendance</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Track daily employee attendance and working hours</p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              const csvData = records.map((r) => ({
+                'Employee Name': r.employee.name,
+                Role: r.employee.role,
+                Department: r.employee.department || '',
+                Date: formatDate(r.date),
+                'Clock In': formatTime(r.clockIn),
+                'Clock Out': formatTime(r.clockOut),
+                'Total Hours': formatHours(r.totalHours),
+                Status: r.status,
+                Notes: r.notes || '',
+              }))
+              exportToCSV(csvData, 'attendance')
+            }}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => {
-            const csvData = records.map((r) => ({
-              'Employee Name': r.employee.name,
-              Role: r.employee.role,
-              Department: r.employee.department || '',
-              Date: formatDate(r.date),
-              'Clock In': formatTime(r.clockIn),
-              'Clock Out': formatTime(r.clockOut),
-              'Total Hours': formatHours(r.totalHours),
-              Status: r.status,
-              Notes: r.notes || '',
-            }))
-            exportToCSV(csvData, 'attendance')
-          }}
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400" />
+        {records.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {recordCount} record{recordCount !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       {/* Clock In/Out Card */}
@@ -525,36 +574,94 @@ export function AttendancePage() {
         isLoading={isClockLoading || todayLoading}
       />
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          <Input
-            type="date"
-            className="w-full sm:w-[180px]"
-            value={attendanceFilter.date}
-            onChange={(e) => setAttendanceFilter({ date: e.target.value })}
-          />
+      {/* Date Range Filter */}
+      <div className="rounded-lg bg-muted/50 p-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Range</span>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={attendanceFilter.fromDate || ''}
+                placeholder="From"
+                onChange={(e) => {
+                  setAttendanceFilter({ fromDate: e.target.value, toDate: attendanceFilter.toDate, date: '' })
+                }}
+              />
+              <Input
+                type="date"
+                className="w-full sm:w-[160px]"
+                value={attendanceFilter.toDate || ''}
+                placeholder="To"
+                onChange={(e) => {
+                  setAttendanceFilter({ fromDate: attendanceFilter.fromDate, toDate: e.target.value, date: '' })
+                }}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={attendanceFilter.fromDate === todayStr && attendanceFilter.toDate === todayStr ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs px-2.5"
+                onClick={() => setAttendanceFilter(getTodayRange())}
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5"
+                onClick={() => setAttendanceFilter(getThisWeekRange())}
+              >
+                This Week
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5"
+                onClick={() => setAttendanceFilter(getThisMonthRange())}
+              >
+                This Month
+              </Button>
+              {(hasCustomRange || attendanceFilter.date) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive"
+                  onClick={() => setAttendanceFilter({ fromDate: '', toDate: '', date: '', status: attendanceFilter.status })}
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={attendanceFilter.status}
+              onValueChange={(value) => setAttendanceFilter({ status: value })}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status === 'All' ? 'All Statuses' : status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Select
-          value={attendanceFilter.status}
-          onValueChange={(value) => setAttendanceFilter({ status: value })}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === 'All' ? 'All Statuses' : status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Attendance Table */}
       <AttendanceTable records={records} isLoading={tableLoading} />
-    </div>
+    </motion.div>
   )
 }

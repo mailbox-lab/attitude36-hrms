@@ -13,6 +13,8 @@ export type CRMView =
   | 'interviews'
   | 'placements'
   | 'employees'
+  | 'employee-detail'
+  | 'activity-feed'
   | 'analytics'
   | 'settings'
 
@@ -30,12 +32,15 @@ export type JobFilter = {
 
 export type AttendanceFilter = {
   date: string
+  fromDate: string
+  toDate: string
   status: string
 }
 
 export type LeaveFilter = {
   status: string
   type: string
+  search: string
 }
 
 interface CRMState {
@@ -62,8 +67,8 @@ export const useCRMStore = create<CRMState>((set) => ({
   sidebarOpen: true,
   candidateFilter: { status: 'All', search: '', source: 'All' },
   jobFilter: { status: 'All', priority: 'All', search: '' },
-  attendanceFilter: { date: new Date().toISOString().split('T')[0], status: 'All' },
-  leaveFilter: { status: 'All', type: 'All' },
+  attendanceFilter: { date: new Date().toISOString().split('T')[0], fromDate: '', toDate: '', status: 'All' },
+  leaveFilter: { status: 'All', type: 'All', search: '' },
 
   navigate: (view, id) => set({ currentView: view, selectedId: id ?? null }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),

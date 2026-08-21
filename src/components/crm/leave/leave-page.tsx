@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCRMStore } from '@/stores/crm-store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
@@ -32,6 +34,7 @@ import {
   Download,
   Check,
   X,
+  Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { exportToCSV } from '@/lib/export-csv'
@@ -413,7 +416,17 @@ export function LeavePage() {
     },
   })
 
-  const requests = filteredData?.data ?? []
+  const allRequests = filteredData?.data ?? []
+
+  // Client-side search filter
+  const requests = useMemo(() => {
+    const search = leaveFilter.search || ''
+    if (!search) return allRequests
+    return allRequests.filter((r) =>
+      r.employee.name.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [allRequests, leaveFilter.search])
+
   const recordCount = requests.length
 
   // Approve mutation
@@ -459,50 +472,61 @@ export function LeavePage() {
   const isActionPending = approveMutation.isPending || rejectMutation.isPending
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+    >
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Leave Management</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track leave balances and manage leave requests
-            {recordCount > 0 && (
-              <span className="ml-1 font-medium text-foreground">
-                ({recordCount} request{recordCount !== 1 ? 's' : ''})
-              </span>
-            )}
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-950">
+              <CalendarOff className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Leave Management</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Track leave balances and manage leave requests</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const csvData = requests.map((r) => ({
+                  'Employee Name': r.employee.name,
+                  Role: r.employee.role,
+                  Department: r.employee.department || '',
+                  'Leave Type': r.type,
+                  From: formatDate(r.startDate),
+                  To: formatDate(r.endDate),
+                  'Total Days': r.totalDays,
+                  Reason: r.reason || '',
+                  Status: r.status,
+                  'Approved By': r.approvedBy || '',
+                  'Approved At': r.approvedAt ? formatDate(r.approvedAt) : '',
+                }))
+                exportToCSV(csvData, 'leave-requests')
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Apply for Leave
+            </Button>
+          </div>
+        </div>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-orange-400 to-amber-400" />
+        {recordCount > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {recordCount} request{recordCount !== 1 ? 's' : ''}
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              const csvData = requests.map((r) => ({
-                'Employee Name': r.employee.name,
-                Role: r.employee.role,
-                Department: r.employee.department || '',
-                'Leave Type': r.type,
-                From: formatDate(r.startDate),
-                To: formatDate(r.endDate),
-                'Total Days': r.totalDays,
-                Reason: r.reason || '',
-                Status: r.status,
-                'Approved By': r.approvedBy || '',
-                'Approved At': r.approvedAt ? formatDate(r.approvedAt) : '',
-              }))
-              exportToCSV(csvData, 'leave-requests')
-            }}
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Apply for Leave
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* My Leave Balance Cards */}
@@ -528,37 +552,48 @@ export function LeavePage() {
       </section>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Select
-          value={leaveFilter.status}
-          onValueChange={(value) => setLeaveFilter({ status: value })}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === 'All' ? 'All Statuses' : status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={leaveFilter.type}
-          onValueChange={(value) => setLeaveFilter({ type: value })}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Leave Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {TYPE_OPTIONS.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type === 'All' ? 'All Types' : type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="rounded-lg bg-muted/50 p-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search employee name..."
+              className="pl-9"
+              value={leaveFilter.search}
+              onChange={(e) => setLeaveFilter({ search: e.target.value })}
+            />
+          </div>
+          <Select
+            value={leaveFilter.type}
+            onValueChange={(value) => setLeaveFilter({ type: value })}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Leave Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPE_OPTIONS.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type === 'All' ? 'All Types' : type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={leaveFilter.status}
+            onValueChange={(value) => setLeaveFilter({ status: value })}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === 'All' ? 'All Statuses' : status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Leave Requests Table */}
@@ -572,6 +607,6 @@ export function LeavePage() {
 
       {/* Add Leave Dialog */}
       <AddLeaveDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-    </div>
+    </motion.div>
   )
 }

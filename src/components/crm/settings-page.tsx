@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +39,7 @@ import {
   Monitor,
   Check,
   Loader2,
+  Settings as SettingsIcon,
 } from 'lucide-react'
 import { useCRMStore } from '@/stores/crm-store'
 import { cn } from '@/lib/utils'
@@ -641,10 +643,10 @@ function DataManagementTab() {
 function AboutTab() {
   const techStack = [
     { name: 'Next.js 16', color: 'bg-foreground' },
-    { name: 'TypeScript', color: 'bg-blue-600' },
+    { name: 'TypeScript', color: 'bg-cyan-600' },
     { name: 'Tailwind CSS', color: 'bg-cyan-500' },
     { name: 'shadcn/ui', color: 'bg-neutral-800 dark:bg-neutral-200' },
-    { name: 'Prisma', color: 'bg-indigo-500' },
+    { name: 'Prisma', color: 'bg-violet-500' },
   ]
 
   return (
@@ -717,12 +719,23 @@ function AboutTab() {
 // ===================== Main Settings Page =====================
 export function SettingsPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your application preferences and account settings.
-        </p>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+    >
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-950">
+            <SettingsIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage your application preferences and account settings</p>
+          </div>
+        </div>
+        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-rose-400 to-pink-400" />
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -765,6 +778,6 @@ export function SettingsPage() {
           <AboutTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   )
 }

@@ -76,14 +76,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 const PRIORITY_COLORS: Record<string, string> = {
   Low: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-  Medium: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  Medium: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
   High: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
   Urgent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
 }
 
 const PRIORITY_DOT_COLORS: Record<string, string> = {
   Low: 'bg-green-500',
-  Medium: 'bg-blue-500',
+  Medium: 'bg-cyan-500',
   High: 'bg-amber-500',
   Urgent: 'bg-red-500',
 }

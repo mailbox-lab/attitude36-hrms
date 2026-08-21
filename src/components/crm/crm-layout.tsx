@@ -19,6 +19,7 @@ import {
   Video,
   Award,
   UserCog,
+  Activity,
   BarChart3,
   Settings,
   Menu,
@@ -35,7 +36,7 @@ import { NotificationBell } from '@/components/crm/notification-bell'
 import { ThemeToggle } from '@/components/crm/theme-toggle'
 import { GlobalSearch } from '@/components/crm/global-search'
 
-const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string }[] = [
+const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string; section?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
   { icon: Users, label: 'Candidates', view: 'candidates', badge: 'Pipeline', badgeColor: 'bg-emerald-500' },
   { icon: Building2, label: 'Clients', view: 'clients' },
@@ -44,6 +45,7 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; ba
   { icon: CalendarOff, label: 'Leave Mgmt', view: 'leave' },
   { icon: Video, label: 'Interviews', view: 'interviews' },
   { icon: Award, label: 'Placements', view: 'placements' },
+  { icon: Activity, label: 'Activity', view: 'activity-feed', section: 'TRACKING' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
   { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-violet-500' },
   { icon: Settings, label: 'Settings', view: 'settings' },
@@ -92,10 +94,11 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
               const isActive = currentView === item.view ||
                 (item.view === 'candidates' && (currentView === 'candidate-detail')) ||
                 (item.view === 'clients' && (currentView === 'client-detail')) ||
-                (item.view === 'jobs' && (currentView === 'job-detail'))
+                (item.view === 'jobs' && (currentView === 'job-detail')) ||
+                (item.view === 'employees' && (currentView === 'employee-detail'))
 
-              const needsDivider = item.view === 'attendance' || item.view === 'settings'
-              const dividerLabel = item.view === 'attendance' ? 'HR & Attendance' : 'System'
+              const needsDivider = item.view === 'attendance' || item.view === 'settings' || !!item.section
+              const dividerLabel = item.view === 'attendance' ? 'HR & Attendance' : item.view === 'settings' ? 'System' : item.section || ''
 
               const btn = (
                 <Button
@@ -238,7 +241,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v1.1.0
+                v1.2.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with ♥ in India</span>
