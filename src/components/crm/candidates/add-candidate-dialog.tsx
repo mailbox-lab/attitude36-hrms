@@ -9,11 +9,10 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+import { UserPlus } from 'lucide-react'
 import {
   Form,
   FormField,
@@ -253,16 +252,16 @@ export function AddCandidateDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Candidate' : 'Add New Candidate'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
+        <EnhancedDialogHeader
+          icon={UserPlus}
+          title={isEditing ? 'Edit Candidate' : 'Add New Candidate'}
+          description={
+            isEditing
               ? 'Update candidate information below.'
-              : 'Fill in the details to add a new candidate to the pipeline.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Fill in the details to add a new candidate to the pipeline.'
+          }
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

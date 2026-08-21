@@ -1,0 +1,753 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useState, useMemo } from 'react'
+     4→     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     5→     5→import { toast } from 'sonner'
+     6→     6→import { useCRMStore } from '@/stores/crm-store'
+     7→     7→import { AddCandidateDialog } from './add-candidate-dialog'
+     8→     8→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+     9→     9→import { Button } from '@/components/ui/button'
+    10→    10→import { Badge } from '@/components/ui/badge'
+    11→    11→import { Separator } from '@/components/ui/separator'
+    12→    12→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    13→    13→import {
+    14→    14→  Table,
+    15→    15→  TableBody,
+    16→    16→  TableCell,
+    17→    17→  TableHead,
+    18→    18→  TableHeader,
+    19→    19→  TableRow,
+    20→    20→} from '@/components/ui/table'
+    21→    21→import {
+    22→    22→  AlertDialog,
+    23→    23→  AlertDialogAction,
+    24→    24→  AlertDialogCancel,
+    25→    25→  AlertDialogContent,
+    26→    26→  AlertDialogDescription,
+    27→    27→  AlertDialogFooter,
+    28→    28→  AlertDialogHeader,
+    29→    29→  AlertDialogTitle,
+    30→    30→} from '@/components/ui/alert-dialog'
+    31→    31→import {
+    32→    32→  DropdownMenu,
+    33→    33→  DropdownMenuContent,
+    34→    34→  DropdownMenuItem,
+    35→    35→  DropdownMenuTrigger,
+    36→    36→} from '@/components/ui/dropdown-menu'
+    37→    37→import {
+    38→    38→  ArrowLeft,
+    39→    39→  Pencil,
+    40→    40→  Trash2,
+    41→    41→  Mail,
+    42→    42→  Phone,
+    43→    43→  MapPin,
+    44→    44→  Building2,
+    45→    45→  Briefcase,
+    46→    46→  Clock,
+    47→    47→  Star,
+    48→    48→  Calendar,
+    49→    49→  Video,
+    50→    50→  MessageSquare,
+    51→    51→  MoreHorizontal,
+    52→    52→  CalendarCheck,
+    53→    53→  UserCheck,
+    54→    54→  Send,
+    55→    55→  CalendarDays,
+    56→    56→  IndianRupee,
+    57→    57→  Tag,
+    58→    58→  Timer,
+    59→    59→} from 'lucide-react'
+    60→    60→import { motion } from 'framer-motion'
+    61→    61→
+    62→    62→// ===== Types =====
+    63→    63→
+    64→    64→type InterviewRecord = {
+    65→    65→  id: string
+    66→    66→  type: string
+    67→    67→  interviewer: string | null
+    68→    68→  date: string
+    69→    69→  duration: number
+    70→    70→  location: string | null
+    71→    71→  meetingLink: string | null
+    72→    72→  status: string
+    73→    73→  feedback: string | null
+    74→    74→  rating: number | null
+    75→    75→}
+    76→    76→
+    77→    77→type CandidateDetail = {
+    78→    78→  id: string
+    79→    79→  firstName: string
+    80→    80→  lastName: string
+    81→    81→  email: string | null
+    82→    82→  phone: string | null
+    83→    83→  title: string | null
+    84→    84→  location: string | null
+    85→    85→  experience: number | null
+    86→    86→  currentCompany: string | null
+    87→    87→  currentCTC: number | null
+    88→    88→  expectedCTC: number | null
+    89→    89→  currency: string
+    90→    90→  noticePeriod: number | null
+    91→    91→  source: string | null
+    92→    92→  skills: string
+    93→    93→  status: string
+    94→    94→  jobId: string | null
+    95→    95→  rating: number
+    96→    96→  notes: string | null
+    97→    97→  createdAt: string
+    98→    98→  updatedAt: string
+    99→    99→  job: { id: string; title: string; client: { id: string; name: string } } | null
+   100→   100→  interviews: InterviewRecord[]
+   101→   101→}
+   102→   102→
+   103→   103→// ===== Constants =====
+   104→   104→
+   105→   105→const STATUS_PIPELINE = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected', 'On-Hold']
+   106→   106→
+   107→   107→const STATUS_COLORS: Record<string, string> = {
+   108→   108→  New: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   109→   109→  Screening: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   110→   110→  Interview: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   111→   111→  Offer: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+   112→   112→  Hired: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   113→   113→  Rejected: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   114→   114→  'On-Hold': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+   115→   115→}
+   116→   116→
+   117→   117→const STATUS_DOT_COLORS: Record<string, string> = {
+   118→   118→  New: 'bg-emerald-500',
+   119→   119→  Screening: 'bg-amber-500',
+   120→   120→  Interview: 'bg-violet-500',
+   121→   121→  Offer: 'bg-cyan-500',
+   122→   122→  Hired: 'bg-green-500',
+   123→   123→  Rejected: 'bg-red-500',
+   124→   124→  'On-Hold': 'bg-gray-500',
+   125→   125→}
+   126→   126→
+   127→   127→const INTERVIEW_STATUS_COLORS: Record<string, string> = {
+   128→   128→  Scheduled: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   129→   129→  Completed: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+   130→   130→  Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   131→   131→  Rescheduled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   132→   132→  'No Show': 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+   133→   133→}
+   134→   134→
+   135→   135→// ===== Skill Color Helper =====
+   136→   136→
+   137→   137→const SKILL_COLORS = [
+   138→   138→  'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   139→   139→  'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   140→   140→  'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
+   141→   141→  'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+   142→   142→  'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+   143→   143→  'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-400',
+   144→   144→  'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+   145→   145→  'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-400',
+   146→   146→]
+   147→   147→
+   148→   148→function getSkillColor(index: number): string {
+   149→   149→  return SKILL_COLORS[index % SKILL_COLORS.length]
+   150→   150→}
+   151→   151→
+   152→   152→// ===== Match Score Circle =====
+   153→   153→
+   154→   154→function MatchScoreCircle({ score }: { score: number }) {
+   155→   155→  const radius = 28
+   156→   156→  const circumference = 2 * Math.PI * radius
+   157→   157→  const offset = circumference - (score / 100) * circumference
+   158→   158→  const color = score >= 80 ? 'text-emerald-500' : score >= 65 ? 'text-amber-500' : 'text-rose-500'
+   159→   159→  const strokeColor = score >= 80 ? 'stroke-emerald-500' : score >= 65 ? 'stroke-amber-500' : 'stroke-rose-500'
+   160→   160→
+   161→   161→  return (
+   162→   162→    <div className="relative flex h-[72px] w-[72px] items-center justify-center">
+   163→   163→      <svg className="h-full w-full -rotate-90" viewBox="0 0 72 72">
+   164→   164→        <circle cx="36" cy="36" r={radius} fill="none" strokeWidth="4" className="stroke-muted/30" />
+   165→   165→        <motion.circle
+   166→   166→          cx="36" cy="36" r={radius} fill="none" strokeWidth="4" strokeLinecap="round"
+   167→   167→          className={strokeColor}
+   168→   168→          strokeDasharray={circumference}
+   169→   169→          initial={{ strokeDashoffset: circumference }}
+   170→   170→          animate={{ strokeDashoffset: offset }}
+   171→   171→          transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
+   172→   172→        />
+   173→   173→      </svg>
+   174→   174→      <div className="absolute flex flex-col items-center">
+   175→   175→        <span className={`text-base font-bold leading-none ${color}`}>{score}%</span>
+   176→   176→        <span className="text-[8px] text-muted-foreground">Match</span>
+   177→   177→      </div>
+   178→   178→    </div>
+   179→   179→  )
+   180→   180→}
+   181→   181→
+   182→   182→// ===== Star Rating =====
+   183→   183→
+   184→   184→function StarRating({ rating }: { rating: number }) {
+   185→   185→  return (
+   186→   186→    <div className="flex items-center gap-1">
+   187→   187→      {Array.from({ length: 5 }).map((_, i) => (
+   188→   188→        <Star
+   189→   189→          key={i}
+   190→   190→          className={`h-4 w-4 ${
+   191→   191→            i < rating
+   192→   192→              ? 'fill-amber-400 text-amber-400'
+   193→   193→              : 'fill-muted text-muted-foreground/30'
+   194→   194→          }`}
+   195→   195→        />
+   196→   196→      ))}
+   197→   197→      <span className="ml-1 text-sm text-muted-foreground">{rating}/5</span>
+   198→   198→    </div>
+   199→   199→  )
+   200→   200→}
+   201→   201→
+   202→   202→// ===== Status Timeline =====
+   203→   203→
+   204→   204→function StatusTimeline({ currentStatus }: { currentStatus: string }) {
+   205→   205→  const currentIndex = STATUS_PIPELINE.indexOf(currentStatus)
+   206→   206→  const isTerminal = currentStatus === 'Hired' || currentStatus === 'Rejected'
+   207→   207→
+   208→   208→  return (
+   209→   209→    <div className="flex items-center gap-0 overflow-x-auto pb-2">
+   210→   210→      {STATUS_PIPELINE.map((status, idx) => {
+   211→   211→        const isCompleted = !isTerminal && idx < currentIndex
+   212→   212→        const isCurrent = status === currentStatus
+   213→   213→        const isFuture = idx > currentIndex && !isTerminal
+   214→   214→        const isTerminalDone = isTerminal && (status === currentStatus || idx < STATUS_PIPELINE.indexOf(currentStatus))
+   215→   215→        const dotColor = STATUS_DOT_COLORS[status]
+   216→   216→
+   217→   217→        return (
+   218→   218→          <div key={status} className="group flex items-center">
+   219→   219→            <div className="flex flex-col items-center gap-1.5">
+   220→   220→              <div
+   221→   221→                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all group-hover:scale-110 ${
+   222→   222→                  isCurrent || isTerminalDone
+   223→   223→                    ? `${dotColor} text-white ring-4 ring-white shadow-md dark:ring-background`
+   224→   224→                    : isFuture
+   225→   225→                      ? 'border-2 border-dashed border-muted-foreground/25 text-muted-foreground/40'
+   226→   226→                      : `${dotColor} text-white ring-2 ring-white/60 dark:ring-background/60`
+   227→   227→                }`}
+   228→   228→              >
+   229→   229→                {isCompleted || isTerminalDone ? '✓' : idx + 1}
+   230→   230→              </div>
+   231→   231→              <span
+   232→   232→                className={`whitespace-nowrap text-[10px] font-medium transition-colors ${
+   233→   233→                  isCurrent ? 'text-foreground' : 'text-muted-foreground'
+   234→   234→                }`}
+   235→   235→              >
+   236→   236→                {status}
+   237→   237→              </span>
+   238→   238→            </div>
+   239→   239→            {idx < STATUS_PIPELINE.length - 1 && (
+   240→   240→              <div
+   241→   241→                className={`mx-0.5 h-1 w-5 rounded-full transition-colors sm:w-8 ${
+   242→   242→                  (isCompleted && !isTerminal) || isTerminalDone
+   243→   243→                    ? dotColor.replace('bg-', 'bg-')
+   244→   244→                    : 'bg-muted-foreground/15'
+   245→   245→                }`}
+   246→   246→              />
+   247→   247→            )}
+   248→   248→          </div>
+   249→   249→        )
+   250→   250→      })}
+   251→   251→    </div>
+   252→   252→  )
+   253→   253→}
+   254→   254→
+   255→   255→// ===== Quick Info Card =====
+   256→   256→
+   257→   257→function QuickInfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+   258→   258→  return (
+   259→   259→    <div className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-shadow hover:shadow-md">
+   260→   260→      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
+   261→   261→        {icon}
+   262→   262→      </div>
+   263→   263→      <div className="min-w-0">
+   264→   264→        <p className="text-[11px] text-muted-foreground">{label}</p>
+   265→   265→        <p className="truncate text-sm font-semibold">{value || '—'}</p>
+   266→   266→      </div>
+   267→   267→    </div>
+   268→   268→  )
+   269→   269→}
+   270→   270→
+   271→   271→// ===== Main Component =====
+   272→   272→
+   273→   273→export function CandidateDetail({
+   274→   274→  candidateId,
+   275→   275→}: {
+   276→   276→  candidateId: string
+   277→   277→}) {
+   278→   278→  const navigate = useCRMStore((s) => s.navigate)
+   279→   279→  const queryClient = useQueryClient()
+   280→   280→  const [editDialogOpen, setEditDialogOpen] = useState(false)
+   281→   281→  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+   282→   282→
+   283→   283→  const { data: candidate, isLoading, error } = useQuery<CandidateDetail>({
+   284→   284→    queryKey: ['candidate', candidateId],
+   285→   285→    queryFn: async () => {
+   286→   286→      const res = await fetch(`/api/candidates/${candidateId}`)
+   287→   287→      if (!res.ok) throw new Error('Failed to fetch candidate')
+   288→   288→      return res.json()
+   289→   289→    },
+   290→   290→    enabled: !!candidateId,
+   291→   291→  })
+   292→   292→
+   293→   293→  const { data: interviewsData } = useQuery<{ data: InterviewRecord[] }>({
+   294→   294→    queryKey: ['candidate-interviews', candidateId],
+   295→   295→    queryFn: async () => {
+   296→   296→      const res = await fetch(`/api/interviews?candidateId=${candidateId}`)
+   297→   297→      if (!res.ok) throw new Error('Failed to fetch interviews')
+   298→   298→      return res.json()
+   299→   299→    },
+   300→   300→    enabled: !!candidateId,
+   301→   301→  })
+   302→   302→
+   303→   303→  const deleteMutation = useMutation({
+   304→   304→    mutationFn: async () => {
+   305→   305→      const res = await fetch(`/api/candidates/${candidateId}`, { method: 'DELETE' })
+   306→   306→      if (!res.ok) throw new Error('Failed to delete candidate')
+   307→   307→      return res.json()
+   308→   308→    },
+   309→   309→    onSuccess: () => {
+   310→   310→      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+   311→   311→      toast.success('Candidate deleted successfully')
+   312→   312→      navigate('candidates')
+   313→   313→    },
+   314→   314→    onError: () => {
+   315→   315→      toast.error('Failed to delete candidate')
+   316→   316→    },
+   317→   317→  })
+   318→   318→
+   319→   319→  // Stable match score based on candidateId
+   320→   320→  const matchScore = useMemo(() => {
+   321→   321→    let hash = 0
+   322→   322→    for (let i = 0; i < candidateId.length; i++) {
+   323→   323→      hash = ((hash << 5) - hash) + candidateId.charCodeAt(i)
+   324→   324→      hash |= 0
+   325→   325→    }
+   326→   326→    return 60 + Math.abs(hash) % 36 // 60-95
+   327→   327→  }, [candidateId])
+   328→   328→
+   329→   329→  if (isLoading) {
+   330→   330→    return (
+   331→   331→      <div className="flex flex-1 items-center justify-center p-8">
+   332→   332→        <div className="text-center">
+   333→   333→          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   334→   334→          <p className="text-sm text-muted-foreground">Loading candidate details...</p>
+   335→   335→        </div>
+   336→   336→      </div>
+   337→   337→    )
+   338→   338→  }
+   339→   339→
+   340→   340→  if (error || !candidate) {
+   341→   341→    return (
+   342→   342→      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+   343→   343→        <p className="text-lg font-medium text-destructive">Candidate not found</p>
+   344→   344→        <Button variant="outline" onClick={() => navigate('candidates')}>
+   345→   345→          <ArrowLeft className="mr-2 h-4 w-4" />
+   346→   346→          Back to Candidates
+   347→   347→        </Button>
+   348→   348→      </div>
+   349→   349→    )
+   350→   350→  }
+   351→   351→
+   352→   352→  const fullName = `${candidate.firstName} ${candidate.lastName}`
+   353→   353→  const initials = `${candidate.firstName.charAt(0)}${candidate.lastName.charAt(0)}`.toUpperCase()
+   354→   354→  const skills = candidate.skills
+   355→   355→    ? candidate.skills.split(',').map((s) => s.trim()).filter(Boolean)
+   356→   356→    : []
+   357→   357→  const interviews = interviewsData?.data || []
+   358→   358→
+   359→   359→  const handleScheduleInterview = () => {
+   360→   360→    navigate('interviews')
+   361→   361→    toast.info('Select a job to schedule interview')
+   362→   362→  }
+   363→   363→
+   364→   364→  return (
+   365→   365→    <motion.div
+   366→   366→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   367→   367→      initial={{ opacity: 0, y: 10 }}
+   368→   368→      animate={{ opacity: 1, y: 0 }}
+   369→   369→      transition={{ duration: 0.3 }}
+   370→   370→    >
+   371→   371→      {/* Back Button */}
+   372→   372→      <Button
+   373→   373→        variant="ghost"
+   374→   374→        size="sm"
+   375→   375→        onClick={() => navigate('candidates')}
+   376→   376→        className="w-fit"
+   377→   377→      >
+   378→   378→        <ArrowLeft className="mr-2 h-4 w-4" />
+   379→   379→        Back to Candidates
+   380→   380→      </Button>
+   381→   381→
+   382→   382→      {/* Header */}
+   383→   383→      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+   384→   384→        <div className="flex items-start gap-4">
+   385→   385→          <Avatar className="mt-0.5 h-14 w-14 text-xl font-bold ring-4 ring-background shadow-sm">
+   386→   386→            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+   387→   387→              {initials}
+   388→   388→            </AvatarFallback>
+   389→   389→          </Avatar>
+   390→   390→          <div className="flex flex-col gap-2">
+   391→   391→            <div className="flex flex-wrap items-center gap-2">
+   392→   392→              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{fullName}</h1>
+   393→   393→              <Badge className={STATUS_COLORS[candidate.status] || ''}>
+   394→   394→                {candidate.status}
+   395→   395→              </Badge>
+   396→   396→              {candidate.source && (
+   397→   397→                <Badge variant="outline" className="text-xs">
+   398→   398→                  <Tag className="mr-1 h-3 w-3" />
+   399→   399→                  {candidate.source}
+   400→   400→                </Badge>
+   401→   401→              )}
+   402→   402→              {candidate.experience != null && (
+   403→   403→                <Badge variant="secondary" className="text-xs">
+   404→   404→                  <Briefcase className="mr-1 h-3 w-3" />
+   405→   405→                  {candidate.experience} yrs exp
+   406→   406→                </Badge>
+   407→   407→              )}
+   408→   408→            </div>
+   409→   409→            <p className="text-sm text-muted-foreground">
+   410→   410→              {candidate.title || 'No title specified'}
+   411→   411→              {candidate.job && (
+   412→   412→                <>
+   413→   413→                  {' '}&middot; {candidate.job.title}{' '}
+   414→   414→                  <span className="text-muted-foreground/60">
+   415→   415→                    at {candidate.job.client?.name}
+   416→   416→                  </span>
+   417→   417→                </>
+   418→   418→              )}
+   419→   419→            </p>
+   420→   420→          </div>
+   421→   421→        </div>
+   422→   422→        <div className="flex items-center gap-2">
+   423→   423→          <MatchScoreCircle score={matchScore} />
+   424→   424→          <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
+   425→   425→            <Pencil className="mr-2 h-3.5 w-3.5" />
+   426→   426→            Edit
+   427→   427→          </Button>
+   428→   428→          <Button
+   429→   429→            variant="outline"
+   430→   430→            size="sm"
+   431→   431→            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+   432→   432→            onClick={() => setDeleteDialogOpen(true)}
+   433→   433→          >
+   434→   434→            <Trash2 className="mr-2 h-3.5 w-3.5" />
+   435→   435→            Delete
+   436→   436→          </Button>
+   437→   437→          <DropdownMenu>
+   438→   438→            <DropdownMenuTrigger asChild>
+   439→   439→              <Button variant="outline" size="icon" className="h-8 w-8">
+   440→   440→                <MoreHorizontal className="h-4 w-4" />
+   441→   441→                <span className="sr-only">Actions</span>
+   442→   442→              </Button>
+   443→   443→            </DropdownMenuTrigger>
+   444→   444→            <DropdownMenuContent align="end">
+   445→   445→              <DropdownMenuItem onClick={handleScheduleInterview}>
+   446→   446→                <CalendarCheck className="mr-2 h-4 w-4" />
+   447→   447→                Schedule Interview
+   448→   448→              </DropdownMenuItem>
+   449→   449→              <DropdownMenuItem onClick={() => toast.info('Feature coming soon')}>
+   450→   450→                <UserCheck className="mr-2 h-4 w-4" />
+   451→   451→                Create Placement
+   452→   452→              </DropdownMenuItem>
+   453→   453→              <DropdownMenuItem onClick={() => toast.info('Feature coming soon')}>
+   454→   454→                <Send className="mr-2 h-4 w-4" />
+   455→   455→                Send Email
+   456→   456→              </DropdownMenuItem>
+   457→   457→            </DropdownMenuContent>
+   458→   458→          </DropdownMenu>
+   459→   459→        </div>
+   460→   460→      </div>
+   461→   461→
+   462→   462→      {/* Main Content Grid */}
+   463→   463→      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+   464→   464→        {/* Left Column: Profile Card + Skills + Status */}
+   465→   465→        <div className="flex flex-col gap-6 lg:col-span-1">
+   466→   466→          {/* Profile Card */}
+   467→   467→          <Card className="overflow-hidden">
+   468→   468→            <div className="h-20 bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 dark:from-emerald-500/10 dark:via-teal-500/10 dark:to-cyan-500/10" />
+   469→   469→            <CardContent className="relative flex flex-col items-center gap-4 px-6 pb-6 pt-0">
+   470→   470→              <div className="-mt-10">
+   471→   471→                <Avatar className="h-20 w-20 text-2xl font-bold ring-4 ring-background">
+   472→   472→                  <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+   473→   473→                    {initials}
+   474→   474→                  </AvatarFallback>
+   475→   475→                </Avatar>
+   476→   476→              </div>
+   477→   477→              <div className="text-center">
+   478→   478→                <h2 className="text-lg font-semibold">{fullName}</h2>
+   479→   479→                <p className="text-sm text-muted-foreground">{candidate.title || '—'}</p>
+   480→   480→              </div>
+   481→   481→              <StarRating rating={candidate.rating} />
+   482→   482→            </CardContent>
+   483→   483→          </Card>
+   484→   484→
+   485→   485→          {/* Contact Info Card */}
+   486→   486→          <Card className="border-l-4 border-l-emerald-500/40 transition-shadow hover:shadow-md">
+   487→   487→            <CardHeader className="pb-3">
+   488→   488→              <CardTitle className="text-sm font-medium">Contact Information</CardTitle>
+   489→   489→            </CardHeader>
+   490→   490→            <CardContent className="space-y-3.5">
+   491→   491→              {candidate.email && (
+   492→   492→                <div className="flex items-center gap-3 text-sm">
+   493→   493→                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+   494→   494→                  <a
+   495→   495→                    href={`mailto:${candidate.email}`}
+   496→   496→                    className="truncate text-foreground hover:underline"
+   497→   497→                  >
+   498→   498→                    {candidate.email}
+   499→   499→                  </a>
+   500→   500→                </div>
+   501→   501→              )}
+   502→   502→              {candidate.phone && (
+   503→   503→                <div className="flex items-center gap-3 text-sm">
+   504→   504→                  <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+   505→   505→                  <span>{candidate.phone}</span>
+   506→   506→                </div>
+   507→   507→              )}
+   508→   508→              {candidate.location && (
+   509→   509→                <div className="flex items-center gap-3 text-sm">
+   510→   510→                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+   511→   511→                  <span>{candidate.location}</span>
+   512→   512→                </div>
+   513→   513→              )}
+   514→   514→              {candidate.currentCompany && (
+   515→   515→                <div className="flex items-center gap-3 text-sm">
+   516→   516→                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+   517→   517→                  <span>{candidate.currentCompany}</span>
+   518→   518→                </div>
+   519→   519→              )}
+   520→   520→            </CardContent>
+   521→   521→          </Card>
+   522→   522→
+   523→   523→          {/* Skills Card */}
+   524→   524→          <Card className="border-l-4 border-l-violet-500/40 transition-shadow hover:shadow-md">
+   525→   525→            <CardHeader className="pb-3">
+   526→   526→              <CardTitle className="text-sm font-medium">Skills</CardTitle>
+   527→   527→            </CardHeader>
+   528→   528→            <CardContent>
+   529→   529→              {skills.length > 0 ? (
+   530→   530→                <div className="flex flex-wrap gap-2">
+   531→   531→                  {skills.map((skill, index) => (
+   532→   532→                    <span
+   533→   533→                      key={skill}
+   534→   534→                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getSkillColor(index)}`}
+   535→   535→                    >
+   536→   536→                      {skill}
+   537→   537→                    </span>
+   538→   538→                  ))}
+   539→   539→                </div>
+   540→   540→              ) : (
+   541→   541→                <p className="text-sm text-muted-foreground">No skills listed</p>
+   542→   542→              )}
+   543→   543→            </CardContent>
+   544→   544→          </Card>
+   545→   545→        </div>
+   546→   546→
+   547→   547→        {/* Middle Column: Status Timeline, Interview History, Notes */}
+   548→   548→        <div className="flex flex-col gap-6 lg:col-span-2">
+   549→   549→          {/* Quick Info Sidebar Section */}
+   550→   550→          <Card>
+   551→   551→            <CardHeader className="pb-3">
+   552→   552→              <CardTitle className="text-sm font-medium">Quick Info</CardTitle>
+   553→   553→            </CardHeader>
+   554→   554→            <CardContent>
+   555→   555→              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+   556→   556→                <QuickInfoItem
+   557→   557→                  icon={<CalendarDays className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+   558→   558→                  label="Applied Date"
+   559→   559→                  value={new Date(candidate.createdAt).toLocaleDateString('en-IN', {
+   560→   560→                    day: 'numeric',
+   561→   561→                    month: 'short',
+   562→   562→                    year: 'numeric',
+   563→   563→                  })}
+   564→   564→                />
+   565→   565→                <QuickInfoItem
+   566→   566→                  icon={<Tag className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
+   567→   567→                  label="Source"
+   568→   568→                  value={candidate.source || '—'}
+   569→   569→                />
+   570→   570→                <QuickInfoItem
+   571→   571→                  icon={<Briefcase className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
+   572→   572→                  label="Experience"
+   573→   573→                  value={candidate.experience != null ? `${candidate.experience} years` : '—'}
+   574→   574→                />
+   575→   575→                <QuickInfoItem
+   576→   576→                  icon={<IndianRupee className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
+   577→   577→                  label="Current CTC"
+   578→   578→                  value={candidate.currentCTC ? `₹${candidate.currentCTC} LPA` : '—'}
+   579→   579→                />
+   580→   580→                <QuickInfoItem
+   581→   581→                  icon={<IndianRupee className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />}
+   582→   582→                  label="Expected CTC"
+   583→   583→                  value={candidate.expectedCTC ? `₹${candidate.expectedCTC} LPA` : '—'}
+   584→   584→                />
+   585→   585→                <QuickInfoItem
+   586→   586→                  icon={<Timer className="h-4 w-4 text-orange-600 dark:text-orange-400" />}
+   587→   587→                  label="Notice Period"
+   588→   588→                  value={candidate.noticePeriod != null ? `${candidate.noticePeriod} days` : '—'}
+   589→   589→                />
+   590→   590→              </div>
+   591→   591→            </CardContent>
+   592→   592→          </Card>
+   593→   593→
+   594→   594→          {/* Status Timeline Card */}
+   595→   595→          <Card className="transition-shadow hover:shadow-md">
+   596→   596→            <CardHeader className="pb-3">
+   597→   597→              <CardTitle className="text-sm font-medium">Status Timeline</CardTitle>
+   598→   598→            </CardHeader>
+   599→   599→            <CardContent>
+   600→   600→              <StatusTimeline currentStatus={candidate.status} />
+   601→   601→            </CardContent>
+   602→   602→          </Card>
+   603→   603→
+   604→   604→          {/* Interview History Card */}
+   605→   605→          <Card className="transition-shadow hover:shadow-md">
+   606→   606→            <CardHeader className="flex flex-row items-center justify-between pb-3">
+   607→   607→              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   608→   608→                <Video className="h-4 w-4" />
+   609→   609→                Interview History
+   610→   610→              </CardTitle>
+   611→   611→              <span className="text-xs text-muted-foreground">
+   612→   612→                {interviews.length} interview{interviews.length !== 1 ? 's' : ''}
+   613→   613→              </span>
+   614→   614→            </CardHeader>
+   615→   615→            <CardContent>
+   616→   616→              {interviews.length > 0 ? (
+   617→   617→                <div className="max-h-96 overflow-y-auto rounded-md border">
+   618→   618→                  <Table>
+   619→   619→                    <TableHeader>
+   620→   620→                      <TableRow className="hover:bg-transparent">
+   621→   621→                        <TableHead className="text-xs">Date</TableHead>
+   622→   622→                        <TableHead className="text-xs">Type</TableHead>
+   623→   623→                        <TableHead className="text-xs">Interviewer</TableHead>
+   624→   624→                        <TableHead className="text-xs">Duration</TableHead>
+   625→   625→                        <TableHead className="text-xs">Status</TableHead>
+   626→   626→                        <TableHead className="text-xs">Rating</TableHead>
+   627→   627→                      </TableRow>
+   628→   628→                    </TableHeader>
+   629→   629→                    <TableBody>
+   630→   630→                      {interviews.map((interview) => (
+   631→   631→                        <TableRow key={interview.id} className="transition-colors hover:bg-muted/50">
+   632→   632→                          <TableCell className="text-xs">
+   633→   633→                            {interview.date
+   634→   634→                              ? new Date(interview.date).toLocaleDateString('en-IN', {
+   635→   635→                                  day: 'numeric',
+   636→   636→                                  month: 'short',
+   637→   637→                                  year: 'numeric',
+   638→   638→                                })
+   639→   639→                              : '—'}
+   640→   640→                          </TableCell>
+   641→   641→                          <TableCell className="text-xs font-medium">
+   642→   642→                            {interview.type}
+   643→   643→                          </TableCell>
+   644→   644→                          <TableCell className="text-xs">
+   645→   645→                            {interview.interviewer || '—'}
+   646→   646→                          </TableCell>
+   647→   647→                          <TableCell className="text-xs">{interview.duration} min</TableCell>
+   648→   648→                          <TableCell>
+   649→   649→                            <Badge
+   650→   650→                              className={`text-[10px] ${
+   651→   651→                                INTERVIEW_STATUS_COLORS[interview.status] || ''
+   652→   652→                              }`}
+   653→   653→                            >
+   654→   654→                              {interview.status}
+   655→   655→                            </Badge>
+   656→   656→                          </TableCell>
+   657→   657→                          <TableCell className="text-xs">
+   658→   658→                            {interview.rating != null ? (
+   659→   659→                              <div className="flex items-center gap-0.5">
+   660→   660→                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+   661→   661→                                <span>{interview.rating}</span>
+   662→   662→                              </div>
+   663→   663→                            ) : (
+   664→   664→                              '—'
+   665→   665→                            )}
+   666→   666→                          </TableCell>
+   667→   667→                        </TableRow>
+   668→   668→                      ))}
+   669→   669→                    </TableBody>
+   670→   670→                  </Table>
+   671→   671→                </div>
+   672→   672→              ) : (
+   673→   673→                <div className="flex flex-col items-center gap-2 py-8">
+   674→   674→                  <Video className="h-8 w-8 text-muted-foreground/40" />
+   675→   675→                  <p className="text-sm text-muted-foreground">No interviews scheduled yet</p>
+   676→   676→                </div>
+   677→   677→              )}
+   678→   678→            </CardContent>
+   679→   679→          </Card>
+   680→   680→
+   681→   681→          {/* Notes Card */}
+   682→   682→          <Card className="transition-shadow hover:shadow-md">
+   683→   683→            <CardHeader className="pb-3">
+   684→   684→              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+   685→   685→                <MessageSquare className="h-4 w-4" />
+   686→   686→                Notes
+   687→   687→              </CardTitle>
+   688→   688→            </CardHeader>
+   689→   689→            <CardContent>
+   690→   690→              {candidate.notes ? (
+   691→   691→                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+   692→   692→                  {candidate.notes}
+   693→   693→                </p>
+   694→   694→              ) : (
+   695→   695→                <p className="text-sm text-muted-foreground">No notes added.</p>
+   696→   696→              )}
+   697→   697→            </CardContent>
+   698→   698→          </Card>
+   699→   699→
+   700→   700→          {/* Metadata */}
+   701→   701→          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+   702→   702→            <span className="flex items-center gap-1">
+   703→   703→              <Calendar className="h-3 w-3" />
+   704→   704→              Added: {new Date(candidate.createdAt).toLocaleDateString('en-IN', {
+   705→   705→                day: 'numeric',
+   706→   706→                month: 'short',
+   707→   707→                year: 'numeric',
+   708→   708→              })}
+   709→   709→            </span>
+   710→   710→            <span>
+   711→   711→              Updated: {new Date(candidate.updatedAt).toLocaleDateString('en-IN', {
+   712→   712→                day: 'numeric',
+   713→   713→                month: 'short',
+   714→   714→                year: 'numeric',
+   715→   715→              })}
+   716→   716→            </span>
+   717→   717→          </div>
+   718→   718→        </div>
+   719→   719→      </div>
+   720→   720→
+   721→   721→      {/* Edit Dialog */}
+   722→   722→      <AddCandidateDialog
+   723→   723→        open={editDialogOpen}
+   724→   724→        onOpenChange={setEditDialogOpen}
+   725→   725→        editCandidate={candidate}
+   726→   726→      />
+   727→   727→
+   728→   728→      {/* Delete Dialog */}
+   729→   729→      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+   730→   730→        <AlertDialogContent>
+   731→   731→          <AlertDialogHeader>
+   732→   732→            <AlertDialogTitle>Delete Candidate</AlertDialogTitle>
+   733→   733→            <AlertDialogDescription>
+   734→   734→              Are you sure you want to delete <strong>{fullName}</strong>? This action cannot be
+   735→   735→              undone and will remove all associated interview records.
+   736→   736→            </AlertDialogDescription>
+   737→   737→          </AlertDialogHeader>
+   738→   738→          <AlertDialogFooter>
+   739→   739→            <AlertDialogCancel>Cancel</AlertDialogCancel>
+   740→   740→            <AlertDialogAction
+   741→   741→              onClick={() => deleteMutation.mutate()}
+   742→   742→              className="bg-destructive text-white hover:bg-destructive/90"
+   743→   743→              disabled={deleteMutation.isPending}
+   744→   744→            >
+   745→   745→              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+   746→   746→            </AlertDialogAction>
+   747→   747→          </AlertDialogFooter>
+   748→   748→        </AlertDialogContent>
+   749→   749→      </AlertDialog>
+   750→   750→    </motion.div>
+   751→   751→  )
+   752→   752→}
+   753→   753→

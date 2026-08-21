@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCRMStore, type CRMView } from '@/stores/crm-store'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -35,6 +36,8 @@ import { CommandPalette } from '@/components/crm/command-palette'
 import { NotificationBell } from '@/components/crm/notification-bell'
 import { ThemeToggle } from '@/components/crm/theme-toggle'
 import { GlobalSearch } from '@/components/crm/global-search'
+import { BackToTop } from '@/components/crm/back-to-top'
+import { LoadingProgress } from '@/components/crm/loading-progress'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; badge?: string; badgeColor?: string; section?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
@@ -54,6 +57,9 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: CRMView; ba
 export function CRMLayout({ children }: { children: React.ReactNode }) {
   const { currentView, sidebarOpen, toggleSidebar, setSidebarOpen, navigate } = useCRMStore()
   const isMobile = useIsMobile()
+  const queryClient = useQueryClient()
+  const contentRef = useRef<HTMLDivElement>(null)
+  const isFetching = queryClient.isFetching() > 0
 
   useEffect(() => {
     if (isMobile) setSidebarOpen(false)
@@ -218,9 +224,13 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           </Tooltip>
         </header>
 
+        {/* Loading Progress Bar */}
+        <LoadingProgress isLoading={isFetching} />
+
         {/* Page Content */}
-        <div className="flex-1 overflow-auto p-4 md:p-6">
+        <div ref={contentRef} className="flex-1 overflow-auto p-4 md:p-6">
           {children}
+          <BackToTop scrollContainerRef={contentRef} />
         </div>
 
         {/* Footer */}
@@ -241,7 +251,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v1.3.0
+                v1.4.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with ♥ in India</span>

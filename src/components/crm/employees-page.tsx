@@ -22,11 +22,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+import { UserPlus } from 'lucide-react'
 import {
   Form,
   FormField,
@@ -179,12 +178,12 @@ function AddEmployeeDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Employee</DialogTitle>
-          <DialogDescription>
-            Add a new team member to the organization.
-          </DialogDescription>
-        </DialogHeader>
+        <EnhancedDialogHeader
+          icon={UserPlus}
+          title="Add Employee"
+          description="Add a new team member to the organization."
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

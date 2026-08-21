@@ -8,11 +8,10 @@ import { Star, Loader2, Tag } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+import { MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -193,17 +192,16 @@ export function InterviewFeedbackDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-amber-500" />
-            Interview Feedback
-          </DialogTitle>
-          <DialogDescription>
-            {interview
+        <EnhancedDialogHeader
+          icon={MessageSquare}
+          title="Interview Feedback"
+          description={
+            interview
               ? `${interview.candidate.firstName} ${interview.candidate.lastName} — ${interview.type} interview`
-              : ''}
-          </DialogDescription>
-        </DialogHeader>
+              : ''
+          }
+          iconColor="text-violet-600 dark:text-violet-400"
+        />
 
         <div className="space-y-5">
           {/* Star Rating */}

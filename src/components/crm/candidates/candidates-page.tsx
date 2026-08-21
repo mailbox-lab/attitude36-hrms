@@ -6,6 +6,7 @@ import { useCRMStore } from '@/stores/crm-store'
 import { CandidateDetail } from './candidate-detail'
 import { AddCandidateDialog } from './add-candidate-dialog'
 import { BulkActionsBar } from './bulk-actions-bar'
+import { CandidateComparison } from './candidate-comparison'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +47,18 @@ import {
   Users,
   MapPin,
   Download,
+  MessageSquare,
 } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { exportToCSV } from '@/lib/export-csv'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
@@ -99,6 +111,16 @@ const STATUS_BORDER_COLORS: Record<string, string> = {
   Hired: 'border-l-green-500',
   Rejected: 'border-l-red-500',
   'On-Hold': 'border-l-gray-500',
+}
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  New: 'bg-emerald-500',
+  Screening: 'bg-cyan-500',
+  Interview: 'bg-amber-500',
+  Offer: 'bg-violet-500',
+  Hired: 'bg-green-500',
+  Rejected: 'bg-red-500',
+  'On-Hold': 'bg-gray-500',
 }
 
 const SOURCE_OPTIONS = [
@@ -331,6 +353,7 @@ export function CandidatesPage() {
   const [editCandidate, setEditCandidate] = useState<Candidate | null>(null)
   const [activeTab, setActiveTab] = useState('list')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [compareIds, setCompareIds] = useState<string[] | null>(null)
 
   const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
 
@@ -383,6 +406,26 @@ export function CandidatesPage() {
   const isAllSelected = candidates.length > 0 && candidates.every((c) => selectedIds.has(c.id))
   const isSomeSelected = !isAllSelected && candidates.some((c) => selectedIds.has(c.id))
 
+  // Quick status change mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`/api/candidates/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+      toast.success('Candidate status updated')
+    },
+    onError: () => {
+      toast.error('Failed to update candidate status')
+    },
+  })
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -427,6 +470,15 @@ export function CandidatesPage() {
   function handleCloseDialog(open: boolean) {
     setAddDialogOpen(open)
     if (!open) setEditCandidate(null)
+  }
+
+  function handleCompare() {
+    const ids = Array.from(selectedIds).slice(0, 4)
+    setCompareIds(ids)
+  }
+
+  function handleCloseComparison() {
+    setCompareIds(null)
   }
 
   // If a candidate is selected, show detail view
@@ -559,6 +611,7 @@ export function CandidatesPage() {
         selectedIds={selectedIdsArray}
         onClearSelection={deselectAll}
         onSuccess={handleBulkSuccess}
+        onCompare={handleCompare}
       />
 
       {/* Tabs: List / Pipeline */}
@@ -668,6 +721,18 @@ export function CandidatesPage() {
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium">
                                   {candidate.firstName} {candidate.lastName}
+                                  {candidate.notes && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="ml-1.5 inline-flex" onClick={(e) => e.stopPropagation()}>
+                                          <MessageSquare className="h-3.5 w-3.5 text-amber-500" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-[250px]">
+                                        <p className="text-xs">{candidate.notes.length > 50 ? candidate.notes.slice(0, 50) + '...' : candidate.notes}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
                                 </p>
                                 <p className="truncate text-xs text-muted-foreground sm:hidden">
                                   {candidate.email || '—'}
@@ -684,14 +749,43 @@ export function CandidatesPage() {
                           <TableCell className="hidden max-w-[180px] truncate text-xs lg:table-cell">
                             {candidate.title || '—'}
                           </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={`text-[10px] ${
-                                STATUS_COLORS[candidate.status] || ''
-                              }`}
-                            >
-                              {candidate.status}
-                            </Badge>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Badge
+                                  className={`cursor-pointer text-[10px] transition-transform hover:scale-105 ${
+                                    STATUS_COLORS[candidate.status] || ''
+                                  }`}
+                                >
+                                  {candidate.status}
+                                </Badge>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-40 p-1" align="start">
+                                <div className="space-y-0.5">
+                                  {ALL_STATUSES.map((status) => (
+                                    <button
+                                      key={status}
+                                      onClick={() =>
+                                        updateStatusMutation.mutate({
+                                          id: candidate.id,
+                                          status,
+                                        })
+                                      }
+                                      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-muted ${
+                                        candidate.status === status
+                                          ? 'font-semibold'
+                                          : ''
+                                      }`}
+                                    >
+                                      <span
+                                        className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`}
+                                      />
+                                      {status}
+                                    </button>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </TableCell>
                           <TableCell className="hidden text-xs md:table-cell">
                             {candidate.source || '—'}
@@ -785,6 +879,14 @@ export function CandidatesPage() {
         onOpenChange={handleCloseDialog}
         editCandidate={editCandidate}
       />
+
+      {/* Candidate Comparison Overlay */}
+      {compareIds && (
+        <CandidateComparison
+          candidateIds={compareIds}
+          onClose={handleCloseComparison}
+        />
+      )}
     </div>
   )
 }

@@ -45,6 +45,11 @@ import {
   Users,
   User,
 } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
@@ -82,6 +87,8 @@ const STATUS_OPTIONS = ['All', 'Open', 'Closed', 'Paused', 'Filled', 'Cancelled'
 const PRIORITY_OPTIONS = ['All', 'Low', 'Medium', 'High', 'Urgent']
 
 const KANBAN_STATUSES = ['Open', 'Paused', 'Filled', 'Closed', 'Cancelled'] as const
+
+const JOB_STATUSES = ['Open', 'Closed', 'Paused', 'Filled', 'Cancelled']
 
 const STATUS_COLORS: Record<string, string> = {
   Open: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
@@ -391,6 +398,26 @@ export function JobsPage() {
 
   const jobs = data?.data || []
 
+  // Quick status change mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`/api/jobs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      toast.success('Job status updated')
+    },
+    onError: () => {
+      toast.error('Failed to update job status')
+    },
+  })
+
   // Group jobs by status for Kanban
   const kanbanData = useMemo(() => {
     const groups: Record<string, Job[]> = {}
@@ -608,13 +635,42 @@ export function JobsPage() {
                                 </Badge>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[job.status] || 'bg-gray-400'}`} />
-                                <Badge className={`text-[10px] ${STATUS_COLORS[job.status] || ''}`}>
-                                  {job.status}
-                                </Badge>
-                              </div>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <div className="flex items-center gap-1.5 cursor-pointer transition-transform hover:scale-105">
+                                    <span className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[job.status] || 'bg-gray-400'}`} />
+                                    <Badge className={`text-[10px] ${STATUS_COLORS[job.status] || ''}`}>
+                                      {job.status}
+                                    </Badge>
+                                  </div>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-36 p-1" align="start">
+                                  <div className="space-y-0.5">
+                                    {JOB_STATUSES.map((status) => (
+                                      <button
+                                        key={status}
+                                        onClick={() =>
+                                          updateStatusMutation.mutate({
+                                            id: job.id,
+                                            status,
+                                          })
+                                        }
+                                        className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-muted ${
+                                          job.status === status
+                                            ? 'font-semibold'
+                                            : ''
+                                        }`}
+                                      >
+                                        <span
+                                          className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`}
+                                        />
+                                        {status}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                             <TableCell className="hidden text-xs sm:table-cell">
                               <span className="font-medium">{job._count.candidates}</span>

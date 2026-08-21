@@ -29,11 +29,9 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
 import {
   Form,
   FormField,
@@ -544,12 +542,12 @@ function AddPlacementDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Add Placement</DialogTitle>
-          <DialogDescription>
-            Record a new placement for a hired candidate.
-          </DialogDescription>
-        </DialogHeader>
+        <EnhancedDialogHeader
+          icon={Award}
+          title="Add Placement"
+          description="Record a new placement for a hired candidate."
+          iconColor="text-rose-600 dark:text-rose-400"
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

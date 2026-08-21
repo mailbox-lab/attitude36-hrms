@@ -9,11 +9,10 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+import { Briefcase } from 'lucide-react'
 import {
   Form,
   FormField,
@@ -255,16 +254,16 @@ export function AddJobDialog({ open, onOpenChange, editJob }: AddJobDialogProps)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Job Opening' : 'Add New Job Opening'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
+        <EnhancedDialogHeader
+          icon={Briefcase}
+          title={isEditing ? 'Edit Job Opening' : 'Add New Job Opening'}
+          description={
+            isEditing
               ? 'Update the job opening details below.'
-              : 'Fill in the details to create a new job opening.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Fill in the details to create a new job opening.'
+          }
+          iconColor="text-amber-600 dark:text-amber-400"
+        />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -1,0 +1,728 @@
+     1→'use client'
+     2→
+     3→import { useState, useMemo } from 'react'
+     4→import { useQuery, useQueryClient } from '@tanstack/react-query'
+     5→import { useCRMStore } from '@/stores/crm-store'
+     6→import { JobDetail } from './job-detail'
+     7→import { AddJobDialog } from './add-job-dialog'
+     8→import { Card, CardContent } from '@/components/ui/card'
+     9→import { Button } from '@/components/ui/button'
+    10→import { Badge } from '@/components/ui/badge'
+    11→import { Input } from '@/components/ui/input'
+    12→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    13→import {
+    14→  Select,
+    15→  SelectContent,
+    16→  SelectItem,
+    17→  SelectTrigger,
+    18→  SelectValue,
+    19→} from '@/components/ui/select'
+    20→import {
+    21→  Table,
+    22→  TableBody,
+    23→  TableCell,
+    24→  TableHead,
+    25→  TableHeader,
+    26→  TableRow,
+    27→} from '@/components/ui/table'
+    28→import {
+    29→  DropdownMenu,
+    30→  DropdownMenuContent,
+    31→  DropdownMenuItem,
+    32→  DropdownMenuTrigger,
+    33→} from '@/components/ui/dropdown-menu'
+    34→import {
+    35→  Search,
+    36→  Plus,
+    37→  Briefcase,
+    38→  MoreHorizontal,
+    39→  Pencil,
+    40→  Eye,
+    41→  LayoutList,
+    42→  KanbanSquare,
+    43→  MapPin,
+    44→  Clock,
+    45→  Users,
+    46→  User,
+    47→} from 'lucide-react'
+    48→import { motion } from 'framer-motion'
+    49→import { toast } from 'sonner'
+    50→import { useMutation } from '@tanstack/react-query'
+    51→
+    52→// ===== Types =====
+    53→
+    54→type Job = {
+    55→  id: string
+    56→  title: string
+    57→  clientId: string
+    58→  client: { id: string; name: string }
+    59→  recruiterId: string | null
+    60→  recruiter: { id: string; name: string } | null
+    61→  department: string | null
+    62→  location: string | null
+    63→  employmentType: string
+    64→  salaryMin: number | null
+    65→  salaryMax: number | null
+    66→  currency: string
+    67→  status: string
+    68→  priority: string
+    69→  openings: number
+    70→  createdAt: string
+    71→  _count: {
+    72→    candidates: number
+    73→    interviews: number
+    74→    placements: number
+    75→  }
+    76→}
+    77→
+    78→// ===== Constants =====
+    79→
+    80→const STATUS_OPTIONS = ['All', 'Open', 'Closed', 'Paused', 'Filled', 'Cancelled']
+    81→
+    82→const PRIORITY_OPTIONS = ['All', 'Low', 'Medium', 'High', 'Urgent']
+    83→
+    84→const KANBAN_STATUSES = ['Open', 'Paused', 'Filled', 'Closed', 'Cancelled'] as const
+    85→
+    86→const STATUS_COLORS: Record<string, string> = {
+    87→  Open: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+    88→  Closed: 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+    89→  Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+    90→  Filled: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+    91→  Cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+    92→}
+    93→
+    94→const PRIORITY_COLORS: Record<string, string> = {
+    95→  Low: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+    96→  Medium: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+    97→  High: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+    98→  Urgent: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+    99→}
+   100→
+   101→const PRIORITY_DOT_COLORS: Record<string, string> = {
+   102→  Low: 'bg-green-500',
+   103→  Medium: 'bg-cyan-500',
+   104→  High: 'bg-amber-500',
+   105→  Urgent: 'bg-red-500',
+   106→}
+   107→
+   108→const PRIORITY_BORDER_COLORS: Record<string, string> = {
+   109→  Low: 'border-l-green-500',
+   110→  Medium: 'border-l-cyan-500',
+   111→  High: 'border-l-amber-500',
+   112→  Urgent: 'border-l-red-500',
+   113→}
+   114→
+   115→const STATUS_DOT_COLORS: Record<string, string> = {
+   116→  Open: 'bg-emerald-500',
+   117→  Closed: 'bg-gray-400',
+   118→  Paused: 'bg-amber-500',
+   119→  Filled: 'bg-violet-500',
+   120→  Cancelled: 'bg-red-500',
+   121→}
+   122→
+   123→const KANBAN_GRADIENT: Record<string, string> = {
+   124→  Open: 'from-emerald-400 to-emerald-500',
+   125→  Paused: 'from-amber-400 to-amber-500',
+   126→  Filled: 'from-violet-400 to-violet-500',
+   127→  Closed: 'from-gray-400 to-gray-500',
+   128→  Cancelled: 'from-red-400 to-red-500',
+   129→}
+   130→
+   131→const KANBAN_BORDER_COLOR: Record<string, string> = {
+   132→  Open: '#34d399',
+   133→  Paused: '#fbbf24',
+   134→  Filled: '#a78bfa',
+   135→  Closed: '#9ca3af',
+   136→  Cancelled: '#f87171',
+   137→}
+   138→
+   139→const KANBAN_COUNT_COLORS: Record<string, string> = {
+   140→  Open: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+   141→  Paused: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+   142→  Filled: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
+   143→  Closed: 'bg-gray-500/15 text-gray-700 dark:text-gray-400',
+   144→  Cancelled: 'bg-red-500/15 text-red-700 dark:text-red-400',
+   145→}
+   146→
+   147→const CURRENCY_SYMBOLS: Record<string, string> = {
+   148→  INR: '₹',
+   149→  USD: '$',
+   150→  EUR: '€',
+   151→  GBP: '£',
+   152→  SGD: 'S$',
+   153→  AED: 'AED',
+   154→}
+   155→
+   156→// ===== Framer Motion Variants =====
+   157→
+   158→const cardVariants = {
+   159→  hidden: { opacity: 0, y: 16 },
+   160→  visible: (i: number) => ({
+   161→    opacity: 1,
+   162→    y: 0,
+   163→    transition: { delay: i * 0.05, duration: 0.3, ease: 'easeOut' },
+   164→  }),
+   165→}
+   166→
+   167→const columnVariants = {
+   168→  hidden: { opacity: 0, y: 12 },
+   169→  visible: (i: number) => ({
+   170→    opacity: 1,
+   171→    y: 0,
+   172→    transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
+   173→  }),
+   174→}
+   175→
+   176→// ===== Kanban Card =====
+   177→
+   178→function KanbanCard({
+   179→  job,
+   180→  onView,
+   181→  onEdit,
+   182→  index,
+   183→}: {
+   184→  job: Job
+   185→  onView: () => void
+   186→  onEdit: () => void
+   187→  index: number
+   188→}) {
+   189→  const currencySymbol = CURRENCY_SYMBOLS[job.currency] || job.currency
+   190→  const hasSalary = job.salaryMin != null || job.salaryMax != null
+   191→
+   192→  return (
+   193→    <motion.div
+   194→      variants={cardVariants}
+   195→      initial="hidden"
+   196→      animate="visible"
+   197→      custom={index}
+   198→      className="group relative cursor-pointer rounded-lg border border-border/60 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+   199→      onClick={onView}
+   200→    >
+   201→      {/* Actions menu */}
+   202→      <div className="absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100">
+   203→        <DropdownMenu>
+   204→          <DropdownMenuTrigger asChild>
+   205→            <Button
+   206→              variant="ghost"
+   207→              size="icon"
+   208→              className="h-6 w-6 shrink-0"
+   209→              onClick={(e) => e.stopPropagation()}
+   210→            >
+   211→              <MoreHorizontal className="h-3.5 w-3.5" />
+   212→            </Button>
+   213→          </DropdownMenuTrigger>
+   214→          <DropdownMenuContent align="end">
+   215→            <DropdownMenuItem
+   216→              onClick={(e) => {
+   217→                e.stopPropagation()
+   218→                onView()
+   219→              }}
+   220→            >
+   221→              <Eye className="mr-2 h-3.5 w-3.5" />
+   222→              View Details
+   223→            </DropdownMenuItem>
+   224→            <DropdownMenuItem
+   225→              onClick={(e) => {
+   226→                e.stopPropagation()
+   227→                onEdit()
+   228→              }}
+   229→            >
+   230→              <Pencil className="mr-2 h-3.5 w-3.5" />
+   231→              Edit
+   232→            </DropdownMenuItem>
+   233→          </DropdownMenuContent>
+   234→        </DropdownMenu>
+   235→      </div>
+   236→
+   237→      {/* Title */}
+   238→      <p className="truncate pr-6 text-sm font-medium leading-tight">{job.title}</p>
+   239→
+   240→      {/* Client */}
+   241→      <p className="mt-0.5 truncate text-xs text-muted-foreground">{job.client.name}</p>
+   242→
+   243→      {/* Location + Type row */}
+   244→      <div className="mt-2.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+   245→        {job.location && (
+   246→          <span className="flex items-center gap-0.5">
+   247→            <MapPin className="h-2.5 w-2.5" /> {job.location}
+   248→          </span>
+   249→        )}
+   250→        <span className="flex items-center gap-0.5">
+   251→          <Clock className="h-2.5 w-2.5" /> {job.employmentType}
+   252→        </span>
+   253→      </div>
+   254→
+   255→      {/* Priority + Candidates row */}
+   256→      <div className="mt-2.5 flex items-center justify-between">
+   257→        <div className="flex items-center gap-1.5">
+   258→          <span
+   259→            className={`h-2 w-2 rounded-full ${PRIORITY_DOT_COLORS[job.priority] || 'bg-gray-400'}`}
+   260→          />
+   261→          <Badge
+   262→            className={`text-[10px] font-medium ${PRIORITY_COLORS[job.priority] || ''}`}
+   263→          >
+   264→            {job.priority}
+   265→          </Badge>
+   266→          {job.openings > 1 && (
+   267→            <span className="text-[10px] text-muted-foreground">
+   268→              ({job.openings} pos)
+   269→            </span>
+   270→          )}
+   271→        </div>
+   272→        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+   273→          <Users className="h-3 w-3" />
+   274→          {job._count.candidates} candidate{job._count.candidates !== 1 ? 's' : ''}
+   275→        </span>
+   276→      </div>
+   277→
+   278→      {/* Salary range */}
+   279→      {hasSalary && (
+   280→        <p className="mt-2 text-[10px] text-muted-foreground">
+   281→          {currencySymbol}
+   282→          {(job.salaryMin ?? 0).toLocaleString('en-IN')}
+   283→          {job.salaryMax
+   284→            ? ` – ${currencySymbol}${job.salaryMax.toLocaleString('en-IN')}`
+   285→            : '+'}
+   286→        </p>
+   287→      )}
+   288→
+   289→      {/* Recruiter */}
+   290→      {job.recruiter && (
+   291→        <div className="mt-2 flex items-center gap-1 border-t border-border/50 pt-2 text-[10px] text-muted-foreground">
+   292→          <User className="h-2.5 w-2.5" />
+   293→          {job.recruiter.name}
+   294→        </div>
+   295→      )}
+   296→    </motion.div>
+   297→  )
+   298→}
+   299→
+   300→// ===== Kanban Column =====
+   301→
+   302→function KanbanColumn({
+   303→  status,
+   304→  jobs,
+   305→  onViewJob,
+   306→  onEditJob,
+   307→  columnIndex,
+   308→}: {
+   309→  status: string
+   310→  jobs: Job[]
+   311→  onViewJob: (id: string) => void
+   312→  onEditJob: (job: Job) => void
+   313→  columnIndex: number
+   314→}) {
+   315→  return (
+   316→    <motion.div
+   317→      variants={columnVariants}
+   318→      initial="hidden"
+   319→      animate="visible"
+   320→      custom={columnIndex}
+   321→      className="flex w-72 shrink-0 flex-col"
+   322→    >
+   323→      {/* Column header */}
+   324→      <div className="mb-3 flex items-center justify-between px-1">
+   325→        <div className="flex items-center gap-2">
+   326→          <span
+   327→            className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`}
+   328→          />
+   329→          <span className="text-sm font-semibold">{status}</span>
+   330→        </div>
+   331→        <span
+   332→          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${KANBAN_COUNT_COLORS[status] || 'bg-gray-500/15 text-gray-700'}`}
+   333→        >
+   334→          {jobs.length}
+   335→        </span>
+   336→      </div>
+   337→
+   338→      {/* Column body with gradient top border */}
+   339→      <div
+   340→        className="flex max-h-[calc(100vh-320px)] min-h-[120px] flex-col gap-2.5 overflow-y-auto rounded-lg rounded-t-none bg-muted/30 p-2.5"
+   341→        style={{
+   342→          borderTop: `3px solid ${KANBAN_BORDER_COLOR[status] || '#9ca3af'}`,
+   343→        }}
+   344→      >
+   345→        {jobs.length === 0 ? (
+   346→          <div className="flex flex-1 items-center justify-center py-8">
+   347→            <p className="text-xs text-muted-foreground/60">No jobs</p>
+   348→          </div>
+   349→        ) : (
+   350→          jobs.map((job, i) => (
+   351→            <KanbanCard
+   352→              key={job.id}
+   353→              job={job}
+   354→              onView={() => onViewJob(job.id)}
+   355→              onEdit={() => onEditJob(job)}
+   356→              index={i}
+   357→            />
+   358→          ))
+   359→        )}
+   360→      </div>
+   361→    </motion.div>
+   362→  )
+   363→}
+   364→
+   365→// ===== Main Component =====
+   366→
+   367→export function JobsPage() {
+   368→  const navigate = useCRMStore((s) => s.navigate)
+   369→  const selectedId = useCRMStore((s) => s.selectedId)
+   370→  const jobFilter = useCRMStore((s) => s.jobFilter)
+   371→  const setJobFilter = useCRMStore((s) => s.setJobFilter)
+   372→  const queryClient = useQueryClient()
+   373→
+   374→  const [addDialogOpen, setAddDialogOpen] = useState(false)
+   375→  const [editJob, setEditJob] = useState<Job | null>(null)
+   376→  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
+   377→
+   378→  // Fetch jobs
+   379→  const { data, isLoading, error } = useQuery<{ data: Job[] }>({
+   380→    queryKey: ['jobs', jobFilter.search, jobFilter.status, jobFilter.priority],
+   381→    queryFn: async () => {
+   382→      const params = new URLSearchParams()
+   383→      if (jobFilter.search) params.set('search', jobFilter.search)
+   384→      if (jobFilter.status && jobFilter.status !== 'All') params.set('status', jobFilter.status)
+   385→      if (jobFilter.priority && jobFilter.priority !== 'All') params.set('priority', jobFilter.priority)
+   386→      const res = await fetch(`/api/jobs?${params.toString()}`)
+   387→      if (!res.ok) throw new Error('Failed to fetch jobs')
+   388→      return res.json()
+   389→    },
+   390→  })
+   391→
+   392→  const jobs = data?.data || []
+   393→
+   394→  // Group jobs by status for Kanban
+   395→  const kanbanData = useMemo(() => {
+   396→    const groups: Record<string, Job[]> = {}
+   397→    KANBAN_STATUSES.forEach((s) => {
+   398→      groups[s] = []
+   399→    })
+   400→    jobs.forEach((j) => {
+   401→      if (groups[j.status]) {
+   402→        groups[j.status].push(j)
+   403→      }
+   404→    })
+   405→    return groups
+   406→  }, [jobs])
+   407→
+   408→  // If a job is selected, show detail view
+   409→  if (selectedId) {
+   410→    return <JobDetail jobId={selectedId} />
+   411→  }
+   412→
+   413→  function handleViewJob(id: string) {
+   414→    navigate('job-detail', id)
+   415→  }
+   416→
+   417→  function handleEditJob(job: Job) {
+   418→    setEditJob(job)
+   419→    setAddDialogOpen(true)
+   420→  }
+   421→
+   422→  function handleCloseDialog(open: boolean) {
+   423→    setAddDialogOpen(open)
+   424→    if (!open) setEditJob(null)
+   425→  }
+   426→
+   427→  return (
+   428→    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+   429→      {/* Header */}
+   430→      <div className="space-y-3">
+   431→        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   432→          <div className="flex items-center gap-3">
+   433→            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+   434→              <Briefcase className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+   435→            </div>
+   436→            <div>
+   437→              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Jobs</h1>
+   438→              <p className="mt-1 text-sm text-muted-foreground">
+   439→                Manage job openings and track recruitment pipeline
+   440→                {data && (
+   441→                  <span className="ml-1 font-medium text-foreground">
+   442→                    ({jobs.length} total)
+   443→                  </span>
+   444→                )}
+   445→              </p>
+   446→            </div>
+   447→          </div>
+   448→          <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm hover:from-primary/90 hover:to-primary/70">
+   449→            <Plus className="mr-2 h-4 w-4" />
+   450→            Add Job
+   451→          </Button>
+   452→        </div>
+   453→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-400" />
+   454→      </div>
+   455→
+   456→      {/* Filters */}
+   457→      <div className="rounded-lg bg-muted/50 p-2">
+   458→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   459→          <div className="relative flex-1 sm:max-w-xs">
+   460→            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   461→            <Input
+   462→              placeholder="Search jobs..."
+   463→              className="pl-9"
+   464→              value={jobFilter.search}
+   465→              onChange={(e) => setJobFilter({ search: e.target.value })}
+   466→            />
+   467→          </div>
+   468→          <Select
+   469→            value={jobFilter.status}
+   470→            onValueChange={(val) => setJobFilter({ status: val })}
+   471→          >
+   472→            <SelectTrigger className="w-full sm:w-[160px]">
+   473→              <SelectValue placeholder="Status" />
+   474→            </SelectTrigger>
+   475→            <SelectContent>
+   476→              {STATUS_OPTIONS.map((status) => (
+   477→                <SelectItem key={status} value={status}>
+   478→                  {status === 'All' ? 'All Statuses' : status}
+   479→                </SelectItem>
+   480→              ))}
+   481→            </SelectContent>
+   482→          </Select>
+   483→          <Select
+   484→            value={jobFilter.priority}
+   485→            onValueChange={(val) => setJobFilter({ priority: val })}
+   486→          >
+   487→            <SelectTrigger className="w-full sm:w-[160px]">
+   488→              <SelectValue placeholder="Priority" />
+   489→            </SelectTrigger>
+   490→            <SelectContent>
+   491→              {PRIORITY_OPTIONS.map((priority) => (
+   492→                <SelectItem key={priority} value={priority}>
+   493→                  {priority === 'All' ? 'All Priorities' : priority}
+   494→                </SelectItem>
+   495→              ))}
+   496→            </SelectContent>
+   497→          </Select>
+   498→        </div>
+   499→      </div>
+   500→
+   501→      {/* View Toggle + Content */}
+   502→      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'kanban')}>
+   503→        <TabsList>
+   504→          <TabsTrigger value="table" className="gap-1.5">
+   505→            <LayoutList className="h-4 w-4" />
+   506→            Table
+   507→          </TabsTrigger>
+   508→          <TabsTrigger value="kanban" className="gap-1.5">
+   509→            <KanbanSquare className="h-4 w-4" />
+   510→            Kanban
+   511→          </TabsTrigger>
+   512→        </TabsList>
+   513→
+   514→        {/* Table View */}
+   515→        <TabsContent value="table" className="mt-4">
+   516→          {isLoading ? (
+   517→            <Card>
+   518→              <CardContent className="p-6">
+   519→                <div className="flex items-center justify-center gap-3">
+   520→                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   521→                  <p className="text-sm text-muted-foreground">Loading jobs...</p>
+   522→                </div>
+   523→              </CardContent>
+   524→            </Card>
+   525→          ) : error ? (
+   526→            <Card>
+   527→              <CardContent className="p-6">
+   528→                <p className="text-center text-sm text-destructive">
+   529→                  Failed to load jobs. Please try again.
+   530→                </p>
+   531→              </CardContent>
+   532→            </Card>
+   533→          ) : jobs.length === 0 ? (
+   534→            <Card>
+   535→              <CardContent className="flex flex-col items-center gap-4 py-12">
+   536→                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/50">
+   537→                  <Briefcase className="h-6 w-6 text-amber-400" />
+   538→                </div>
+   539→                <div className="text-center">
+   540→                  <p className="text-sm font-medium text-muted-foreground">No jobs found</p>
+   541→                  <p className="mt-1 text-xs text-muted-foreground/70">
+   542→                    {jobFilter.search || jobFilter.status !== 'All' || jobFilter.priority !== 'All'
+   543→                      ? 'Try adjusting your search or filter criteria'
+   544→                      : 'Create your first job opening to start receiving candidates'}
+   545→                  </p>
+   546→                </div>
+   547→              </CardContent>
+   548→            </Card>
+   549→          ) : (
+   550→            <Card>
+   551→              <CardContent className="p-0">
+   552→                <div className="max-h-[500px] overflow-y-auto">
+   553→                  <Table>
+   554→                    <TableHeader>
+   555→                      <TableRow className="hover:bg-transparent">
+   556→                        <TableHead className="text-xs">Title</TableHead>
+   557→                        <TableHead className="hidden text-xs sm:table-cell">Client</TableHead>
+   558→                        <TableHead className="hidden text-xs md:table-cell">Location</TableHead>
+   559→                        <TableHead className="hidden text-xs md:table-cell">Type</TableHead>
+   560→                        <TableHead className="hidden text-xs lg:table-cell">Salary Range</TableHead>
+   561→                        <TableHead className="text-xs">Priority</TableHead>
+   562→                        <TableHead className="text-xs">Status</TableHead>
+   563→                        <TableHead className="hidden text-xs sm:table-cell">Candidates</TableHead>
+   564→                        <TableHead className="w-10 text-xs">Actions</TableHead>
+   565→                      </TableRow>
+   566→                    </TableHeader>
+   567→                    <TableBody>
+   568→                      {jobs.map((job) => {
+   569→                        const currencySymbol = CURRENCY_SYMBOLS[job.currency] || job.currency
+   570→                        const salaryRange =
+   571→                          job.salaryMin || job.salaryMax
+   572→                            ? `${currencySymbol}${(job.salaryMin ?? 0).toLocaleString('en-IN')} - ${currencySymbol}${(job.salaryMax ?? 0).toLocaleString('en-IN')}`
+   573→                            : '—'
+   574→
+   575→                        return (
+   576→                          <TableRow
+   577→                            key={job.id}
+   578→                            className={`cursor-pointer border-l-4 ${PRIORITY_BORDER_COLORS[job.priority] || 'border-l-gray-300'} ${jobs.indexOf(job) % 2 === 1 ? 'bg-muted/30' : ''}`}
+   579→                            onClick={() => handleViewJob(job.id)}
+   580→                          >
+   581→                            <TableCell>
+   582→                              <div className="flex flex-col">
+   583→                                <span className="text-xs font-medium">{job.title}</span>
+   584→                                {job.department && (
+   585→                                  <span className="text-[10px] text-muted-foreground">
+   586→                                    {job.department}
+   587→                                  </span>
+   588→                                )}
+   589→                              </div>
+   590→                            </TableCell>
+   591→                            <TableCell className="hidden text-xs sm:table-cell">
+   592→                              {job.client.name}
+   593→                            </TableCell>
+   594→                            <TableCell className="hidden text-xs md:table-cell">
+   595→                              {job.location || '—'}
+   596→                            </TableCell>
+   597→                            <TableCell className="hidden text-xs md:table-cell">
+   598→                              {job.employmentType}
+   599→                            </TableCell>
+   600→                            <TableCell className="hidden text-xs lg:table-cell">
+   601→                              {salaryRange}
+   602→                            </TableCell>
+   603→                            <TableCell>
+   604→                              <div className="flex items-center gap-1.5">
+   605→                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT_COLORS[job.priority] || 'bg-gray-400'}`} />
+   606→                                <Badge className={`text-[10px] ${PRIORITY_COLORS[job.priority] || ''}`}>
+   607→                                  {job.priority}
+   608→                                </Badge>
+   609→                              </div>
+   610→                            </TableCell>
+   611→                            <TableCell>
+   612→                              <div className="flex items-center gap-1.5">
+   613→                                <span className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[job.status] || 'bg-gray-400'}`} />
+   614→                                <Badge className={`text-[10px] ${STATUS_COLORS[job.status] || ''}`}>
+   615→                                  {job.status}
+   616→                                </Badge>
+   617→                              </div>
+   618→                            </TableCell>
+   619→                            <TableCell className="hidden text-xs sm:table-cell">
+   620→                              <span className="font-medium">{job._count.candidates}</span>
+   621→                            </TableCell>
+   622→                            <TableCell>
+   623→                              <DropdownMenu>
+   624→                                <DropdownMenuTrigger asChild>
+   625→                                  <Button
+   626→                                    variant="ghost"
+   627→                                    size="icon"
+   628→                                    className="h-7 w-7"
+   629→                                    onClick={(e) => e.stopPropagation()}
+   630→                                  >
+   631→                                    <MoreHorizontal className="h-3.5 w-3.5" />
+   632→                                  </Button>
+   633→                                </DropdownMenuTrigger>
+   634→                                <DropdownMenuContent align="end">
+   635→                                  <DropdownMenuItem
+   636→                                    onClick={(e) => {
+   637→                                      e.stopPropagation()
+   638→                                      handleViewJob(job.id)
+   639→                                    }}
+   640→                                  >
+   641→                                    <Eye className="mr-2 h-3.5 w-3.5" />
+   642→                                    View Details
+   643→                                  </DropdownMenuItem>
+   644→                                  <DropdownMenuItem
+   645→                                    onClick={(e) => {
+   646→                                      e.stopPropagation()
+   647→                                      handleEditJob(job)
+   648→                                    }}
+   649→                                  >
+   650→                                    <Pencil className="mr-2 h-3.5 w-3.5" />
+   651→                                    Edit
+   652→                                  </DropdownMenuItem>
+   653→                                </DropdownMenuContent>
+   654→                              </DropdownMenu>
+   655→                            </TableCell>
+   656→                          </TableRow>
+   657→                        )
+   658→                      })}
+   659→                    </TableBody>
+   660→                  </Table>
+   661→                </div>
+   662→              </CardContent>
+   663→            </Card>
+   664→          )}
+   665→        </TabsContent>
+   666→
+   667→        {/* Kanban View */}
+   668→        <TabsContent value="kanban" className="mt-4">
+   669→          {isLoading ? (
+   670→            <Card>
+   671→              <CardContent className="p-6">
+   672→                <div className="flex items-center justify-center gap-3">
+   673→                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   674→                  <p className="text-sm text-muted-foreground">Loading board...</p>
+   675→                </div>
+   676→              </CardContent>
+   677→            </Card>
+   678→          ) : error ? (
+   679→            <Card>
+   680→              <CardContent className="p-6">
+   681→                <p className="text-center text-sm text-destructive">
+   682→                  Failed to load jobs. Please try again.
+   683→                </p>
+   684→              </CardContent>
+   685→            </Card>
+   686→          ) : jobs.length === 0 ? (
+   687→            <Card>
+   688→              <CardContent className="flex flex-col items-center gap-4 py-12">
+   689→                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/50">
+   690→                  <Briefcase className="h-6 w-6 text-amber-400" />
+   691→                </div>
+   692→                <div className="text-center">
+   693→                  <p className="text-sm font-medium text-muted-foreground">No jobs found</p>
+   694→                  <p className="mt-1 text-xs text-muted-foreground/70">
+   695→                    {jobFilter.search || jobFilter.status !== 'All' || jobFilter.priority !== 'All'
+   696→                      ? 'Try adjusting your search or filter criteria'
+   697→                      : 'Create your first job opening to start building your pipeline'}
+   698→                  </p>
+   699→                </div>
+   700→              </CardContent>
+   701→            </Card>
+   702→          ) : (
+   703→            <div className="flex gap-4 overflow-x-auto pb-4">
+   704→              {KANBAN_STATUSES.map((status, i) => (
+   705→                <KanbanColumn
+   706→                  key={status}
+   707→                  status={status}
+   708→                  jobs={kanbanData[status] || []}
+   709→                  onViewJob={handleViewJob}
+   710→                  onEditJob={handleEditJob}
+   711→                  columnIndex={i}
+   712→                />
+   713→              ))}
+   714→            </div>
+   715→          )}
+   716→        </TabsContent>
+   717→      </Tabs>
+   718→
+   719→      {/* Add/Edit Dialog */}
+   720→      <AddJobDialog
+   721→        open={addDialogOpen}
+   722→        onOpenChange={handleCloseDialog}
+   723→        editJob={editJob}
+   724→      />
+   725→    </div>
+   726→  )
+   727→}
+   728→

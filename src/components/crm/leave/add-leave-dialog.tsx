@@ -8,11 +8,10 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+import { CalendarOff } from 'lucide-react'
 import {
   Form,
   FormField,
@@ -141,12 +140,12 @@ export function AddLeaveDialog({ open, onOpenChange }: AddLeaveDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Apply for Leave</DialogTitle>
-          <DialogDescription>
-            Fill in the details to submit a new leave request.
-          </DialogDescription>
-        </DialogHeader>
+        <EnhancedDialogHeader
+          icon={CalendarOff}
+          title="Apply for Leave"
+          description="Fill in the details to submit a new leave request."
+          iconColor="text-orange-600 dark:text-orange-400"
+        />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

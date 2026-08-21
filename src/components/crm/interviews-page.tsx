@@ -72,6 +72,11 @@ import {
   List,
   Star,
 } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { InterviewCalendar } from '@/components/crm/interviews/interview-calendar'
 import { InterviewFeedbackDialog } from '@/components/crm/interviews/interview-feedback-dialog'
 
@@ -113,6 +118,13 @@ const STATUS_OPTIONS = ['All', 'Scheduled', 'Completed', 'Cancelled', 'No-Show']
 const TYPE_OPTIONS = ['All', 'Phone', 'Technical', 'HR', 'Managerial', 'Final']
 const INTERVIEW_TYPES = ['Phone', 'Technical', 'HR', 'Managerial', 'Final']
 const EDITABLE_STATUSES = ['Scheduled', 'Completed', 'Cancelled', 'No-Show']
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  Scheduled: 'bg-cyan-500',
+  Completed: 'bg-green-500',
+  Cancelled: 'bg-red-500',
+  'No-Show': 'bg-orange-500',
+}
 
 const STATUS_COLORS: Record<string, string> = {
   Scheduled: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
@@ -713,13 +725,42 @@ export function InterviewsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Badge
-                          className={`text-[10px] ${
-                            STATUS_COLORS[interview.status] || ''
-                          }`}
-                        >
-                          {interview.status}
-                        </Badge>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Badge
+                              className={`cursor-pointer text-[10px] transition-transform hover:scale-105 ${
+                                STATUS_COLORS[interview.status] || ''
+                              }`}
+                            >
+                              {interview.status}
+                            </Badge>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-36 p-1" align="start">
+                            <div className="space-y-0.5">
+                              {EDITABLE_STATUSES.map((status) => (
+                                <button
+                                  key={status}
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      id: interview.id,
+                                      status,
+                                    })
+                                  }
+                                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-muted ${
+                                    interview.status === status
+                                      ? 'font-semibold'
+                                      : ''
+                                  }`}
+                                >
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-gray-400'}`}
+                                  />
+                                  {status}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                         {interview.rating && (
                           <Tooltip>
                             <TooltipTrigger asChild>

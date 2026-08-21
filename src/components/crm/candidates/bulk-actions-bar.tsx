@@ -16,6 +16,7 @@ import {
   Trash2,
   ArrowUpDown,
   X,
+  GitCompare,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -44,12 +45,14 @@ interface BulkActionsBarProps {
   selectedIds: string[]
   onClearSelection: () => void
   onSuccess: () => void
+  onCompare?: () => void
 }
 
 export function BulkActionsBar({
   selectedIds,
   onClearSelection,
   onSuccess,
+  onCompare,
 }: BulkActionsBarProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -115,6 +118,19 @@ export function BulkActionsBar({
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Compare Button */}
+          {onCompare && selectedIds.length >= 2 && selectedIds.length <= 4 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              onClick={onCompare}
+            >
+              <GitCompare className="h-3.5 w-3.5" />
+              Compare ({Math.min(selectedIds.length, 4)})
+            </Button>
+          )}
+
           {/* Update Status Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

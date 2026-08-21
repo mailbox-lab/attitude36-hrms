@@ -9,11 +9,10 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+import { Building2 } from 'lucide-react'
 import {
   Form,
   FormField,
@@ -221,16 +220,16 @@ export function AddClientDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Client' : 'Add New Client'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
+        <EnhancedDialogHeader
+          icon={Building2}
+          title={isEditing ? 'Edit Client' : 'Add New Client'}
+          description={
+            isEditing
               ? 'Update client information below.'
-              : 'Fill in the details to add a new hiring company.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Fill in the details to add a new hiring company.'
+          }
+          iconColor="text-amber-600 dark:text-amber-400"
+        />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

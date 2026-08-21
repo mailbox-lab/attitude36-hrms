@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useCRMStore } from '@/stores/crm-store'
@@ -56,8 +56,10 @@ import {
   IndianRupee,
   Tag,
   Timer,
+  Check,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { Textarea } from '@/components/ui/textarea'
 
 // ===== Types =====
 
@@ -268,6 +270,85 @@ function QuickInfoItem({ icon, label, value }: { icon: React.ReactNode; label: s
   )
 }
 
+// ===== Notes Editor =====
+
+function NotesEditor({
+  candidateId,
+  initialNotes,
+}: {
+  candidateId: string
+  initialNotes: string
+}) {
+  const queryClient = useQueryClient()
+  const [notes, setNotes] = useState(initialNotes)
+  const [showSaved, setShowSaved] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const saveMutation = useMutation({
+    mutationFn: async (newNotes: string) => {
+      const res = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: newNotes }),
+      })
+      if (!res.ok) throw new Error('Failed to save notes')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidate', candidateId] })
+      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+      toast.success('Notes saved')
+      setShowSaved(true)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => setShowSaved(false), 2000)
+    },
+    onError: () => {
+      toast.error('Failed to save notes')
+    },
+  })
+
+  const hasNotes = notes.trim().length > 0
+  const isDirty = notes !== initialNotes
+
+  return (
+    <div className="space-y-3">
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        rows={4}
+        placeholder={!hasNotes ? 'No notes yet. Add internal notes about this candidate...' : 'Add internal notes about this candidate...'}
+        className="resize-y"
+      />
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          {notes.length} character{notes.length !== 1 ? 's' : ''}
+        </span>
+        <div className="flex items-center gap-2">
+          {showSaved && (
+            <motion.span
+              className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Saved
+            </motion.span>
+          )}
+          <Button
+            size="sm"
+            disabled={!isDirty || saveMutation.isPending}
+            onClick={() => saveMutation.mutate(notes)}
+          >
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            {saveMutation.isPending ? 'Saving...' : 'Save Notes'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ===== Main Component =====
 
 export function CandidateDetail({
@@ -403,6 +484,12 @@ export function CandidateDetail({
                 <Badge variant="secondary" className="text-xs">
                   <Briefcase className="mr-1 h-3 w-3" />
                   {candidate.experience} yrs exp
+                </Badge>
+              )}
+              {candidate.notes && (
+                <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400">
+                  <MessageSquare className="mr-1 h-3 w-3" />
+                  {candidate.notes.length}
                 </Badge>
               )}
             </div>
@@ -687,13 +774,10 @@ export function CandidateDetail({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {candidate.notes ? (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {candidate.notes}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">No notes added.</p>
-              )}
+              <NotesEditor
+                candidateId={candidate.id}
+                initialNotes={candidate.notes || ''}
+              />
             </CardContent>
           </Card>
 
