@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
   relationMode = "prisma"
 }
 
@@ -21,19 +22,21 @@ model Employee {
   avatar        String?
   isActive      Boolean   @default(true)
   reportingToId String?
-  reportingTo   Employee?  @relation("ReportingTo", fields: [reportingToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reportingTo   Employee? @relation("ReportingTo", fields: [reportingToId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   reportees     Employee[] @relation("ReportingTo")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  attendance    Attendance[]
-  leaveRequests LeaveRequest[]
-  leaveBalances LeaveBalance[]
-  placements    Placement[]  @relation("PlacementRecruiter")
-  activities    ActivityLog[]
+  attendance       Attendance[]
+  leaveRequests    LeaveRequest[]
+  leaveBalances    LeaveBalance[]
+  placements       Placement[] @relation("PlacementRecruiter")
+  activities       ActivityLog[]
   approvedLeavesL1 LeaveRequest[] @relation("ApproverL1")
   approvedLeavesL2 LeaveRequest[] @relation("ApproverL2")
-  assignedJobs  JobOpening[]  @relation("JobRecruiter")
+  assignedJobs     JobOpening[] @relation("JobRecruiter")
+
+  @@index([reportingToId])
 }
 
 // ===== CLIENTS (Hiring Companies) =====
@@ -55,103 +58,116 @@ model Client {
   updatedAt    DateTime @updatedAt
 
   jobs       JobOpening[]
-  placements Placement[]   @relation("ClientPlacement")
+  placements Placement[] @relation("ClientPlacement")
 }
 
 // ===== JOB OPENINGS =====
 model JobOpening {
-  id            String    @id @default(cuid())
-  title         String
-  clientId      String
-  client        Client     @relation(fields: [clientId], references: [id])
-  recruiterId   String?
-  recruiter     Employee?  @relation("JobRecruiter", fields: [recruiterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  department    String?
-  location      String?
+  id             String    @id @default(cuid())
+  title          String
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id])
+  recruiterId    String?
+  recruiter      Employee? @relation("JobRecruiter", fields: [recruiterId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  department     String?
+  location       String?
   employmentType String    @default("Full-Time")
-  salaryMin     Float?
-  salaryMax     Float?
-  currency      String    @default("INR")
-  description   String?
-  requirements  String?
-  status        String    @default("Open")
-  priority      String    @default("Medium")
-  openings      Int       @default(1)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  salaryMin      Float?
+  salaryMax      Float?
+  currency       String    @default("INR")
+  description    String?
+  requirements   String?
+  status         String    @default("Open")
+  priority       String    @default("Medium")
+  openings       Int       @default(1)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  candidates   Candidate[]
-  interviews   Interview[]  @relation("JobInterview")
-  placements   Placement[] @relation("JobPlacement")
+  candidates Candidate[]
+  interviews Interview[] @relation("JobInterview")
+  placements Placement[] @relation("JobPlacement")
+
+  @@index([clientId])
+  @@index([recruiterId])
 }
 
 // ===== CANDIDATES =====
 model Candidate {
-  id            String   @id @default(cuid())
-  firstName     String
-  lastName      String
-  email         String?
-  phone         String?
-  title         String?
-  location      String?
-  experience    Float?
+  id             String      @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  title          String?
+  location       String?
+  experience     Float?
   currentCompany String?
-  currentCTC    Float?
-  expectedCTC   Float?
-  currency      String   @default("INR")
-  noticePeriod  Int?
-  source        String?
-  resumeUrl     String?
-  skills        String
-  status        String   @default("New")
-  jobId         String?
-  job           JobOpening? @relation(fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rating        Int      @default(0)
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  currentCTC     Float?
+  expectedCTC    Float?
+  currency       String      @default("INR")
+  noticePeriod   Int?
+  source         String?
+  resumeUrl      String?
+  skills         String
+  status         String      @default("New")
+  jobId          String?
+  job            JobOpening? @relation(fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rating         Int         @default(0)
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  interviews  Interview[]
-  placements  Placement[] @relation("CandidatePlacement")
+  interviews Interview[]
+  placements Placement[] @relation("CandidatePlacement")
+
+  @@index([jobId])
 }
 
 // ===== INTERVIEWS =====
 model Interview {
-  id           String    @id @default(cuid())
+  id           String      @id @default(cuid())
   candidateId  String
-  candidate    Candidate  @relation(fields: [candidateId], references: [id])
+  candidate    Candidate   @relation(fields: [candidateId], references: [id])
   jobId        String?
-  job          JobOpening? @relation("JobInterview", fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  type         String    @default("Technical")
+  job          JobOpening? @relation("JobInterview", fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  type         String      @default("Technical")
   interviewer  String?
   date         DateTime
-  duration     Int       @default(60)
+  duration     Int         @default(60)
   location     String?
   meetingLink  String?
-  status       String    @default("Scheduled")
+  status       String      @default("Scheduled")
   feedback     String?
   rating       Int?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([candidateId])
+  @@index([jobId])
 }
 
 // ===== PLACEMENTS =====
 model Placement {
-  id           String    @id @default(cuid())
+  id           String      @id @default(cuid())
   candidateId  String
-  candidate    Candidate  @relation("CandidatePlacement", fields: [candidateId], references: [id])
+  candidate    Candidate   @relation("CandidatePlacement", fields: [candidateId], references: [id])
   jobId        String?
-  job          JobOpening? @relation("JobPlacement", fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  job          JobOpening? @relation("JobPlacement", fields: [jobId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   clientId     String?
-  client       Client?    @relation("ClientPlacement", fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  client       Client?     @relation("ClientPlacement", fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   recruiterId  String?
-  recruiter    Employee?  @relation("PlacementRecruiter", fields: [recruiterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recruiter    Employee?   @relation("PlacementRecruiter", fields: [recruiterId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   offeredCTC   Float?
   joinedDate   DateTime?
-  status       String    @default("Offered")
+  status       String      @default("Offered")
   commission   Float?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([clientId])
+  @@index([recruiterId])
 }
 
 // ===== ATTENDANCE =====
@@ -169,27 +185,29 @@ model Attendance {
   updatedAt  DateTime @updatedAt
 
   @@unique([employeeId, date])
+  @@index([employeeId])
 }
 
 // ===== LEAVE BALANCE =====
 model LeaveBalance {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   employeeId String
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   year       Int
   type       String
   total      Float
-  used       Float   @default(0)
+  used       Float    @default(0)
   remaining  Float
 
   @@unique([employeeId, year, type])
+  @@index([employeeId])
 }
 
 // ===== LEAVE REQUESTS =====
 model LeaveRequest {
   id                String    @id @default(cuid())
   employeeId        String
-  employee          Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type              String
   startDate         DateTime
   endDate           DateTime
@@ -199,26 +217,33 @@ model LeaveRequest {
   approvalStep      Int?
   approverRole      String?
   approvedByLevel1  String?
-  approvedByL1      Employee?  @relation("ApproverL1", fields: [approvedByLevel1], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvedByL1      Employee? @relation("ApproverL1", fields: [approvedByLevel1], references: [id], onDelete: Restrict, onUpdate: Restrict)
   approvedAtLevel1  DateTime?
   remarkL1          String?
   approvedByLevel2  String?
-  approvedByL2      Employee?  @relation("ApproverL2", fields: [approvedByLevel2], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvedByL2      Employee? @relation("ApproverL2", fields: [approvedByLevel2], references: [id], onDelete: Restrict, onUpdate: Restrict)
   approvedAtLevel2  DateTime?
   remarkL2          String?
   rejectionReason   String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([approvedByLevel1])
+  @@index([approvedByLevel2])
 }
 
 // ===== ACTIVITY LOG =====
 model ActivityLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   entityType String
   entityId   String?
   action     String
   details    String?
   employeeId String?
-  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  createdAt  DateTime @default(now())
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt  DateTime  @default(now())
+
+  @@index([employeeId])
+  @@index([entityId])
 }
