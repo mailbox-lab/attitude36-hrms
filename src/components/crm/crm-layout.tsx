@@ -32,8 +32,8 @@ import {
   Bell,
   Keyboard,
   LogOut,
-  Network,
 } from 'lucide-react'
+import Image from 'next/image'
 import {
   Tooltip,
   TooltipContent,
@@ -65,7 +65,6 @@ const allNavItems: { icon: typeof LayoutDashboard; label: string; view: CRMView;
   { icon: Activity, label: 'Activity', view: 'activity-feed', section: 'TRACKING' },
   { icon: Bell, label: 'Notifications', view: 'notifications', section: 'NOTIFICATIONS' },
   { icon: UserCog, label: 'Employees', view: 'employees' },
-  { icon: Network, label: 'Org Hierarchy', view: 'org-hierarchy', badge: 'Tree', badgeColor: 'bg-amber-500' },
   { icon: BarChart3, label: 'Analytics', view: 'analytics', badge: 'Reports', badgeColor: 'bg-violet-500' },
   { icon: Settings, label: 'Settings', view: 'settings', section: 'System' },
 ]
@@ -99,7 +98,12 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
   }, [isMobile, setSidebarOpen])
 
   const handleLogout = async () => {
-    await signOut({ redirect: false })
+    try {
+      await signOut({ redirect: false })
+      window.location.reload()
+    } catch {
+      window.location.href = '/'
+    }
   }
 
   return (
@@ -116,11 +120,15 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className={cn(
           'flex h-14 items-center border-b transition-all duration-300',
-          sidebarOpen ? 'gap-2 px-3' : 'justify-center',
+          sidebarOpen ? 'gap-2.5 px-3' : 'justify-center',
         )}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-sm">
-            A360
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Attitude360"
+            width={sidebarOpen ? 32 : 28}
+            height={sidebarOpen ? 32 : 28}
+            className="shrink-0 rounded-lg object-contain"
+          />
           {sidebarOpen && (
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-semibold tracking-tight">Attitude360</span>

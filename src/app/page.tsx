@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AuthProvider } from '@/components/auth/session-provider'
 import { AuthPage } from '@/components/auth/auth-page'
 import { Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
 // Lazy load all page components to avoid OOM during compilation
 const DashboardPage = lazy(() => import('@/components/crm/dashboard/dashboard-page').then(m => ({ default: m.DashboardPage })))
@@ -27,7 +28,7 @@ const ActivityFeedPage = lazy(() => import('@/components/crm/activity-feed-page'
 const NotificationCenter = lazy(() => import('@/components/crm/notification-center').then(m => ({ default: m.NotificationCenter })))
 const AnalyticsPage = lazy(() => import('@/components/crm/analytics-page').then(m => ({ default: m.AnalyticsPage })))
 const SettingsPage = lazy(() => import('@/components/crm/settings-page').then(m => ({ default: m.SettingsPage })))
-const OrgHierarchyPage = lazy(() => import('@/components/crm/org-hierarchy-page').then(m => ({ default: m.OrgHierarchyPage })))
+
 
 function PageLoader() {
   return (
@@ -47,9 +48,7 @@ function PageLoader() {
 function AuthLoadingScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
-      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-xl">
-        A360
-      </div>
+      <Image src="/logo.png" alt="Attitude360" width={56} height={56} className="rounded-2xl" />
       <div className="flex items-center gap-3 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         <span className="text-sm">Loading Attitude360...</span>
@@ -137,7 +136,7 @@ function CRMApp() {
       case 'analytics':
         return <AnalyticsPage />
       case 'org-hierarchy':
-        return <OrgHierarchyPage />
+        return <DashboardPage />
       case 'settings':
       case 'my-profile':
         return <SettingsPage />

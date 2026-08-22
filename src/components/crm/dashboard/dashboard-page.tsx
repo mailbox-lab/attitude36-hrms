@@ -1075,6 +1075,8 @@ export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const navigate = useCRMStore((s) => s.navigate)
+  const { user } = useAuth()
+  const displayName = user?.name?.split(' ')[0] || 'User'
 
   const formattedDate = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
@@ -1160,7 +1162,7 @@ export function DashboardPage() {
           <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/10 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
           <div className="relative z-10">
             <h1 className="gradient-text text-2xl font-bold tracking-tight md:text-3xl bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.15)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.12)_50%,transparent_75%)]">
-              {getGreeting()}, Admin
+              {getGreeting()}, {displayName}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
           </div>

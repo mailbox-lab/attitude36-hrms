@@ -26,10 +26,10 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
 // Permission checks for navigation
 export function canAccess(module: string, role: UserRole): boolean {
   const permissions: Record<UserRole, string[]> = {
-    FOUNDER: ['dashboard', 'candidates', 'clients', 'jobs', 'attendance', 'leave', 'interviews', 'placements', 'employees', 'activity-feed', 'notifications', 'analytics', 'settings', 'org-hierarchy', 'my-attendance', 'my-leave', 'my-profile'],
-    COFOUNDER: ['dashboard', 'candidates', 'clients', 'jobs', 'attendance', 'leave', 'interviews', 'placements', 'employees', 'activity-feed', 'notifications', 'analytics', 'settings', 'org-hierarchy', 'my-attendance', 'my-leave', 'my-profile'],
-    HR: ['dashboard', 'candidates', 'clients', 'jobs', 'attendance', 'leave', 'interviews', 'placements', 'employees', 'activity-feed', 'notifications', 'analytics', 'org-hierarchy', 'my-attendance', 'my-leave', 'my-profile'],
-    EMPLOYEE: ['my-dashboard', 'my-attendance', 'my-leave', 'my-profile', 'notifications', 'org-hierarchy'],
+    FOUNDER: ['dashboard', 'candidates', 'clients', 'jobs', 'attendance', 'leave', 'interviews', 'placements', 'employees', 'activity-feed', 'notifications', 'analytics', 'settings', 'my-attendance', 'my-leave', 'my-profile'],
+    COFOUNDER: ['dashboard', 'candidates', 'clients', 'jobs', 'attendance', 'leave', 'interviews', 'placements', 'employees', 'activity-feed', 'notifications', 'analytics', 'settings', 'my-attendance', 'my-leave', 'my-profile'],
+    HR: ['dashboard', 'candidates', 'clients', 'jobs', 'attendance', 'leave', 'interviews', 'placements', 'employees', 'activity-feed', 'notifications', 'analytics', 'my-attendance', 'my-leave', 'my-profile'],
+    EMPLOYEE: ['my-dashboard', 'my-attendance', 'my-leave', 'my-profile', 'notifications'],
   }
   return permissions[role]?.includes(module) ?? false
 }

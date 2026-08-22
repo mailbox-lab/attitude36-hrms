@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         name: body.name,
         email: body.email,
         phone: body.phone,
-        role: body.role || 'Recruiter',
+        role: body.role || 'EMPLOYEE',
         department: body.department,
         avatar: body.avatar,
         isActive: body.isActive !== undefined ? body.isActive : true,

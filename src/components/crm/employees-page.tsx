@@ -8,10 +8,15 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { useCRMStore } from '@/stores/crm-store'
+import { useAuth } from '@/lib/use-auth'
+import { ROLE_LABELS, ROLE_COLORS } from '@/lib/auth-utils'
+import type { UserRole } from '@/lib/auth-utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -25,17 +30,20 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
-import { UserPlus } from 'lucide-react'
 import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
- FormMessage,
+  FormMessage,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Plus,
   Search,
@@ -50,13 +58,9 @@ import {
   UserCheck,
   UserX,
   Briefcase,
+  UserPlus,
+  ShieldCheck,
 } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 // ===== Types =====
 
@@ -67,6 +71,7 @@ type Employee = {
   phone: string | null
   role: string
   department: string | null
+  designation: string | null
   avatar: string | null
   isActive: boolean
   createdAt: string
@@ -78,27 +83,21 @@ type Employee = {
 
 // ===== Constants =====
 
-const ROLE_OPTIONS = ['All', 'Admin', 'Manager', 'Recruiter', 'HR']
-const EMPLOYEE_ROLES = ['Admin', 'Manager', 'Recruiter', 'HR']
+const HRMS_ROLES: { value: UserRole; label: string }[] = [
+  { value: 'FOUNDER', label: 'Founder' },
+  { value: 'COFOUNDER', label: 'Co-Founder' },
+  { value: 'HR', label: 'HR Manager' },
+  { value: 'EMPLOYEE', label: 'Employee' },
+]
+
+const ROLE_FILTER_OPTIONS = ['All', 'FOUNDER', 'COFOUNDER', 'HR', 'EMPLOYEE']
 const ACTIVE_OPTIONS = ['All', 'Active', 'Inactive']
 
-const ROLE_COLORS: Record<string, string> = {
-  Admin: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
-  Manager: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  Recruiter: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-  HR: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  Active: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-  Inactive: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
-}
-
 const AVATAR_GRADIENTS: Record<string, string> = {
-  Admin: 'bg-gradient-to-br from-rose-400 to-rose-600',
-  Manager: 'bg-gradient-to-br from-amber-400 to-amber-600',
-  Recruiter: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
-  HR: 'bg-gradient-to-br from-violet-400 to-violet-600',
+  FOUNDER: 'bg-gradient-to-br from-amber-400 to-amber-600',
+  COFOUNDER: 'bg-gradient-to-br from-orange-400 to-orange-600',
+  HR: 'bg-gradient-to-br from-teal-400 to-teal-600',
+  EMPLOYEE: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
 }
 
 // ===== Schema =====
@@ -109,6 +108,7 @@ const employeeSchema = z.object({
   phone: z.string().optional(),
   role: z.string().min(1, 'Role is required'),
   department: z.string().optional(),
+  designation: z.string().optional(),
   isActive: z.boolean(),
   avatar: z.string().optional(),
 })
@@ -126,48 +126,72 @@ function getInitials(name: string) {
     .slice(0, 2)
 }
 
-// ===== Add Employee Dialog =====
+function getRoleBadgeClass(role: string) {
+  return ROLE_COLORS[role as UserRole] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+}
 
-function AddEmployeeDialog({
+function getRoleLabel(role: string) {
+  return ROLE_LABELS[role as UserRole] || role
+}
+
+// ===== Add/Edit Employee Dialog =====
+
+function EmployeeDialog({
   open,
   onOpenChange,
+  editData,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  editData: Employee | null
 }) {
   const queryClient = useQueryClient()
+  const isEdit = !!editData
 
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      role: 'Recruiter',
-      department: '',
-      isActive: true,
-      avatar: '',
+      name: editData?.name || '',
+      email: editData?.email || '',
+      phone: editData?.phone || '',
+      role: editData?.role || 'EMPLOYEE',
+      department: editData?.department || '',
+      designation: editData?.designation || '',
+      isActive: editData?.isActive ?? true,
+      avatar: editData?.avatar || '',
     },
+    values: editData ? {
+      name: editData.name,
+      email: editData.email,
+      phone: editData.phone || '',
+      role: editData.role,
+      department: editData.department || '',
+      designation: editData.designation || '',
+      isActive: editData.isActive,
+      avatar: editData.avatar || '',
+    } : undefined,
   })
 
   const mutation = useMutation({
     mutationFn: async (data: EmployeeFormData) => {
-      const res = await fetch('/api/employees', {
-        method: 'POST',
+      const url = isEdit ? `/api/employees/${editData!.id}` : '/api/employees'
+      const method = isEdit ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error('Failed to add employee')
+      if (!res.ok) throw new Error(isEdit ? 'Failed to update employee' : 'Failed to add employee')
       return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
-      toast.success('Employee added successfully')
+      toast.success(isEdit ? 'Employee updated successfully' : 'Employee added successfully')
       onOpenChange(false)
       form.reset()
     },
     onError: () => {
-      toast.error('Failed to add employee')
+      toast.error(isEdit ? 'Failed to update employee' : 'Failed to add employee')
     },
   })
 
@@ -179,9 +203,9 @@ function AddEmployeeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <EnhancedDialogHeader
-          icon={UserPlus}
-          title="Add Employee"
-          description="Add a new team member to the organization."
+          icon={isEdit ? Pencil : UserPlus}
+          title={isEdit ? 'Edit Employee' : 'Add Employee'}
+          description={isEdit ? 'Update employee details.' : 'Add a new team member to the organization.'}
           iconColor="text-emerald-600 dark:text-emerald-400"
         />
         <Form {...form}>
@@ -242,9 +266,9 @@ function AddEmployeeDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {EMPLOYEE_ROLES.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {role}
+                        {HRMS_ROLES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -261,7 +285,7 @@ function AddEmployeeDialog({
                   <FormItem>
                     <FormLabel>Department</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Sales" {...field} />
+                      <Input placeholder="e.g. Engineering" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -271,38 +295,40 @@ function AddEmployeeDialog({
 
             <FormField
               control={form.control}
-              name="avatar"
+              name="designation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Avatar URL</FormLabel>
+                  <FormLabel>Designation</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://example.com/avatar.jpg" {...field} />
+                    <Input placeholder="e.g. Senior Developer" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Active Status</FormLabel>
-                    <p className="text-xs text-muted-foreground">
-                      Set whether this employee is currently active
-                    </p>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            {isEdit && (
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-sm">Active Status</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Set whether this employee is currently active
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter className="pt-2">
               <Button
@@ -316,13 +342,78 @@ function AddEmployeeDialog({
                 {mutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Add Employee
+                {isEdit ? 'Save Changes' : 'Add Employee'}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ===== Status Toggle =====
+
+function StatusToggle({
+  employee,
+}: {
+  employee: Employee
+}) {
+  const queryClient = useQueryClient()
+  const { role: myRole, employeeId: myId } = useAuth()
+
+  // Only Founder/CoFounder can toggle status
+  const canToggle = myRole === 'FOUNDER' || myRole === 'COFOUNDER'
+  // Can't deactivate yourself
+  const isSelf = myId === employee.id
+
+  const toggleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/employees/${employee.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !employee.isActive }),
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+      toast.success(`Employee ${employee.isActive ? 'deactivated' : 'activated'} successfully`)
+    },
+    onError: () => {
+      toast.error('Failed to update employee status')
+    },
+  })
+
+  if (!canToggle || isSelf) {
+    return (
+      <Badge
+        className={`text-[10px] ${
+          employee.isActive
+            ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
+            : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400'
+        }`}
+      >
+        {employee.isActive ? 'Active' : 'Inactive'}
+      </Badge>
+    )
+  }
+
+  return (
+    <div
+      className="flex items-center gap-2 cursor-pointer group"
+      onClick={() => toggleMutation.mutate()}
+    >
+      <Switch
+        checked={employee.isActive}
+        disabled={toggleMutation.isPending}
+        className="scale-75"
+    />
+      <span className={`text-xs font-medium ${employee.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+        {toggleMutation.isPending ? '...' : employee.isActive ? 'Active' : 'Inactive'}
+      </span>
+    </div>
   )
 }
 
@@ -340,6 +431,8 @@ function EmployeeCard({
   onClick: () => void
 }) {
   const initials = getInitials(employee.name)
+  const { role: myRole } = useAuth()
+  const canManage = myRole === 'FOUNDER' || myRole === 'COFOUNDER' || myRole === 'HR'
 
   return (
     <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
@@ -357,11 +450,11 @@ function EmployeeCard({
             </Avatar>
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold hover:text-primary transition-colors">{employee.name}</h3>
-              <div className="mt-1 flex items-center gap-1.5">
+              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                 <Badge
-                  className={`text-[10px] ${ROLE_COLORS[employee.role] || ''}`}
+                  className={`text-[10px] ${getRoleBadgeClass(employee.role)}`}
                 >
-                  {employee.role}
+                  {getRoleLabel(employee.role)}
                 </Badge>
                 {employee.department && (
                   <Badge variant="outline" className="text-[10px]">
@@ -372,37 +465,32 @@ function EmployeeCard({
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Badge
-              className={`text-[10px] ${
-                STATUS_COLORS[employee.isActive ? 'Active' : 'Inactive'] || ''
-              }`}
-            >
-              {employee.isActive ? 'Active' : 'Inactive'}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="mr-2 h-3.5 w-3.5" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={onDelete}
-                >
-                  <Trash2 className="mr-2 h-3.5 w-3.5" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canManage && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={onEdit}>
+                    <Pencil className="mr-2 h-3.5 w-3.5" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={onDelete}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 
@@ -417,29 +505,22 @@ function EmployeeCard({
               <span className="truncate">{employee.phone}</span>
             </div>
           )}
-          {employee.department && (
+          {employee.designation && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Building2 className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{employee.department}</span>
+              <Briefcase className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{employee.designation}</span>
             </div>
           )}
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t pt-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Briefcase className="h-3.5 w-3.5" />
-            <span>
-              {employee._count.placements}{' '}
-              {employee._count.placements === 1 ? 'placement' : 'placements'}
+            <Building2 className="h-3.5 w-3.5" />
+            <span className="truncate">
+              {employee.department || 'No Department'}
             </span>
           </div>
-          <div className="flex items-center gap-1 text-xs">
-            {employee.isActive ? (
-              <UserCheck className="h-3.5 w-3.5 text-green-500" />
-            ) : (
-              <UserX className="h-3.5 w-3.5 text-red-500" />
-            )}
-          </div>
+          <StatusToggle employee={employee} />
         </div>
       </CardContent>
     </Card>
@@ -450,17 +531,20 @@ function EmployeeCard({
 
 export function EmployeesPage() {
   const { navigate } = useCRMStore()
+  const { role: myRole } = useAuth()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('All')
   const [activeFilter, setActiveFilter] = useState('All')
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
+
+  const canAddEmployee = myRole === 'FOUNDER' || myRole === 'COFOUNDER' || myRole === 'HR'
 
   const { data, isLoading, error } = useQuery<{ data: Employee[] }>({
     queryKey: ['employees'],
     queryFn: async () => {
-      const res = await fetch('/api/employees')
+      const res = await fetch('/api/employees?activeOnly=false')
       if (!res.ok) throw new Error('Failed to fetch employees')
       return res.json()
     },
@@ -468,14 +552,14 @@ export function EmployeesPage() {
 
   const employees = data?.data || []
 
-  // Client-side filtering since API may not support all filters
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
       const matchesSearch =
         !search ||
         emp.name.toLowerCase().includes(search.toLowerCase()) ||
         emp.email.toLowerCase().includes(search.toLowerCase()) ||
-        (emp.department || '').toLowerCase().includes(search.toLowerCase())
+        (emp.department || '').toLowerCase().includes(search.toLowerCase()) ||
+        (emp.designation || '').toLowerCase().includes(search.toLowerCase())
 
       const matchesRole = roleFilter === 'All' || emp.role === roleFilter
 
@@ -505,17 +589,25 @@ export function EmployeesPage() {
 
   function handleEdit(emp: Employee) {
     setEditEmployee(emp)
-    setAddDialogOpen(true)
+    setDialogOpen(true)
   }
 
   function handleCloseDialog(open: boolean) {
-    setAddDialogOpen(open)
+    setDialogOpen(open)
     if (!open) setEditEmployee(null)
   }
 
-  // Stats
   const activeCount = employees.filter((e) => e.isActive).length
   const inactiveCount = employees.length - activeCount
+
+  // Count by role
+  const roleCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    employees.forEach((e) => {
+      counts[e.role] = (counts[e.role] || 0) + 1
+    })
+    return counts
+  }, [employees])
 
   return (
     <motion.div
@@ -533,18 +625,20 @@ export function EmployeesPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Employees</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Manage your recruitment team members</p>
+              <p className="mt-1 text-sm text-muted-foreground">Manage team members and their roles</p>
             </div>
           </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Employee
-          </Button>
+          {canAddEmployee && (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Employee
+            </Button>
+          )}
         </div>
         <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
         {data && (
           <p className="text-sm text-muted-foreground">
-            ({employees.length} total, {activeCount} active)
+            ({employees.length} total, {activeCount} active, {inactiveCount} inactive)
           </p>
         )}
       </div>
@@ -594,13 +688,11 @@ export function EmployeesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
-                <Briefcase className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold animate-count-up">
-                  {employees.reduce((sum, e) => sum + e._count.placements, 0)}
-                </p>
-                <p className="text-xs text-muted-foreground">Total Placements</p>
+                <p className="text-2xl font-bold animate-count-up">{roleCounts['FOUNDER'] || 0 + roleCounts['COFOUNDER'] || 0}</p>
+                <p className="text-xs text-muted-foreground">Founders</p>
               </div>
             </div>
           </CardContent>
@@ -620,29 +712,29 @@ export function EmployeesPage() {
             />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Role" />
-          </SelectTrigger>
-          <SelectContent>
-            {ROLE_OPTIONS.map((role) => (
-              <SelectItem key={role} value={role}>
-                {role}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={activeFilter} onValueChange={setActiveFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {ACTIVE_OPTIONS.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              {ROLE_FILTER_OPTIONS.map((role) => (
+                <SelectItem key={role} value={role}>
+                  {role === 'All' ? 'All Roles' : getRoleLabel(role)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={activeFilter} onValueChange={setActiveFilter}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {ACTIVE_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === 'All' ? 'All Status' : status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -691,9 +783,10 @@ export function EmployeesPage() {
       )}
 
       {/* Add/Edit Dialog */}
-      <AddEmployeeDialog
-        open={addDialogOpen}
+      <EmployeeDialog
+        open={dialogOpen}
         onOpenChange={handleCloseDialog}
+        editData={editEmployee}
       />
     </motion.div>
   )

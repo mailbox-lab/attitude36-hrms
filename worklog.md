@@ -1,8 +1,20 @@
 # Attitude360 HRMS - Work Log
 
-## Current Project Status (Updated: Round 10 - 2025-08-21)
+## Current Project Status (Updated: Round 11 - Bug Fixes & Production Ready)
 
 Attitude360 is a comprehensive HRMS (Human Resource Management System) application built with Next.js 16, TypeScript, Prisma ORM (SQLite), Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand, Framer Motion, NextAuth.js v4, and next-themes. The application is a single-page app (SPA) with client-side navigation via Zustand store and lazy-loaded modules, with **full authentication and role-based access control**.
+
+### Latest Changes (Round 11)
+- **Fixed profile section**: Settings page now fetches logged-in user data via `/api/auth/me` instead of taking `employees[0]` (was always showing Deepak Joshi)
+- **Fixed sidebar logout**: `signOut()` now calls `window.location.reload()` to properly redirect to login page
+- **Fixed dashboard greeting**: Shows actual logged-in user's first name instead of hardcoded "Admin"
+- **Fixed employees page**: Complete rewrite with HRMS roles (FOUNDER/COFOUNDER/HR/EMPLOYEE), working edit dialog with pre-filled data, status toggle switch, proper role badges
+- **Fixed employee status change**: Added StatusToggle component - Founder/Co-Founder can toggle employee active/inactive status with Switch control
+- **Removed Organisation section**: Removed Org Hierarchy from sidebar, store, permissions, and auth page features list
+- **Integrated company logo**: User's Attitude360 logo now appears in sidebar, auth page (both desktop left panel and mobile), and loading screen
+- **Fixed settings profile save**: Now actually calls PUT `/api/employees/{id}` API instead of fake 800ms delay
+- **Fixed role display**: Updated employee-detail.tsx to use HRMS role labels and colors (was showing old Admin/Manager/Recruiter)
+- **Fixed default role**: Employee creation API defaults to 'EMPLOYEE' instead of old 'Recruiter'
 
 ### Architecture
 - **Framework**: Next.js 16 App Router (single page at /) with React.lazy for code splitting

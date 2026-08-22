@@ -1424,3 +1424,75 @@
   1424→10. Mobile PWA support
   1425→11. Jobs/Employees date-range filters
   1426→
+  1427→## Task 7 - Organization Hierarchy Page
+  1428→
+  1429→**File**: `src/components/crm/org-hierarchy-page.tsx`
+  1430→**Status**: ✅ Complete
+  1431→
+  1432→### What was built
+  1433→A visual Organization Hierarchy page that displays the company reporting structure as an interactive card-based tree. The component is exported as `OrgHierarchyPage` (named export, `'use client'`).
+  1434→
+  1435→### Features
+  1436→- **Tree Building**: Builds a hierarchical tree from employee data using `reportingToId`. Root nodes are FOUNDER/COFOUNDER (no reportingToId). Handles orphan nodes (reporting to inactive/missing employees) gracefully.
+  1437→- **Card-Based Layout**: Each employee node is a `card-glass` Card showing:
+  1438→  - Avatar circle with initials (colored by role: amber=Founder, orange=Co-Founder, teal=HR, emerald=Employee)
+  1439→  - Name, designation (with Briefcase icon), department (with Building2 icon)
+  1440→  - Role badge using `ROLE_COLORS` from `@/lib/auth-utils`
+  1441→  - Reportee count if the employee has direct/indirect reportees
+  1442→  - Email prefix display
+  1443→  - Expand/collapse toggle button on avatar for nodes with children
+  1444→- **Connection Lines**: CSS-based tree connector lines using `bg-amber-300 dark:bg-amber-700`:
+  1445→  - Desktop: Vertical line down from parent → horizontal bar across children → vertical stubs to each child card
+  1446→  - Mobile: Left border vertical line with horizontal stubs to each child (indented tree)
+  1447→- **Responsive**: Horizontal tree layout on `md:` and above; vertical indented tree on mobile
+  1448→- **Animations**: Framer Motion for entrance (fade-in + slide-up with depth-based stagger), AnimatePresence for expand/collapse of children
+  1449→- **Stats Bar**: Shows total active member count and department count
+  1450→- **Legend**: Role color legend at the bottom showing all 4 roles with icons
+  1451→- **Empty State**: Friendly message with Network icon when no employees exist
+  1452→- **Skeleton Loader**: Skeleton placeholders while data loads
+  1453→- **Error State**: Error message when API fails
+  1454→
+  1455→### Palette
+  1456→- Amber/orange/teal/emerald only (NO blue/indigo/purple/sky)
+  1457→- Page header gradient: amber→orange icon, gradient accent line (amber→orange→teal)
+  1458→
+  1459→### Icons Used
+  1460→Users, ChevronDown, ChevronRight, Building2, UserCircle, Crown, Mail, Briefcase, Network (all from lucide-react)
+  1461→
+  1462→### TypeScript
+  1463→Full type safety with `Employee` type, `TreeNode` interface, `UserRole` import from auth-utils.
+  1464→
+  1465→### Lint
+  1466→✅ Zero errors, zero warnings.
+  1467→
+  1468→---
+  1469→Task ID: Round 11 - Hierarchy-Based HRMS
+  1470→Agent: Main Agent
+  1471→Task: Transform Attitude360 CRM into hierarchy-based HRMS with multi-level leave approval chain
+  1472→
+  1473→Work Log:
+  1474→- Updated Prisma schema: Added `designation`, `reportingToId` to Employee model; Added `approvalStep`, `approverRole`, `approvedByLevel1/2`, `remarkL1/2`, `rejectionReason` to LeaveRequest model
+  1475→- Pushed schema to database (db push)
+  1476→- Created comprehensive hierarchy helper functions in auth-utils.ts: getApprovalChain, canApproveAtStep, canApproveLeave, getNextApprovalInfo, getApprovalStatusLabel, ROLE_HIERARCHY
+  1477→- Rewrote Leave API (GET/POST) with hierarchy-based approval logic: Employee→HR, HR→Founder, Founder auto-approve
+  1478→- Rewrote Leave API (PUT /[id]) with role-based permission checks, rejection reasons, multi-level approval support
+  1479→- Updated seed data: 8 employees with designations, reporting hierarchy (Founder→HR→Employees), 8 leave requests with proper approval chains
+  1480→- Completely rebuilt Leave Management page: approval chain visualization, role-based approve/reject/cancel buttons, remark dialog, hierarchy info card, pending approvals alert, "No authority" indicator
+  1481→- Created Organization Hierarchy page (org-hierarchy-page.tsx): tree visualization with card-based nodes, CSS connection lines, expand/collapse, responsive layout
+  1482→- Added Pending Approvals widget to Dashboard: shows pending leaves for approvers (HR sees employee leaves, Founder sees HR leaves)
+  1483→- Updated CRM layout sidebar with Org Hierarchy nav item (Network icon, amber badge)
+  1484→- Updated auth page demo accounts with correct passwords and updated feature list
+  1485→- Added 'org-hierarchy' view to CRM store
+  1486→- Updated page.tsx with lazy loading and routing for org-hierarchy
+  1487→- Verified: ESLint 0 errors, TypeScript clean for new files, API tested (HR gets 2 employee leave pending, Founder gets 2 HR leave pending)
+  1488→
+  1489→Stage Summary:
+  1490→- **Hierarchy Approval System**: Fully functional multi-level leave approval (Employee→HR→Founder)
+  1491→- **Approval Chain Visualization**: Clear visual indicators showing who needs to approve what
+  1492→- **Role-Based Actions**: Only authorized approvers see approve/reject buttons; employees can cancel their own
+  1493→- **Organization Hierarchy**: New page showing company tree structure with reporting lines
+  1494→- **Dashboard Widget**: Pending approvals shown prominently for approvers
+  1495→- **Seed Data**: 8 employees across 4 roles with proper reporting hierarchy
+  1496→- **Known Constraint**: Dev server OOM in sandbox environment (512MB limit) — code compiles and APIs verified via curl
+  1497→- **Version**: v2.1.0
+  1498→

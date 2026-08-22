@@ -49,6 +49,7 @@ import {
   CircleDot,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { ROLE_COLORS as AUTH_ROLE_COLORS, ROLE_LABELS } from '@/lib/auth-utils'
 
 // ===== Types =====
 
@@ -144,18 +145,13 @@ type EmployeeDetailData = {
 // ===== Constants =====
 
 const AVATAR_GRADIENTS: Record<string, string> = {
-  Admin: 'bg-gradient-to-br from-rose-400 to-rose-600',
-  Manager: 'bg-gradient-to-br from-amber-400 to-amber-600',
-  Recruiter: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
-  HR: 'bg-gradient-to-br from-violet-400 to-violet-600',
+  FOUNDER: 'bg-gradient-to-br from-amber-400 to-amber-600',
+  COFOUNDER: 'bg-gradient-to-br from-orange-400 to-orange-600',
+  HR: 'bg-gradient-to-br from-teal-400 to-teal-600',
+  EMPLOYEE: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  Admin: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
-  Manager: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-  Recruiter: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-  HR: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
-}
+const ROLE_COLORS: Record<string, string> = AUTH_ROLE_COLORS
 
 const DEPT_COLORS: Record<string, string> = {
   Sales: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800',
@@ -899,7 +895,7 @@ export function EmployeeDetail({ employeeId }: { employeeId: string }) {
               <Badge
                 className={`text-[10px] ${ROLE_COLORS[data.role] || ''}`}
               >
-                {data.role}
+                {ROLE_LABELS[data.role as keyof typeof ROLE_LABELS] || data.role}
               </Badge>
               {data.department && (
                 <Badge

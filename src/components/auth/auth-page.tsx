@@ -23,6 +23,7 @@ import {
   Building,
   KeyRound,
 } from 'lucide-react'
+import Image from 'next/image'
 
 const demoAccounts = [
   { role: 'FOUNDER' as UserRole, email: 'arjun@attitude360.com', password: 'founder123' },
@@ -44,9 +45,7 @@ function LeftPanel() {
     <div className="hidden lg:flex flex-col justify-between p-12 text-white bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700">
       <div>
         <div className="flex items-center gap-4 mb-8">
-          <div className="h-16 w-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center font-bold text-2xl">
-            A360
-          </div>
+          <Image src="/logo.png" alt="Attitude360" width={64} height={64} className="rounded-2xl bg-white/20 backdrop-blur" />
           <div>
             <h1 className="text-3xl font-bold">Attitude360</h1>
             <p className="text-white/70">Human Resource Management System</p>
@@ -54,7 +53,7 @@ function LeftPanel() {
         </div>
 
         <div className="space-y-4 mt-12">
-          {['Attendance Tracking', 'Leave Management', 'Org Hierarchy', 'Role-Based Access'].map((feature) => (
+          {['Attendance Tracking', 'Leave Management', 'Role-Based Access', 'Hierarchical Approvals'].map((feature) => (
             <div key={feature} className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
                 <Check className="h-4 w-4" />
@@ -195,9 +194,7 @@ export function AuthPage() {
 
       {/* Mobile branding - shown on small screens */}
       <div className="lg:hidden flex flex-col items-center pt-12 pb-4">
-        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-xl mb-3">
-          A360
-        </div>
+        <Image src="/logo.png" alt="Attitude360" width={56} height={56} className="rounded-2xl mb-3" />
         <h1 className="text-xl font-bold">Attitude360</h1>
         <p className="text-sm text-muted-foreground">Human Resource Management System</p>
       </div>

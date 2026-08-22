@@ -52,16 +52,17 @@ function ProfileTab() {
   const [role, setRole] = useState('')
   const [department, setDepartment] = useState('')
   const [saving, setSaving] = useState(false)
+  const [employeeId, setEmployeeId] = useState<string | null>(null)
 
   useEffect(() => {
-    async function loadEmployee() {
+    async function loadMyProfile() {
       try {
-        const res = await fetch('/api/employees')
+        const res = await fetch('/api/auth/me')
         if (res.ok) {
           const json = await res.json()
-          const employees = json.data || json
-          if (Array.isArray(employees) && employees.length > 0) {
-            const emp = employees[0]
+          const emp = json.employee
+          if (emp) {
+            setEmployeeId(emp.id)
             setName(emp.name || '')
             setEmail(emp.email || '')
             setPhone(emp.phone || '')
@@ -73,7 +74,7 @@ function ProfileTab() {
         // silently fail
       }
     }
-    loadEmployee()
+    loadMyProfile()
   }, [])
 
   const getInitials = (name: string) => {
@@ -86,11 +87,21 @@ function ProfileTab() {
   }
 
   const handleSave = async () => {
+    if (!employeeId) return
     setSaving(true)
-    // Simulate save with a small delay
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    setSaving(false)
-    toast.success('Profile updated successfully')
+    try {
+      const res = await fetch(`/api/employees/${employeeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, department }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      toast.success('Profile updated successfully')
+    } catch {
+      toast.error('Failed to update profile')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -110,7 +121,7 @@ function ProfileTab() {
                 </AvatarFallback>
               </Avatar>
               <Badge variant="secondary" className="text-xs">
-                {role || 'Recruiter'}
+                {role ? (role === 'FOUNDER' ? 'Founder' : role === 'COFOUNDER' ? 'Co-Founder' : role === 'HR' ? 'HR Manager' : 'Employee') : 'Employee'}
               </Badge>
             </div>
 
@@ -146,12 +157,15 @@ function ProfileTab() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Input
-                  id="role"
-                  value={role}
-                  disabled
-                  className="bg-muted cursor-not-allowed"
-                />
+                <Badge variant="secondary" className={cn(
+                  'text-xs px-3 py-1 font-medium',
+                  role === 'FOUNDER' && 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+                  role === 'COFOUNDER' && 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
+                  role === 'HR' && 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300',
+                  role === 'EMPLOYEE' && 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
+                )}>
+                  {role === 'FOUNDER' ? 'Founder' : role === 'COFOUNDER' ? 'Co-Founder' : role === 'HR' ? 'HR Manager' : role || 'Employee'}
+                </Badge>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="department">Department</Label>
