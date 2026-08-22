@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { signOut } from 'next-auth/react'
 import { useCRMStore, type CRMView } from '@/stores/crm-store'
@@ -86,6 +86,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
   const isFetching = queryClient.isFetching() > 0
+  const [loggingOut, setLoggingOut] = useState(false)
 
   // Filter nav items based on role permissions
   const navItems = allNavItems.filter((item) => canAccess(item.view, role))
@@ -97,14 +98,17 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
     if (isMobile) setSidebarOpen(false)
   }, [isMobile, setSidebarOpen])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
     try {
       await signOut({ redirect: false })
-      window.location.reload()
     } catch {
-      window.location.href = '/'
+      // signOut failed, force reload anyway
     }
-  }
+    // Force a full page reload to clear all client state
+    window.location.replace(window.location.href)
+  }, [loggingOut])
 
   return (
     <div className="flex h-screen bg-muted/30">
@@ -119,7 +123,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className={cn(
-          'flex h-14 items-center border-b transition-all duration-300',
+          'flex h-14 shrink-0 items-center border-b transition-all duration-300',
           sidebarOpen ? 'gap-2.5 px-3' : 'justify-center',
         )}>
           <Image
@@ -137,76 +141,81 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {/* Navigation */}
-        <ScrollArea className="flex-1 py-2">
-          <nav className="flex flex-col gap-1 px-2">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = currentView === item.view ||
-                (item.view === 'candidates' && (currentView === 'candidate-detail')) ||
-                (item.view === 'clients' && (currentView === 'client-detail')) ||
-                (item.view === 'jobs' && (currentView === 'job-detail')) ||
-                (item.view === 'employees' && (currentView === 'employee-detail'))
+        {/* Navigation - must use min-h-0 for flex scroll to work */}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <nav className="flex flex-col gap-1 px-2 py-2">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = currentView === item.view ||
+                  (item.view === 'candidates' && (currentView === 'candidate-detail')) ||
+                  (item.view === 'clients' && (currentView === 'client-detail')) ||
+                  (item.view === 'jobs' && (currentView === 'job-detail')) ||
+                  (item.view === 'employees' && (currentView === 'employee-detail'))
 
-              const needsDivider = item.view === 'attendance' || item.view === 'settings' || !!item.section
-              const dividerLabel = item.view === 'attendance' ? 'HR & Attendance' : item.view === 'settings' ? 'System' : item.section || ''
+                const needsDivider = item.view === 'attendance' || item.view === 'settings' || !!item.section
+                const dividerLabel = item.view === 'attendance' ? 'HR & Attendance' : item.view === 'settings' ? 'System' : item.section || ''
 
-              const btn = (
-                <Button
-                  key={item.view}
-                  variant={isActive ? 'secondary' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start gap-3 h-9 text-sm font-normal border-l-2 border-l-transparent',
-                    isActive && 'font-medium bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary border-l-primary',
-                    !sidebarOpen && 'justify-center px-2',
-                  )}
-                  onClick={() => navigate(item.view)}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {sidebarOpen && <span className="truncate">{item.label}</span>}
-                  {sidebarOpen && item.badge && (
-                    <Badge className={cn('ml-auto text-[10px] px-1.5 py-0 h-4', item.badgeColor)}>
-                      {item.badge}
-                    </Badge>
-                  )}
-                </Button>
-              )
+                const btn = (
+                  <Button
+                    key={item.view}
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    className={cn(
+                      'w-full justify-start gap-3 h-9 text-sm font-normal border-l-2 border-l-transparent',
+                      isActive && 'font-medium bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary border-l-primary',
+                      !sidebarOpen && 'justify-center px-2',
+                    )}
+                    onClick={() => {
+                      navigate(item.view)
+                      if (isMobile) setSidebarOpen(false)
+                    }}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {sidebarOpen && <span className="truncate">{item.label}</span>}
+                    {sidebarOpen && item.badge && (
+                      <Badge className={cn('ml-auto text-[10px] px-1.5 py-0 h-4', item.badgeColor)}>
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </Button>
+                )
 
-              if (!sidebarOpen) {
+                if (!sidebarOpen) {
+                  return (
+                    <div key={item.view}>
+                      {needsDivider && <Separator className="my-2" />}
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                        <TooltipContent side="right" className="flex items-center gap-2">
+                          {item.label}
+                          {item.badge && (
+                            <Badge className={cn('text-[10px] px-1.5 py-0 h-4', item.badgeColor)}>
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )
+                }
+
                 return (
                   <div key={item.view}>
-                    {needsDivider && <Separator className="my-2" />}
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                      <TooltipContent side="right" className="flex items-center gap-2">
-                        {item.label}
-                        {item.badge && (
-                          <Badge className={cn('text-[10px] px-1.5 py-0 h-4', item.badgeColor)}>
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
+                    {needsDivider && (
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 px-3 pt-4 pb-1">
+                        {dividerLabel}
+                      </div>
+                    )}
+                    {btn}
                   </div>
                 )
-              }
+              })}
+            </nav>
+          </ScrollArea>
+        </div>
 
-              return (
-                <div key={item.view}>
-                  {needsDivider && (
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 px-3 pt-4 pb-1">
-                      {dividerLabel}
-                    </div>
-                  )}
-                  {btn}
-                </div>
-              )
-            })}
-          </nav>
-        </ScrollArea>
-
-        {/* Bottom section - User info & Logout */}
-        <div className="border-t p-2">
+        {/* Bottom section - User info & Logout (always visible, never scrolls) */}
+        <div className="shrink-0 border-t p-2">
           {sidebarOpen ? (
             <div className="space-y-1 px-2">
               <div className="flex items-center gap-3 rounded-lg px-2 py-2">
@@ -228,11 +237,16 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500 h-8 text-xs"
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 h-9 text-xs"
                 onClick={handleLogout}
+                disabled={loggingOut}
               >
-                <LogOut className="h-3.5 w-3.5" />
-                Sign Out
+                {loggingOut ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <LogOut className="h-3.5 w-3.5" />
+                )}
+                {loggingOut ? 'Signing out...' : 'Sign Out'}
               </Button>
             </div>
           ) : (
@@ -261,13 +275,18 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-full h-8 text-muted-foreground hover:text-red-500"
+                    className="w-full h-9 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
                     onClick={handleLogout}
+                    disabled={loggingOut}
                   >
-                    <LogOut className="h-3.5 w-3.5" />
+                    {loggingOut ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <LogOut className="h-3.5 w-3.5" />
+                    )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Sign Out</TooltipContent>
+                <TooltipContent side="right">{loggingOut ? 'Signing out...' : 'Sign Out'}</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -277,13 +296,13 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main
         className={cn(
-          'flex flex-1 flex-col transition-all duration-300',
+          'flex flex-1 flex-col transition-all duration-300 min-w-0',
           sidebarOpen ? 'ml-64' : 'ml-16',
           isMobile && 'ml-0',
         )}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4" style={{ borderBottom: '1px solid transparent', backgroundImage: 'linear-gradient(to right, hsl(var(--border) / 0.6), hsl(var(--primary) / 0.15), hsl(var(--border) / 0.6))', backgroundSize: '100% 1px', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom' }}>
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4" style={{ borderBottom: '1px solid transparent', backgroundImage: 'linear-gradient(to right, hsl(var(--border) / 0.6), hsl(var(--primary) / 0.15), hsl(var(--border) / 0.6))', backgroundSize: '100% 1px', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom' }}>
           <Button
             variant="ghost"
             size="icon"
@@ -329,7 +348,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Footer */}
-        <footer className="bg-background px-4 py-2">
+        <footer className="shrink-0 bg-background px-4 py-2">
           <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5">

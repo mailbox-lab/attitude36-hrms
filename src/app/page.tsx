@@ -135,8 +135,6 @@ function CRMApp() {
         return <NotificationCenter />
       case 'analytics':
         return <AnalyticsPage />
-      case 'org-hierarchy':
-        return <DashboardPage />
       case 'settings':
       case 'my-profile':
         return <SettingsPage />

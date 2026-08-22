@@ -1,0 +1,794 @@
+     1→'use client'
+     2→
+     3→import { useState, useMemo } from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     6→import { useForm } from 'react-hook-form'
+     7→import { z } from 'zod'
+     8→import { zodResolver } from '@hookform/resolvers/zod'
+     9→import { toast } from 'sonner'
+    10→import { useCRMStore } from '@/stores/crm-store'
+    11→import { useAuth } from '@/lib/use-auth'
+    12→import { ROLE_LABELS, ROLE_COLORS } from '@/lib/auth-utils'
+    13→import type { UserRole } from '@/lib/auth-utils'
+    14→import { Card, CardContent } from '@/components/ui/card'
+    15→import { Button } from '@/components/ui/button'
+    16→import { Badge } from '@/components/ui/badge'
+    17→import { Input } from '@/components/ui/input'
+    18→import { Switch } from '@/components/ui/switch'
+    19→import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+    20→import {
+    21→  Select,
+    22→  SelectContent,
+    23→  SelectItem,
+    24→  SelectTrigger,
+    25→  SelectValue,
+    26→} from '@/components/ui/select'
+    27→import {
+    28→  Dialog,
+    29→  DialogContent,
+    30→  DialogFooter,
+    31→} from '@/components/ui/dialog'
+    32→import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+    33→import {
+    34→  Form,
+    35→  FormField,
+    36→  FormItem,
+    37→  FormLabel,
+    38→  FormControl,
+    39→  FormMessage,
+    40→} from '@/components/ui/form'
+    41→import {
+    42→  DropdownMenu,
+    43→  DropdownMenuContent,
+    44→  DropdownMenuItem,
+    45→  DropdownMenuTrigger,
+    46→} from '@/components/ui/dropdown-menu'
+    47→import {
+    48→  Plus,
+    49→  Search,
+    50→  Users,
+    51→  MoreHorizontal,
+    52→  Pencil,
+    53→  Trash2,
+    54→  Loader2,
+    55→  Mail,
+    56→  Phone,
+    57→  Building2,
+    58→  UserCheck,
+    59→  UserX,
+    60→  Briefcase,
+    61→  UserPlus,
+    62→  ShieldCheck,
+    63→} from 'lucide-react'
+    64→
+    65→// ===== Types =====
+    66→
+    67→type Employee = {
+    68→  id: string
+    69→  name: string
+    70→  email: string
+    71→  phone: string | null
+    72→  role: string
+    73→  department: string | null
+    74→  designation: string | null
+    75→  avatar: string | null
+    76→  isActive: boolean
+    77→  createdAt: string
+    78→  updatedAt: string
+    79→  _count: {
+    80→    placements: number
+    81→  }
+    82→}
+    83→
+    84→// ===== Constants =====
+    85→
+    86→const HRMS_ROLES: { value: UserRole; label: string }[] = [
+    87→  { value: 'FOUNDER', label: 'Founder' },
+    88→  { value: 'COFOUNDER', label: 'Co-Founder' },
+    89→  { value: 'HR', label: 'HR Manager' },
+    90→  { value: 'EMPLOYEE', label: 'Employee' },
+    91→]
+    92→
+    93→const ROLE_FILTER_OPTIONS = ['All', 'FOUNDER', 'COFOUNDER', 'HR', 'EMPLOYEE']
+    94→const ACTIVE_OPTIONS = ['All', 'Active', 'Inactive']
+    95→
+    96→const AVATAR_GRADIENTS: Record<string, string> = {
+    97→  FOUNDER: 'bg-gradient-to-br from-amber-400 to-amber-600',
+    98→  COFOUNDER: 'bg-gradient-to-br from-orange-400 to-orange-600',
+    99→  HR: 'bg-gradient-to-br from-teal-400 to-teal-600',
+   100→  EMPLOYEE: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+   101→}
+   102→
+   103→// ===== Schema =====
+   104→
+   105→const employeeSchema = z.object({
+   106→  name: z.string().min(2, 'Name must be at least 2 characters'),
+   107→  email: z.string().email('Invalid email address'),
+   108→  phone: z.string().optional(),
+   109→  role: z.string().min(1, 'Role is required'),
+   110→  department: z.string().optional(),
+   111→  designation: z.string().optional(),
+   112→  isActive: z.boolean(),
+   113→  avatar: z.string().optional(),
+   114→})
+   115→
+   116→type EmployeeFormData = z.infer<typeof employeeSchema>
+   117→
+   118→// ===== Helpers =====
+   119→
+   120→function getInitials(name: string) {
+   121→  return name
+   122→    .split(' ')
+   123→    .map((w) => w.charAt(0))
+   124→    .join('')
+   125→    .toUpperCase()
+   126→    .slice(0, 2)
+   127→}
+   128→
+   129→function getRoleBadgeClass(role: string) {
+   130→  return ROLE_COLORS[role as UserRole] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+   131→}
+   132→
+   133→function getRoleLabel(role: string) {
+   134→  return ROLE_LABELS[role as UserRole] || role
+   135→}
+   136→
+   137→// ===== Add/Edit Employee Dialog =====
+   138→
+   139→function EmployeeDialog({
+   140→  open,
+   141→  onOpenChange,
+   142→  editData,
+   143→}: {
+   144→  open: boolean
+   145→  onOpenChange: (open: boolean) => void
+   146→  editData: Employee | null
+   147→}) {
+   148→  const queryClient = useQueryClient()
+   149→  const isEdit = !!editData
+   150→
+   151→  const form = useForm<EmployeeFormData>({
+   152→    resolver: zodResolver(employeeSchema),
+   153→    defaultValues: {
+   154→      name: editData?.name || '',
+   155→      email: editData?.email || '',
+   156→      phone: editData?.phone || '',
+   157→      role: editData?.role || 'EMPLOYEE',
+   158→      department: editData?.department || '',
+   159→      designation: editData?.designation || '',
+   160→      isActive: editData?.isActive ?? true,
+   161→      avatar: editData?.avatar || '',
+   162→    },
+   163→    values: editData ? {
+   164→      name: editData.name,
+   165→      email: editData.email,
+   166→      phone: editData.phone || '',
+   167→      role: editData.role,
+   168→      department: editData.department || '',
+   169→      designation: editData.designation || '',
+   170→      isActive: editData.isActive,
+   171→      avatar: editData.avatar || '',
+   172→    } : undefined,
+   173→  })
+   174→
+   175→  const mutation = useMutation({
+   176→    mutationFn: async (data: EmployeeFormData) => {
+   177→      const url = isEdit ? `/api/employees/${editData!.id}` : '/api/employees'
+   178→      const method = isEdit ? 'PUT' : 'POST'
+   179→      const res = await fetch(url, {
+   180→        method,
+   181→        headers: { 'Content-Type': 'application/json' },
+   182→        body: JSON.stringify(data),
+   183→      })
+   184→      if (!res.ok) throw new Error(isEdit ? 'Failed to update employee' : 'Failed to add employee')
+   185→      return res.json()
+   186→    },
+   187→    onSuccess: () => {
+   188→      queryClient.invalidateQueries({ queryKey: ['employees'] })
+   189→      toast.success(isEdit ? 'Employee updated successfully' : 'Employee added successfully')
+   190→      onOpenChange(false)
+   191→      form.reset()
+   192→    },
+   193→    onError: () => {
+   194→      toast.error(isEdit ? 'Failed to update employee' : 'Failed to add employee')
+   195→    },
+   196→  })
+   197→
+   198→  function onSubmit(data: EmployeeFormData) {
+   199→    mutation.mutate(data)
+   200→  }
+   201→
+   202→  return (
+   203→    <Dialog open={open} onOpenChange={onOpenChange}>
+   204→      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+   205→        <EnhancedDialogHeader
+   206→          icon={isEdit ? Pencil : UserPlus}
+   207→          title={isEdit ? 'Edit Employee' : 'Add Employee'}
+   208→          description={isEdit ? 'Update employee details.' : 'Add a new team member to the organization.'}
+   209→          iconColor="text-emerald-600 dark:text-emerald-400"
+   210→        />
+   211→        <Form {...form}>
+   212→          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+   213→            <FormField
+   214→              control={form.control}
+   215→              name="name"
+   216→              render={({ field }) => (
+   217→                <FormItem>
+   218→                  <FormLabel>Full Name *</FormLabel>
+   219→                  <FormControl>
+   220→                    <Input placeholder="John Doe" {...field} />
+   221→                  </FormControl>
+   222→                  <FormMessage />
+   223→                </FormItem>
+   224→              )}
+   225→            />
+   226→
+   227→            <FormField
+   228→              control={form.control}
+   229→              name="email"
+   230→              render={({ field }) => (
+   231→                <FormItem>
+   232→                  <FormLabel>Email *</FormLabel>
+   233→                  <FormControl>
+   234→                    <Input type="email" placeholder="john@company.com" {...field} />
+   235→                  </FormControl>
+   236→                  <FormMessage />
+   237→                </FormItem>
+   238→              )}
+   239→            />
+   240→
+   241→            <FormField
+   242→              control={form.control}
+   243→              name="phone"
+   244→              render={({ field }) => (
+   245→                <FormItem>
+   246→                  <FormLabel>Phone</FormLabel>
+   247→                  <FormControl>
+   248→                    <Input placeholder="+91 98765 43210" {...field} />
+   249→                  </FormControl>
+   250→                  <FormMessage />
+   251→                </FormItem>
+   252→              )}
+   253→            />
+   254→
+   255→            <div className="grid grid-cols-2 gap-4">
+   256→              <FormField
+   257→                control={form.control}
+   258→                name="role"
+   259→                render={({ field }) => (
+   260→                  <FormItem>
+   261→                    <FormLabel>Role *</FormLabel>
+   262→                    <Select onValueChange={field.onChange} value={field.value}>
+   263→                      <FormControl>
+   264→                        <SelectTrigger>
+   265→                          <SelectValue placeholder="Select role" />
+   266→                        </SelectTrigger>
+   267→                      </FormControl>
+   268→                      <SelectContent>
+   269→                        {HRMS_ROLES.map((r) => (
+   270→                          <SelectItem key={r.value} value={r.value}>
+   271→                            {r.label}
+   272→                          </SelectItem>
+   273→                        ))}
+   274→                      </SelectContent>
+   275→                    </Select>
+   276→                    <FormMessage />
+   277→                  </FormItem>
+   278→                )}
+   279→              />
+   280→
+   281→              <FormField
+   282→                control={form.control}
+   283→                name="department"
+   284→                render={({ field }) => (
+   285→                  <FormItem>
+   286→                    <FormLabel>Department</FormLabel>
+   287→                    <FormControl>
+   288→                      <Input placeholder="e.g. Engineering" {...field} />
+   289→                    </FormControl>
+   290→                    <FormMessage />
+   291→                  </FormItem>
+   292→                )}
+   293→              />
+   294→            </div>
+   295→
+   296→            <FormField
+   297→              control={form.control}
+   298→              name="designation"
+   299→              render={({ field }) => (
+   300→                <FormItem>
+   301→                  <FormLabel>Designation</FormLabel>
+   302→                  <FormControl>
+   303→                    <Input placeholder="e.g. Senior Developer" {...field} />
+   304→                  </FormControl>
+   305→                  <FormMessage />
+   306→                </FormItem>
+   307→              )}
+   308→            />
+   309→
+   310→            {isEdit && (
+   311→              <FormField
+   312→                control={form.control}
+   313→                name="isActive"
+   314→                render={({ field }) => (
+   315→                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+   316→                    <div className="space-y-0.5">
+   317→                      <FormLabel className="text-sm">Active Status</FormLabel>
+   318→                      <p className="text-xs text-muted-foreground">
+   319→                        Set whether this employee is currently active
+   320→                      </p>
+   321→                    </div>
+   322→                    <FormControl>
+   323→                      <Switch
+   324→                        checked={field.value}
+   325→                        onCheckedChange={field.onChange}
+   326→                      />
+   327→                    </FormControl>
+   328→                  </FormItem>
+   329→                )}
+   330→              />
+   331→            )}
+   332→
+   333→            <DialogFooter className="pt-2">
+   334→              <Button
+   335→                type="button"
+   336→                variant="outline"
+   337→                onClick={() => onOpenChange(false)}
+   338→              >
+   339→                Cancel
+   340→              </Button>
+   341→              <Button type="submit" disabled={mutation.isPending}>
+   342→                {mutation.isPending && (
+   343→                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   344→                )}
+   345→                {isEdit ? 'Save Changes' : 'Add Employee'}
+   346→              </Button>
+   347→            </DialogFooter>
+   348→          </form>
+   349→        </Form>
+   350→      </DialogContent>
+   351→    </Dialog>
+   352→  )
+   353→}
+   354→
+   355→// ===== Status Toggle =====
+   356→
+   357→function StatusToggle({
+   358→  employee,
+   359→}: {
+   360→  employee: Employee
+   361→}) {
+   362→  const queryClient = useQueryClient()
+   363→  const { role: myRole, employeeId: myId } = useAuth()
+   364→
+   365→  // Only Founder/CoFounder can toggle status
+   366→  const canToggle = myRole === 'FOUNDER' || myRole === 'COFOUNDER'
+   367→  // Can't deactivate yourself
+   368→  const isSelf = myId === employee.id
+   369→
+   370→  const toggleMutation = useMutation({
+   371→    mutationFn: async () => {
+   372→      const res = await fetch(`/api/employees/${employee.id}`, {
+   373→        method: 'PUT',
+   374→        headers: { 'Content-Type': 'application/json' },
+   375→        body: JSON.stringify({ isActive: !employee.isActive }),
+   376→      })
+   377→      if (!res.ok) throw new Error('Failed to update status')
+   378→      return res.json()
+   379→    },
+   380→    onSuccess: () => {
+   381→      queryClient.invalidateQueries({ queryKey: ['employees'] })
+   382→      toast.success(`Employee ${employee.isActive ? 'deactivated' : 'activated'} successfully`)
+   383→    },
+   384→    onError: () => {
+   385→      toast.error('Failed to update employee status')
+   386→    },
+   387→  })
+   388→
+   389→  if (!canToggle || isSelf) {
+   390→    return (
+   391→      <Badge
+   392→        className={`text-[10px] ${
+   393→          employee.isActive
+   394→            ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
+   395→            : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400'
+   396→        }`}
+   397→      >
+   398→        {employee.isActive ? 'Active' : 'Inactive'}
+   399→      </Badge>
+   400→    )
+   401→  }
+   402→
+   403→  return (
+   404→    <div
+   405→      className="flex items-center gap-2 cursor-pointer group"
+   406→      onClick={() => toggleMutation.mutate()}
+   407→    >
+   408→      <Switch
+   409→        checked={employee.isActive}
+   410→        disabled={toggleMutation.isPending}
+   411→        className="scale-75"
+   412→    />
+   413→      <span className={`text-xs font-medium ${employee.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+   414→        {toggleMutation.isPending ? '...' : employee.isActive ? 'Active' : 'Inactive'}
+   415→      </span>
+   416→    </div>
+   417→  )
+   418→}
+   419→
+   420→// ===== Employee Card =====
+   421→
+   422→function EmployeeCard({
+   423→  employee,
+   424→  onEdit,
+   425→  onDelete,
+   426→  onClick,
+   427→}: {
+   428→  employee: Employee
+   429→  onEdit: () => void
+   430→  onDelete: () => void
+   431→  onClick: () => void
+   432→}) {
+   433→  const initials = getInitials(employee.name)
+   434→  const { role: myRole } = useAuth()
+   435→  const canManage = myRole === 'FOUNDER' || myRole === 'COFOUNDER' || myRole === 'HR'
+   436→
+   437→  return (
+   438→    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+   439→      <CardContent className="p-4">
+   440→        <div className="flex items-start justify-between">
+   441→          <div
+   442→            className="flex items-center gap-3 cursor-pointer min-w-0"
+   443→            onClick={onClick}
+   444→          >
+   445→            <Avatar className="h-12 w-12">
+   446→              {employee.avatar && <AvatarImage src={employee.avatar} alt={employee.name} />}
+   447→              <AvatarFallback className={`${AVATAR_GRADIENTS[employee.role] || 'bg-gradient-to-br from-gray-400 to-gray-600'} text-sm font-semibold text-white`}>
+   448→                {initials}
+   449→              </AvatarFallback>
+   450→            </Avatar>
+   451→            <div className="min-w-0">
+   452→              <h3 className="truncate text-sm font-semibold hover:text-primary transition-colors">{employee.name}</h3>
+   453→              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+   454→                <Badge
+   455→                  className={`text-[10px] ${getRoleBadgeClass(employee.role)}`}
+   456→                >
+   457→                  {getRoleLabel(employee.role)}
+   458→                </Badge>
+   459→                {employee.department && (
+   460→                  <Badge variant="outline" className="text-[10px]">
+   461→                    {employee.department}
+   462→                  </Badge>
+   463→                )}
+   464→              </div>
+   465→            </div>
+   466→          </div>
+   467→          <div className="flex items-center gap-1">
+   468→            {canManage && (
+   469→              <DropdownMenu>
+   470→                <DropdownMenuTrigger asChild>
+   471→                  <Button
+   472→                    variant="ghost"
+   473→                    size="icon"
+   474→                    className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+   475→                  >
+   476→                    <MoreHorizontal className="h-4 w-4" />
+   477→                  </Button>
+   478→                </DropdownMenuTrigger>
+   479→                <DropdownMenuContent align="end">
+   480→                  <DropdownMenuItem onClick={onEdit}>
+   481→                    <Pencil className="mr-2 h-3.5 w-3.5" />
+   482→                    Edit
+   483→                  </DropdownMenuItem>
+   484→                  <DropdownMenuItem
+   485→                    className="text-destructive focus:text-destructive"
+   486→                    onClick={onDelete}
+   487→                  >
+   488→                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+   489→                    Delete
+   490→                  </DropdownMenuItem>
+   491→                </DropdownMenuContent>
+   492→              </DropdownMenu>
+   493→            )}
+   494→          </div>
+   495→        </div>
+   496→
+   497→        <div className="mt-4 space-y-2">
+   498→          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   499→            <Mail className="h-3.5 w-3.5 shrink-0" />
+   500→            <span className="truncate">{employee.email}</span>
+   501→          </div>
+   502→          {employee.phone && (
+   503→            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   504→              <Phone className="h-3.5 w-3.5 shrink-0" />
+   505→              <span className="truncate">{employee.phone}</span>
+   506→            </div>
+   507→          )}
+   508→          {employee.designation && (
+   509→            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   510→              <Briefcase className="h-3.5 w-3.5 shrink-0" />
+   511→              <span className="truncate">{employee.designation}</span>
+   512→            </div>
+   513→          )}
+   514→        </div>
+   515→
+   516→        <div className="mt-4 flex items-center justify-between border-t pt-3">
+   517→          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   518→            <Building2 className="h-3.5 w-3.5" />
+   519→            <span className="truncate">
+   520→              {employee.department || 'No Department'}
+   521→            </span>
+   522→          </div>
+   523→          <StatusToggle employee={employee} />
+   524→        </div>
+   525→      </CardContent>
+   526→    </Card>
+   527→  )
+   528→}
+   529→
+   530→// ===== Main Component =====
+   531→
+   532→export function EmployeesPage() {
+   533→  const { navigate } = useCRMStore()
+   534→  const { role: myRole } = useAuth()
+   535→  const queryClient = useQueryClient()
+   536→  const [search, setSearch] = useState('')
+   537→  const [roleFilter, setRoleFilter] = useState('All')
+   538→  const [activeFilter, setActiveFilter] = useState('All')
+   539→  const [dialogOpen, setDialogOpen] = useState(false)
+   540→  const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
+   541→
+   542→  const canAddEmployee = myRole === 'FOUNDER' || myRole === 'COFOUNDER' || myRole === 'HR'
+   543→
+   544→  const { data, isLoading, error } = useQuery<{ data: Employee[] }>({
+   545→    queryKey: ['employees'],
+   546→    queryFn: async () => {
+   547→      const res = await fetch('/api/employees?activeOnly=false')
+   548→      if (!res.ok) throw new Error('Failed to fetch employees')
+   549→      return res.json()
+   550→    },
+   551→  })
+   552→
+   553→  const employees = data?.data || []
+   554→
+   555→  const filteredEmployees = useMemo(() => {
+   556→    return employees.filter((emp) => {
+   557→      const matchesSearch =
+   558→        !search ||
+   559→        emp.name.toLowerCase().includes(search.toLowerCase()) ||
+   560→        emp.email.toLowerCase().includes(search.toLowerCase()) ||
+   561→        (emp.department || '').toLowerCase().includes(search.toLowerCase()) ||
+   562→        (emp.designation || '').toLowerCase().includes(search.toLowerCase())
+   563→
+   564→      const matchesRole = roleFilter === 'All' || emp.role === roleFilter
+   565→
+   566→      const matchesActive =
+   567→        activeFilter === 'All' ||
+   568→        (activeFilter === 'Active' && emp.isActive) ||
+   569→        (activeFilter === 'Inactive' && !emp.isActive)
+   570→
+   571→      return matchesSearch && matchesRole && matchesActive
+   572→    })
+   573→  }, [employees, search, roleFilter, activeFilter])
+   574→
+   575→  const deleteMutation = useMutation({
+   576→    mutationFn: async (id: string) => {
+   577→      const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' })
+   578→      if (!res.ok) throw new Error('Failed to delete employee')
+   579→      return res.json()
+   580→    },
+   581→    onSuccess: () => {
+   582→      queryClient.invalidateQueries({ queryKey: ['employees'] })
+   583→      toast.success('Employee deleted successfully')
+   584→    },
+   585→    onError: () => {
+   586→      toast.error('Failed to delete employee')
+   587→    },
+   588→  })
+   589→
+   590→  function handleEdit(emp: Employee) {
+   591→    setEditEmployee(emp)
+   592→    setDialogOpen(true)
+   593→  }
+   594→
+   595→  function handleCloseDialog(open: boolean) {
+   596→    setDialogOpen(open)
+   597→    if (!open) setEditEmployee(null)
+   598→  }
+   599→
+   600→  const activeCount = employees.filter((e) => e.isActive).length
+   601→  const inactiveCount = employees.length - activeCount
+   602→
+   603→  // Count by role
+   604→  const roleCounts = useMemo(() => {
+   605→    const counts: Record<string, number> = {}
+   606→    employees.forEach((e) => {
+   607→      counts[e.role] = (counts[e.role] || 0) + 1
+   608→    })
+   609→    return counts
+   610→  }, [employees])
+   611→
+   612→  return (
+   613→    <motion.div
+   614→      initial={{ opacity: 0, y: 12 }}
+   615→      animate={{ opacity: 1, y: 0 }}
+   616→      transition={{ duration: 0.3, ease: 'easeOut' }}
+   617→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   618→    >
+   619→      {/* Header */}
+   620→      <div className="space-y-3">
+   621→        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   622→          <div className="flex items-center gap-3">
+   623→            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+   624→              <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+   625→            </div>
+   626→            <div>
+   627→              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Employees</h1>
+   628→              <p className="mt-1 text-sm text-muted-foreground">Manage team members and their roles</p>
+   629→            </div>
+   630→          </div>
+   631→          {canAddEmployee && (
+   632→            <Button onClick={() => setDialogOpen(true)}>
+   633→              <Plus className="mr-2 h-4 w-4" />
+   634→              Add Employee
+   635→            </Button>
+   636→          )}
+   637→        </div>
+   638→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+   639→        {data && (
+   640→          <p className="text-sm text-muted-foreground">
+   641→            ({employees.length} total, {activeCount} active, {inactiveCount} inactive)
+   642→          </p>
+   643→        )}
+   644→      </div>
+   645→
+   646→      {/* Summary Cards */}
+   647→      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+   648→        <Card className="stat-card-hover">
+   649→          <CardContent className="p-4">
+   650→            <div className="flex items-center gap-3">
+   651→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
+   652→                <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+   653→              </div>
+   654→              <div>
+   655→                <p className="text-2xl font-bold animate-count-up">{employees.length}</p>
+   656→                <p className="text-xs text-muted-foreground">Total</p>
+   657→              </div>
+   658→            </div>
+   659→          </CardContent>
+   660→        </Card>
+   661→        <Card className="stat-card-hover">
+   662→          <CardContent className="p-4">
+   663→            <div className="flex items-center gap-3">
+   664→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-950">
+   665→                <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+   666→              </div>
+   667→              <div>
+   668→                <p className="text-2xl font-bold animate-count-up">{activeCount}</p>
+   669→                <p className="text-xs text-muted-foreground">Active</p>
+   670→              </div>
+   671→            </div>
+   672→          </CardContent>
+   673→        </Card>
+   674→        <Card className="stat-card-hover">
+   675→          <CardContent className="p-4">
+   676→            <div className="flex items-center gap-3">
+   677→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950">
+   678→                <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
+   679→              </div>
+   680→              <div>
+   681→                <p className="text-2xl font-bold animate-count-up">{inactiveCount}</p>
+   682→                <p className="text-xs text-muted-foreground">Inactive</p>
+   683→              </div>
+   684→            </div>
+   685→          </CardContent>
+   686→        </Card>
+   687→        <Card className="stat-card-hover">
+   688→          <CardContent className="p-4">
+   689→            <div className="flex items-center gap-3">
+   690→              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
+   691→                <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+   692→              </div>
+   693→              <div>
+   694→                <p className="text-2xl font-bold animate-count-up">{roleCounts['FOUNDER'] || 0 + roleCounts['COFOUNDER'] || 0}</p>
+   695→                <p className="text-xs text-muted-foreground">Founders</p>
+   696→              </div>
+   697→            </div>
+   698→          </CardContent>
+   699→        </Card>
+   700→      </div>
+   701→
+   702→      {/* Filters */}
+   703→      <div className="filter-bar rounded-lg bg-muted/50 p-2">
+   704→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   705→          <div className="relative flex-1 sm:max-w-xs">
+   706→            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   707→            <Input
+   708→              placeholder="Search employees..."
+   709→              className="pl-9"
+   710→              value={search}
+   711→              onChange={(e) => setSearch(e.target.value)}
+   712→            />
+   713→          </div>
+   714→          <Select value={roleFilter} onValueChange={setRoleFilter}>
+   715→            <SelectTrigger className="w-full sm:w-[180px]">
+   716→              <SelectValue placeholder="Role" />
+   717→            </SelectTrigger>
+   718→            <SelectContent>
+   719→              {ROLE_FILTER_OPTIONS.map((role) => (
+   720→                <SelectItem key={role} value={role}>
+   721→                  {role === 'All' ? 'All Roles' : getRoleLabel(role)}
+   722→                </SelectItem>
+   723→              ))}
+   724→            </SelectContent>
+   725→          </Select>
+   726→          <Select value={activeFilter} onValueChange={setActiveFilter}>
+   727→            <SelectTrigger className="w-full sm:w-[160px]">
+   728→              <SelectValue placeholder="Status" />
+   729→            </SelectTrigger>
+   730→            <SelectContent>
+   731→              {ACTIVE_OPTIONS.map((status) => (
+   732→                <SelectItem key={status} value={status}>
+   733→                  {status === 'All' ? 'All Status' : status}
+   734→                </SelectItem>
+   735→              ))}
+   736→            </SelectContent>
+   737→          </Select>
+   738→        </div>
+   739→      </div>
+   740→
+   741→      {/* Cards Grid */}
+   742→      {isLoading ? (
+   743→        <Card>
+   744→          <CardContent className="p-6">
+   745→            <div className="flex items-center justify-center gap-3">
+   746→              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+   747→              <p className="text-sm text-muted-foreground">Loading employees...</p>
+   748→            </div>
+   749→          </CardContent>
+   750→        </Card>
+   751→      ) : error ? (
+   752→        <Card>
+   753→          <CardContent className="p-6">
+   754→            <p className="text-center text-sm text-destructive">
+   755→              Failed to load employees. Please try again.
+   756→            </p>
+   757→          </CardContent>
+   758→        </Card>
+   759→      ) : filteredEmployees.length === 0 ? (
+   760→        <Card>
+   761→          <CardContent className="flex flex-col items-center gap-3 py-12">
+   762→            <Users className="h-10 w-10 text-muted-foreground/40" />
+   763→            <p className="text-sm font-medium text-muted-foreground">No employees found</p>
+   764→            <p className="text-xs text-muted-foreground/70">
+   765→              {search || roleFilter !== 'All' || activeFilter !== 'All'
+   766→                ? 'Try adjusting your filters'
+   767→                : 'Click "Add Employee" to get started'}
+   768→            </p>
+   769→          </CardContent>
+   770→        </Card>
+   771→      ) : (
+   772→        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+   773→          {filteredEmployees.map((employee) => (
+   774→            <EmployeeCard
+   775→              key={employee.id}
+   776→              employee={employee}
+   777→              onEdit={() => handleEdit(employee)}
+   778→              onDelete={() => deleteMutation.mutate(employee.id)}
+   779→              onClick={() => navigate('employee-detail', employee.id)}
+   780→            />
+   781→          ))}
+   782→        </div>
+   783→      )}
+   784→
+   785→      {/* Add/Edit Dialog */}
+   786→      <EmployeeDialog
+   787→        open={dialogOpen}
+   788→        onOpenChange={handleCloseDialog}
+   789→        editData={editEmployee}
+   790→      />
+   791→    </motion.div>
+   792→  )
+   793→}
+   794→
