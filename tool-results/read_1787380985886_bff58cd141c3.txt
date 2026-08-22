@@ -1,0 +1,797 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useCallback } from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import { useTheme } from 'next-themes'
+     6→import { toast } from 'sonner'
+     7→import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+     8→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+     9→import { Button } from '@/components/ui/button'
+    10→import { Switch } from '@/components/ui/switch'
+    11→import { Input } from '@/components/ui/input'
+    12→import { Label } from '@/components/ui/label'
+    13→import { Separator } from '@/components/ui/separator'
+    14→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    15→import { Badge } from '@/components/ui/badge'
+    16→import {
+    17→  AlertDialog,
+    18→  AlertDialogAction,
+    19→  AlertDialogCancel,
+    20→  AlertDialogContent,
+    21→  AlertDialogDescription,
+    22→  AlertDialogFooter,
+    23→  AlertDialogHeader,
+    24→  AlertDialogTitle,
+    25→  AlertDialogTrigger,
+    26→} from '@/components/ui/alert-dialog'
+    27→import {
+    28→  User,
+    29→  Palette,
+    30→  Bell,
+    31→  Database,
+    32→  Info,
+    33→  Save,
+    34→  Download,
+    35→  Trash2,
+    36→  RotateCcw,
+    37→  Sun,
+    38→  Moon,
+    39→  Monitor,
+    40→  Check,
+    41→  Loader2,
+    42→  Settings as SettingsIcon,
+    43→} from 'lucide-react'
+    44→import { useCRMStore } from '@/stores/crm-store'
+    45→import { cn } from '@/lib/utils'
+    46→
+    47→// ===================== Profile Tab =====================
+    48→function ProfileTab() {
+    49→  const [name, setName] = useState('')
+    50→  const [email, setEmail] = useState('')
+    51→  const [phone, setPhone] = useState('')
+    52→  const [role, setRole] = useState('')
+    53→  const [department, setDepartment] = useState('')
+    54→  const [saving, setSaving] = useState(false)
+    55→  const [employeeId, setEmployeeId] = useState<string | null>(null)
+    56→
+    57→  useEffect(() => {
+    58→    async function loadMyProfile() {
+    59→      try {
+    60→        const res = await fetch('/api/auth/me')
+    61→        if (res.ok) {
+    62→          const json = await res.json()
+    63→          const emp = json.employee
+    64→          if (emp) {
+    65→            setEmployeeId(emp.id)
+    66→            setName(emp.name || '')
+    67→            setEmail(emp.email || '')
+    68→            setPhone(emp.phone || '')
+    69→            setRole(emp.role || '')
+    70→            setDepartment(emp.department || '')
+    71→          }
+    72→        }
+    73→      } catch {
+    74→        // silently fail
+    75→      }
+    76→    }
+    77→    loadMyProfile()
+    78→  }, [])
+    79→
+    80→  const getInitials = (name: string) => {
+    81→    return name
+    82→      .split(' ')
+    83→      .map((n) => n[0])
+    84→      .join('')
+    85→      .toUpperCase()
+    86→      .slice(0, 2)
+    87→  }
+    88→
+    89→  const handleSave = async () => {
+    90→    if (!employeeId) return
+    91→    setSaving(true)
+    92→    try {
+    93→      const res = await fetch(`/api/employees/${employeeId}`, {
+    94→        method: 'PUT',
+    95→        headers: { 'Content-Type': 'application/json' },
+    96→        body: JSON.stringify({ name, email, phone, department }),
+    97→      })
+    98→      if (!res.ok) throw new Error('Failed to save')
+    99→      toast.success('Profile updated successfully')
+   100→    } catch {
+   101→      toast.error('Failed to update profile')
+   102→    } finally {
+   103→      setSaving(false)
+   104→    }
+   105→  }
+   106→
+   107→  return (
+   108→    <div className="space-y-6">
+   109→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   110→        <CardHeader>
+   111→          <CardTitle className="text-lg">Profile Information</CardTitle>
+   112→          <CardDescription>Manage your account details and profile information.</CardDescription>
+   113→        </CardHeader>
+   114→        <CardContent>
+   115→          <div className="flex flex-col sm:flex-row gap-6">
+   116→            {/* Avatar Section */}
+   117→            <div className="flex flex-col items-center gap-3">
+   118→              <Avatar className="h-24 w-24">
+   119→                <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+   120→                  {name ? getInitials(name) : 'RP'}
+   121→                </AvatarFallback>
+   122→              </Avatar>
+   123→              <Badge variant="secondary" className="text-xs">
+   124→                {role ? (role === 'FOUNDER' ? 'Founder' : role === 'COFOUNDER' ? 'Co-Founder' : role === 'HR' ? 'HR Manager' : 'Employee') : 'Employee'}
+   125→              </Badge>
+   126→            </div>
+   127→
+   128→            {/* Form Fields */}
+   129→            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+   130→              <div className="space-y-2">
+   131→                <Label htmlFor="name">Full Name</Label>
+   132→                <Input
+   133→                  id="name"
+   134→                  value={name}
+   135→                  onChange={(e) => setName(e.target.value)}
+   136→                  placeholder="Enter your name"
+   137→                />
+   138→              </div>
+   139→              <div className="space-y-2">
+   140→                <Label htmlFor="email">Email Address</Label>
+   141→                <Input
+   142→                  id="email"
+   143→                  type="email"
+   144→                  value={email}
+   145→                  onChange={(e) => setEmail(e.target.value)}
+   146→                  placeholder="Enter your email"
+   147→                />
+   148→              </div>
+   149→              <div className="space-y-2">
+   150→                <Label htmlFor="phone">Phone Number</Label>
+   151→                <Input
+   152→                  id="phone"
+   153→                  value={phone}
+   154→                  onChange={(e) => setPhone(e.target.value)}
+   155→                  placeholder="Enter your phone number"
+   156→                />
+   157→              </div>
+   158→              <div className="space-y-2">
+   159→                <Label htmlFor="role">Role</Label>
+   160→                <Badge variant="secondary" className={cn(
+   161→                  'text-xs px-3 py-1 font-medium',
+   162→                  role === 'FOUNDER' && 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+   163→                  role === 'COFOUNDER' && 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
+   164→                  role === 'HR' && 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300',
+   165→                  role === 'EMPLOYEE' && 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
+   166→                )}>
+   167→                  {role === 'FOUNDER' ? 'Founder' : role === 'COFOUNDER' ? 'Co-Founder' : role === 'HR' ? 'HR Manager' : role || 'Employee'}
+   168→                </Badge>
+   169→              </div>
+   170→              <div className="space-y-2 md:col-span-2">
+   171→                <Label htmlFor="department">Department</Label>
+   172→                <Input
+   173→                  id="department"
+   174→                  value={department}
+   175→                  onChange={(e) => setDepartment(e.target.value)}
+   176→                  placeholder="Enter your department"
+   177→                />
+   178→              </div>
+   179→            </div>
+   180→          </div>
+   181→          <Separator className="my-6" />
+   182→          <div className="flex justify-end">
+   183→            <Button onClick={handleSave} disabled={saving}>
+   184→              {saving ? (
+   185→                <>
+   186→                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   187→                  Saving...
+   188→                </>
+   189→              ) : (
+   190→                <>
+   191→                  <Save className="h-4 w-4 mr-2" />
+   192→                  Save Changes
+   193→                </>
+   194→              )}
+   195→            </Button>
+   196→          </div>
+   197→        </CardContent>
+   198→      </Card>
+   199→    </div>
+   200→  )
+   201→}
+   202→
+   203→// ===================== Appearance Tab =====================
+   204→function AppearanceTab() {
+   205→  const { theme, setTheme } = useTheme()
+   206→  const [compactMode, setCompactMode] = useState(() => {
+   207→    if (typeof window === 'undefined') return false
+   208→    const cm = localStorage.getItem('attitude360-compact-mode')
+   209→    return cm === null ? false : cm === 'true'
+   210→  })
+   211→  const [sidebarDefault, setSidebarDefault] = useState(() => {
+   212→    if (typeof window === 'undefined') return true
+   213→    const sd = localStorage.getItem('attitude360-sidebar-default')
+   214→    return sd === null ? true : sd === 'true'
+   215→  })
+   216→
+   217→  const handleCompactChange = (checked: boolean) => {
+   218→    setCompactMode(checked)
+   219→    localStorage.setItem('attitude360-compact-mode', String(checked))
+   220→    toast.success(checked ? 'Compact mode enabled' : 'Compact mode disabled')
+   221→  }
+   222→
+   223→  const handleSidebarDefault = (checked: boolean) => {
+   224→    setSidebarDefault(checked)
+   225→    localStorage.setItem('attitude360-sidebar-default', String(checked))
+   226→    toast.success(checked ? 'Sidebar will default to expanded' : 'Sidebar will default to collapsed')
+   227→  }
+   228→
+   229→  const themeOptions = [
+   230→    { value: 'light', label: 'Light', icon: Sun },
+   231→    { value: 'dark', label: 'Dark', icon: Moon },
+   232→    { value: 'system', label: 'System', icon: Monitor },
+   233→  ] as const
+   234→
+   235→  return (
+   236→    <div className="space-y-6">
+   237→      {/* Theme Selection */}
+   238→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   239→        <CardHeader>
+   240→          <CardTitle className="text-lg">Theme</CardTitle>
+   241→          <CardDescription>Select your preferred color theme for the application.</CardDescription>
+   242→        </CardHeader>
+   243→        <CardContent>
+   244→          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   245→            {themeOptions.map((option) => {
+   246→              const Icon = option.icon
+   247→              const isActive = theme === option.value
+   248→              return (
+   249→                <button
+   250→                  key={option.value}
+   251→                  onClick={() => setTheme(option.value)}
+   252→                  className={cn(
+   253→                    'card-glass relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 hover:bg-accent/50 hover:-translate-y-1 hover:shadow-md cursor-pointer',
+   254→                    isActive
+   255→                      ? 'border-primary bg-primary/5 shadow-sm'
+   256→                      : 'border-muted hover:border-muted-foreground/30'
+   257→                  )}
+   258→                >
+   259→                  {isActive && (
+   260→                    <div className="absolute top-2 right-2">
+   261→                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+   262→                        <Check className="h-3 w-3 text-primary-foreground" />
+   263→                      </div>
+   264→                    </div>
+   265→                  )}
+   266→                  <Icon className={cn('h-8 w-8', isActive ? 'text-primary' : 'text-muted-foreground')} />
+   267→                  <span className={cn('text-sm font-medium', isActive ? 'text-primary' : 'text-foreground')}>
+   268→                    {option.label}
+   269→                  </span>
+   270→                </button>
+   271→              )
+   272→            })}
+   273→          </div>
+   274→        </CardContent>
+   275→      </Card>
+   276→
+   277→      {/* Compact Mode */}
+   278→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   279→        <CardHeader>
+   280→          <CardTitle className="text-lg">Display Options</CardTitle>
+   281→          <CardDescription>Customize the display density and layout preferences.</CardDescription>
+   282→        </CardHeader>
+   283→        <CardContent className="space-y-6">
+   284→          <div className="flex items-center justify-between">
+   285→            <div className="space-y-0.5">
+   286→              <Label className="text-sm font-medium">Compact Mode</Label>
+   287→              <p className="text-xs text-muted-foreground">Reduce spacing and padding for a denser layout.</p>
+   288→            </div>
+   289→            <Switch checked={compactMode} onCheckedChange={handleCompactChange} />
+   290→          </div>
+   291→          <Separator />
+   292→          <div className="flex items-center justify-between">
+   293→            <div className="space-y-0.5">
+   294→              <Label className="text-sm font-medium">Sidebar Default State</Label>
+   295→              <p className="text-xs text-muted-foreground">
+   296→                {sidebarDefault ? 'Sidebar starts expanded on page load.' : 'Sidebar starts collapsed on page load.'}
+   297→              </p>
+   298→            </div>
+   299→            <Switch checked={sidebarDefault} onCheckedChange={handleSidebarDefault} />
+   300→          </div>
+   301→        </CardContent>
+   302→      </Card>
+   303→    </div>
+   304→  )
+   305→}
+   306→
+   307→// ===================== Notifications Tab =====================
+   308→function NotificationsTab() {
+   309→  const lsBool = (key: string, fallback: boolean) => {
+   310→    if (typeof window === 'undefined') return fallback
+   311→    const val = localStorage.getItem(key)
+   312→    return val === null ? fallback : val === 'true'
+   313→  }
+   314→
+   315→  const [emailNotifications, setEmailNotifications] = useState(() => lsBool('attitude360-notif-email', true))
+   316→  const [interviewReminders, setInterviewReminders] = useState(() => lsBool('attitude360-notif-interview', true))
+   317→  const [leaveAlerts, setLeaveAlerts] = useState(() => lsBool('attitude360-notif-leave', true))
+   318→  const [placementUpdates, setPlacementUpdates] = useState(() => lsBool('attitude360-notif-placement', true))
+   319→
+   320→  const toggleSetting = (
+   321→    key: string,
+   322→    value: boolean,
+   323→    setter: (v: boolean) => void,
+   324→    label: string
+   325→  ) => {
+   326→    setter(value)
+   327→    localStorage.setItem(key, String(value))
+   328→    toast.success(`${label} ${value ? 'enabled' : 'disabled'}`)
+   329→  }
+   330→
+   331→  const notificationItems = [
+   332→    {
+   333→      label: 'Email Notifications',
+   334→      description: 'Receive email notifications for important events and updates.',
+   335→      value: emailNotifications,
+   336→      setter: (v: boolean) => toggleSetting('attitude360-notif-email', v, setEmailNotifications, 'Email Notifications'),
+   337→    },
+   338→    {
+   339→      label: 'Interview Reminders',
+   340→      description: 'Get reminded about upcoming interviews with candidates.',
+   341→      value: interviewReminders,
+   342→      setter: (v: boolean) => toggleSetting('attitude360-notif-interview', v, setInterviewReminders, 'Interview Reminders'),
+   343→    },
+   344→    {
+   345→      label: 'Leave Request Alerts',
+   346→      description: 'Receive alerts when new leave requests are submitted.',
+   347→      value: leaveAlerts,
+   348→      setter: (v: boolean) => toggleSetting('attitude360-notif-leave', v, setLeaveAlerts, 'Leave Request Alerts'),
+   349→    },
+   350→    {
+   351→      label: 'Placement Updates',
+   352→      description: 'Get notified about placement status changes and milestones.',
+   353→      value: placementUpdates,
+   354→      setter: (v: boolean) => toggleSetting('attitude360-notif-placement', v, setPlacementUpdates, 'Placement Updates'),
+   355→    },
+   356→  ]
+   357→
+   358→  return (
+   359→    <div className="space-y-6">
+   360→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   361→        <CardHeader>
+   362→          <CardTitle className="text-lg">Notification Preferences</CardTitle>
+   363→          <CardDescription>Choose which notifications you would like to receive.</CardDescription>
+   364→        </CardHeader>
+   365→        <CardContent className="space-y-6">
+   366→          {notificationItems.map((item, index) => (
+   367→            <div key={item.label}>
+   368→              <div className="flex items-center justify-between">
+   369→                <div className="space-y-0.5 pr-4">
+   370→                  <Label className="text-sm font-medium">{item.label}</Label>
+   371→                  <p className="text-xs text-muted-foreground">{item.description}</p>
+   372→                </div>
+   373→                <Switch checked={item.value} onCheckedChange={item.setter} />
+   374→              </div>
+   375→              {index < notificationItems.length - 1 && <Separator className="mt-6" />}
+   376→            </div>
+   377→          ))}
+   378→        </CardContent>
+   379→      </Card>
+   380→    </div>
+   381→  )
+   382→}
+   383→
+   384→// ===================== Data Management Tab =====================
+   385→function DataManagementTab() {
+   386→  const [stats, setStats] = useState({
+   387→    totalCandidates: 0,
+   388→    totalClients: 0,
+   389→    totalJobs: 0,
+   390→    totalEmployees: 0,
+   391→  })
+   392→  const [statsLoading, setStatsLoading] = useState(true)
+   393→  const [exporting, setExporting] = useState(false)
+   394→  const [clearing, setClearing] = useState(false)
+   395→  const [reseeding, setReseeding] = useState(false)
+   396→
+   397→  const fetchStats = useCallback(async () => {
+   398→    try {
+   399→      setStatsLoading(true)
+   400→      const [dashRes, clientRes, empRes] = await Promise.all([
+   401→        fetch('/api/dashboard'),
+   402→        fetch('/api/clients'),
+   403→        fetch('/api/employees?activeOnly=false'),
+   404→      ])
+   405→
+   406→      const dashData = dashRes.ok ? await dashRes.json() : {}
+   407→      const clientData = clientRes.ok ? await clientRes.json() : { data: [] }
+   408→      const empData = empRes.ok ? await empRes.json() : { data: [] }
+   409→
+   410→      const clientList = clientData.data || clientData || []
+   411→      const empList = empData.data || empData || []
+   412→
+   413→      // Total clients from API (all, not just active)
+   414→      const totalClients = Array.isArray(clientList) ? clientList.length : 0
+   415→      const totalEmployees = Array.isArray(empList) ? empList.length : 0
+   416→
+   417→      // Total jobs: we need open + closed. The dashboard gives us openJobs.
+   418→      // For total, we fetch from the jobs API
+   419→      const jobsRes = await fetch('/api/jobs')
+   420→      const jobsData = jobsRes.ok ? await jobsRes.json() : { data: [] }
+   421→      const jobList = jobsData.data || jobsData || []
+   422→      const totalJobs = Array.isArray(jobList) ? jobList.length : 0
+   423→
+   424→      setStats({
+   425→        totalCandidates: dashData.totalCandidates || 0,
+   426→        totalClients,
+   427→        totalJobs,
+   428→        totalEmployees,
+   429→      })
+   430→    } catch {
+   431→      // silently fail
+   432→    } finally {
+   433→      setStatsLoading(false)
+   434→    }
+   435→  }, [])
+   436→
+   437→  useEffect(() => {
+   438→    fetchStats()
+   439→  }, [fetchStats])
+   440→
+   441→  const handleExport = async () => {
+   442→    setExporting(true)
+   443→    try {
+   444→      const res = await fetch('/api/candidates')
+   445→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   446→      const json = await res.json()
+   447→      const candidates = json.data || json || []
+   448→
+   449→      if (candidates.length === 0) {
+   450→        toast.error('No candidates to export')
+   451→        setExporting(false)
+   452→        return
+   453→      }
+   454→
+   455→      // Build CSV
+   456→      const headers = ['Name', 'Email', 'Phone', 'Title', 'Location', 'Experience', 'Status', 'Source', 'Rating']
+   457→      const rows = candidates.map((c: Record<string, unknown>) => [
+   458→        `${c.firstName || ''} ${c.lastName || ''}`.trim(),
+   459→        c.email || '',
+   460→        c.phone || '',
+   461→        c.title || '',
+   462→        c.location || '',
+   463→        c.experience ?? '',
+   464→        c.status || '',
+   465→        c.source || '',
+   466→        c.rating ?? '',
+   467→      ])
+   468→
+   469→      const csvContent = [headers, ...rows]
+   470→        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+   471→        .join('\n')
+   472→
+   473→      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+   474→      const url = URL.createObjectURL(blob)
+   475→      const link = document.createElement('a')
+   476→      link.href = url
+   477→      link.download = `attitude360-candidates-${new Date().toISOString().split('T')[0]}.csv`
+   478→      link.click()
+   479→      URL.revokeObjectURL(url)
+   480→
+   481→      toast.success(`Exported ${candidates.length} candidates to CSV`)
+   482→    } catch {
+   483→      toast.error('Failed to export data')
+   484→    } finally {
+   485→      setExporting(false)
+   486→    }
+   487→  }
+   488→
+   489→  const handleClearAll = async () => {
+   490→    setClearing(true)
+   491→    try {
+   492→      // Delete all data by model type
+   493→      const models = ['placements', 'interviews', 'leave', 'attendance', 'candidates', 'jobs', 'clients', 'employees']
+   494→      await Promise.all(
+   495→        models.map(async (model) => {
+   496→          // Fetch all IDs first, then delete individually
+   497→          try {
+   498→            const res = await fetch(`/api/${model}`)
+   499→            if (!res.ok) return
+   500→            const json = await res.json()
+   501→            const items = json.data || json || []
+   502→            if (Array.isArray(items)) {
+   503→              await Promise.all(
+   504→                items.map((item: Record<string, unknown>) =>
+   505→                  fetch(`/api/${model}/${item.id}`, { method: 'DELETE' }).catch(() => {})
+   506→                )
+   507→              )
+   508→            }
+   509→          } catch {
+   510→            // continue
+   511→          }
+   512→        })
+   513→      )
+   514→      toast.success('All data has been cleared successfully')
+   515→      fetchStats()
+   516→    } catch {
+   517→      toast.error('Failed to clear data')
+   518→    } finally {
+   519→      setClearing(false)
+   520→    }
+   521→  }
+   522→
+   523→  const handleReseed = async () => {
+   524→    setReseeding(true)
+   525→    try {
+   526→      const res = await fetch('/api/seed', { method: 'POST' })
+   527→      if (res.ok) {
+   528→        toast.success('Sample data has been reseeded successfully')
+   529→        fetchStats()
+   530→      } else {
+   531→        toast.error('Failed to reseed data')
+   532→      }
+   533→    } catch {
+   534→      toast.error('Failed to reseed data')
+   535→    } finally {
+   536→      setReseeding(false)
+   537→    }
+   538→  }
+   539→
+   540→  return (
+   541→    <div className="space-y-6">
+   542→      {/* Database Info */}
+   543→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   544→        <CardHeader>
+   545→          <CardTitle className="text-lg">Database Overview</CardTitle>
+   546→          <CardDescription>Current statistics for your Attitude360 database.</CardDescription>
+   547→        </CardHeader>
+   548→        <CardContent>
+   549→          {statsLoading ? (
+   550→            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   551→              {Array.from({ length: 4 }).map((_, i) => (
+   552→                <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+   553→              ))}
+   554→            </div>
+   555→          ) : (
+   556→            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   557→              <div className="rounded-lg border bg-card p-4 text-center">
+   558→                <p className="text-2xl font-bold text-primary">{stats.totalCandidates}</p>
+   559→                <p className="text-xs text-muted-foreground mt-1">Total Candidates</p>
+   560→              </div>
+   561→              <div className="rounded-lg border bg-card p-4 text-center">
+   562→                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.totalClients}</p>
+   563→                <p className="text-xs text-muted-foreground mt-1">Total Clients</p>
+   564→              </div>
+   565→              <div className="rounded-lg border bg-card p-4 text-center">
+   566→                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.totalJobs}</p>
+   567→                <p className="text-xs text-muted-foreground mt-1">Total Jobs</p>
+   568→              </div>
+   569→              <div className="rounded-lg border bg-card p-4 text-center">
+   570→                <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.totalEmployees}</p>
+   571→                <p className="text-xs text-muted-foreground mt-1">Total Employees</p>
+   572→              </div>
+   573→            </div>
+   574→          )}
+   575→        </CardContent>
+   576→      </Card>
+   577→
+   578→      {/* Actions */}
+   579→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   580→        <CardHeader>
+   581→          <CardTitle className="text-lg">Data Actions</CardTitle>
+   582→          <CardDescription>Export, clear, or reseed your application data.</CardDescription>
+   583→        </CardHeader>
+   584→        <CardContent className="space-y-4">
+   585→          <div className="flex flex-col sm:flex-row gap-3">
+   586→            <Button
+   587→              variant="outline"
+   588→              onClick={handleExport}
+   589→              disabled={exporting}
+   590→              className="flex-1 sm:flex-none"
+   591→            >
+   592→              {exporting ? (
+   593→                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   594→              ) : (
+   595→                <Download className="h-4 w-4 mr-2" />
+   596→              )}
+   597→              Export All Data (CSV)
+   598→            </Button>
+   599→
+   600→            <AlertDialog>
+   601→              <AlertDialogTrigger asChild>
+   602→                <Button
+   603→                  variant="destructive"
+   604→                  disabled={clearing}
+   605→                  className="flex-1 sm:flex-none"
+   606→                >
+   607→                  {clearing ? (
+   608→                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   609→                  ) : (
+   610→                    <Trash2 className="h-4 w-4 mr-2" />
+   611→                  )}
+   612→                  Clear All Data
+   613→                </Button>
+   614→              </AlertDialogTrigger>
+   615→              <AlertDialogContent>
+   616→                <AlertDialogHeader>
+   617→                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+   618→                  <AlertDialogDescription>
+   619→                    This action cannot be undone. This will permanently delete all candidates,
+   620→                    clients, jobs, interviews, placements, attendance records, leave requests,
+   621→                    and employees from your database.
+   622→                  </AlertDialogDescription>
+   623→                </AlertDialogHeader>
+   624→                <AlertDialogFooter>
+   625→                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+   626→                  <AlertDialogAction
+   627→                    onClick={handleClearAll}
+   628→                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+   629→                  >
+   630→                    Yes, delete everything
+   631→                  </AlertDialogAction>
+   632→                </AlertDialogFooter>
+   633→              </AlertDialogContent>
+   634→            </AlertDialog>
+   635→
+   636→            <Button
+   637→              variant="outline"
+   638→              onClick={handleReseed}
+   639→              disabled={reseeding}
+   640→              className="flex-1 sm:flex-none"
+   641→            >
+   642→              {reseeding ? (
+   643→                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   644→              ) : (
+   645→                <RotateCcw className="h-4 w-4 mr-2" />
+   646→              )}
+   647→              Reseed Sample Data
+   648→            </Button>
+   649→          </div>
+   650→        </CardContent>
+   651→      </Card>
+   652→    </div>
+   653→  )
+   654→}
+   655→
+   656→// ===================== About Tab =====================
+   657→function AboutTab() {
+   658→  const techStack = [
+   659→    { name: 'Next.js 16', color: 'bg-foreground' },
+   660→    { name: 'TypeScript', color: 'bg-cyan-600' },
+   661→    { name: 'Tailwind CSS', color: 'bg-cyan-500' },
+   662→    { name: 'shadcn/ui', color: 'bg-neutral-800 dark:bg-neutral-200' },
+   663→    { name: 'Prisma', color: 'bg-violet-500' },
+   664→  ]
+   665→
+   666→  return (
+   667→    <div className="space-y-6">
+   668→      {/* App Branding Card */}
+   669→      <Card className="overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   670→        <div className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-background p-8">
+   671→          <div className="flex flex-col items-center gap-4">
+   672→            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
+   673→              <span className="text-3xl font-bold text-primary-foreground">A</span>
+   674→            </div>
+   675→            <div className="text-center">
+   676→              <h2 className="text-2xl font-bold tracking-tight">Attitude360 HRMS</h2>
+   677→              <p className="text-sm text-muted-foreground mt-1">Modern HR Management System</p>
+   678→            </div>
+   679→          </div>
+   680→        </div>
+   681→        <Separator />
+   682→        <CardContent className="pt-6">
+   683→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   684→            <div className="space-y-1">
+   685→              <p className="text-xs text-muted-foreground">Version</p>
+   686→              <p className="text-sm font-medium">1.0.0</p>
+   687→            </div>
+   688→            <div className="space-y-1">
+   689→              <p className="text-xs text-muted-foreground">License</p>
+   690→              <p className="text-sm font-medium">Proprietary</p>
+   691→            </div>
+   692→            <div className="space-y-1">
+   693→              <p className="text-xs text-muted-foreground">Environment</p>
+   694→              <Badge variant="outline" className="text-xs">Production</Badge>
+   695→            </div>
+   696→            <div className="space-y-1">
+   697→              <p className="text-xs text-muted-foreground">Database</p>
+   698→              <p className="text-sm font-medium">SQLite</p>
+   699→            </div>
+   700→          </div>
+   701→        </CardContent>
+   702→      </Card>
+   703→
+   704→      {/* Tech Stack Card */}
+   705→      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+   706→        <CardHeader>
+   707→          <CardTitle className="text-lg">Built With</CardTitle>
+   708→          <CardDescription>The technologies powering Attitude360 HRMS.</CardDescription>
+   709→        </CardHeader>
+   710→        <CardContent>
+   711→          <div className="flex flex-wrap gap-2">
+   712→            {techStack.map((tech) => (
+   713→              <div
+   714→                key={tech.name}
+   715→                className="flex items-center gap-2 rounded-lg border px-3 py-2"
+   716→              >
+   717→                <div className={cn('h-2.5 w-2.5 rounded-full', tech.color)} />
+   718→                <span className="text-sm font-medium">{tech.name}</span>
+   719→              </div>
+   720→            ))}
+   721→          </div>
+   722→        </CardContent>
+   723→      </Card>
+   724→
+   725→      {/* Copyright */}
+   726→      <p className="text-center text-xs text-muted-foreground">
+   727→        © 2026 Attitude360 HRMS. All rights reserved.
+   728→      </p>
+   729→    </div>
+   730→  )
+   731→}
+   732→
+   733→// ===================== Main Settings Page =====================
+   734→export function SettingsPage() {
+   735→  return (
+   736→    <motion.div
+   737→      initial={{ opacity: 0, y: 12 }}
+   738→      animate={{ opacity: 1, y: 0 }}
+   739→      transition={{ duration: 0.3, ease: 'easeOut' }}
+   740→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   741→    >
+   742→      <div className="space-y-3">
+   743→        <div className="flex items-center gap-3">
+   744→          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-950">
+   745→            <SettingsIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+   746→          </div>
+   747→          <div>
+   748→            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
+   749→            <p className="mt-1 text-sm text-muted-foreground">Manage your application preferences and account settings</p>
+   750→          </div>
+   751→        </div>
+   752→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-rose-400 to-pink-400" />
+   753→      </div>
+   754→
+   755→      <Tabs defaultValue="profile" className="w-full">
+   756→        <TabsList className="w-full sm:w-auto">
+   757→          <TabsTrigger value="profile" className="gap-1.5">
+   758→            <User className="h-3.5 w-3.5" />
+   759→            <span className="hidden sm:inline">Profile</span>
+   760→          </TabsTrigger>
+   761→          <TabsTrigger value="appearance" className="gap-1.5">
+   762→            <Palette className="h-3.5 w-3.5" />
+   763→            <span className="hidden sm:inline">Appearance</span>
+   764→          </TabsTrigger>
+   765→          <TabsTrigger value="notifications" className="gap-1.5">
+   766→            <Bell className="h-3.5 w-3.5" />
+   767→            <span className="hidden sm:inline">Notifications</span>
+   768→          </TabsTrigger>
+   769→          <TabsTrigger value="data" className="gap-1.5">
+   770→            <Database className="h-3.5 w-3.5" />
+   771→            <span className="hidden sm:inline">Data</span>
+   772→          </TabsTrigger>
+   773→          <TabsTrigger value="about" className="gap-1.5">
+   774→            <Info className="h-3.5 w-3.5" />
+   775→            <span className="hidden sm:inline">About</span>
+   776→          </TabsTrigger>
+   777→        </TabsList>
+   778→
+   779→        <TabsContent value="profile" className="mt-6">
+   780→          <ProfileTab />
+   781→        </TabsContent>
+   782→        <TabsContent value="appearance" className="mt-6">
+   783→          <AppearanceTab />
+   784→        </TabsContent>
+   785→        <TabsContent value="notifications" className="mt-6">
+   786→          <NotificationsTab />
+   787→        </TabsContent>
+   788→        <TabsContent value="data" className="mt-6">
+   789→          <DataManagementTab />
+   790→        </TabsContent>
+   791→        <TabsContent value="about" className="mt-6">
+   792→          <AboutTab />
+   793→        </TabsContent>
+   794→      </Tabs>
+   795→    </motion.div>
+   796→  )
+   797→}

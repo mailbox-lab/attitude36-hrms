@@ -1,8 +1,8 @@
 # Attitude360 HRMS - Work Log
 
-## Current Project Status (Updated: Round 11 - Bug Fixes & Production Ready)
+## Current Project Status (Updated: Round 12 - MySQL Ready, Production Clean, Mobile-Friendly)
 
-Attitude360 is a comprehensive HRMS (Human Resource Management System) application built with Next.js 16, TypeScript, Prisma ORM (SQLite), Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand, Framer Motion, NextAuth.js v4, and next-themes. The application is a single-page app (SPA) with client-side navigation via Zustand store and lazy-loaded modules, with **full authentication and role-based access control**.
+Attitude360 is a comprehensive HRMS (Human Resource Management System) application built with Next.js 16, TypeScript, Prisma ORM (MySQL), Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand, Framer Motion, NextAuth.js v4, and next-themes. The application is a single-page app (SPA) with client-side navigation via Zustand store and lazy-loaded modules, with **full authentication and role-based access control**. **Database is MySQL-ready for InfinityFree hosting.**
 
 ### Latest Changes (Round 11)
 - **Fixed profile section**: Settings page now fetches logged-in user data via `/api/auth/me` instead of taking `employees[0]` (was always showing Deepak Joshi)
@@ -1507,3 +1507,175 @@ Stage Summary:
 - **Seed Data**: 8 employees across 4 roles with proper reporting hierarchy
 - **Known Constraint**: Dev server OOM in sandbox environment (512MB limit) — code compiles and APIs verified via curl
 - **Version**: v2.1.0
+
+---
+
+## Round 12 - Mobile Responsiveness Improvements
+
+### Overview
+Comprehensive mobile-first CSS/styling improvements across the entire application to ensure a polished, touch-friendly experience on mobile phones (screen width < 768px). No business logic, API calls, or component structure was changed — only Tailwind CSS classes and global CSS rules.
+
+### Changes by File
+
+#### 1. `src/app/globals.css` — Global Mobile Styles
+- Added 44px minimum touch target height for all `button`, `a`, `[role="button"]`, `select`, `checkbox`, `radio` elements on mobile (icon buttons: 36px minimum)
+- Added `-webkit-text-size-adjust: 100%` to prevent iOS Safari font scaling issues
+- Created `.mobile-table-scroll` utility class: enables `overflow-x: auto` with `-webkit-overflow-scrolling: touch` on mobile, reverts to `overflow-x: visible` on desktop
+- Disabled `.table-row-hover` translateX effect on mobile (prevents jitter on narrow screens)
+- Disabled `.stat-card-hover` transform and gradient border pseudo-element on mobile
+- Disabled `.card-hover` transform on mobile (subtle shadow only)
+- Disabled `.filter-bar` slide-in animation on mobile (snappier feel)
+- Disabled `.ripple` ::after pseudo-element on mobile (interferes with touch events)
+- Thinner scrollbar (3px) on mobile vs 6px on desktop
+
+#### 2. `src/components/crm/crm-layout.tsx` — Sidebar & Header
+- Sidebar nav buttons: `h-11 md:h-9` (taller on mobile for 44px touch target)
+- Sign Out button: `h-11 md:h-9` for better tap target
+- Header bar: `h-12 md:h-14`, reduced padding `px-3 md:px-4`, tighter gap `gap-2 md:gap-3`
+- Menu/hamburger button: `h-11 w-11 md:h-8 md:w-8` (bigger tap target on mobile)
+- Page title: now always visible (removed `hidden md:flex`), with `truncate` to prevent overflow
+- Separator: `hidden sm:block` (hidden on mobile to save space)
+- Support & Keyboard Shortcuts buttons: `hidden sm:flex` (hidden on mobile — not useful on touch devices)
+- Notification bell & theme toggle wrapped in flex container with `gap-0.5 md:gap-1`
+- Sidebar: added `shadow-2xl` on mobile for depth when overlay is open
+- Mobile overlay: added `backdrop-blur-[2px]` and `transition-opacity` for smoother feel
+- Page content padding: `p-3 md:p-6` (tighter on mobile)
+- Footer: `px-3 md:px-4`
+
+#### 3. `src/components/crm/dashboard/dashboard-page.tsx` — Dashboard Grid & Charts
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Welcome banner: `p-4 md:p-5`, smaller greeting text `text-xl md:text-3xl`
+- Decorative SVG chart: `hidden md:block` (hidden on mobile to save space)
+- Quick Actions grid: `gap-2 md:gap-3` with `grid-cols-2 md:grid-cols-4`
+- Quick Action buttons: `p-3 md:p-4`, icon container `h-10 w-10 md:h-12 md:w-12`, reduced gap
+- Stat Cards grid: `gap-3 md:gap-4` with `grid-cols-2 md:grid-cols-4` (2-col on mobile, 4-col on desktop)
+- Stat Card content: `p-3 md:p-4`, icon `h-10 w-10 md:h-12 md:w-12`, value `text-xl md:text-2xl`
+- Stat Card skeleton: matching responsive sizes
+- Bar chart height: `h-[220px] md:h-[300px]` (smaller on mobile)
+- Pie chart height: `h-[220px] md:h-[280px]`
+- Chart skeletons/loading states: matching responsive heights
+- Weekly Summary grid: `gap-3 md:gap-4`
+
+#### 4. `src/components/crm/candidates/candidates-page.tsx` — Tables & Filters
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Filter bar: `p-2 md:p-3` (tighter on mobile)
+- Action buttons bar: `flex flex-wrap` for wrapping on narrow screens
+- Candidate table: added `mobile-table-scroll` class for horizontal scroll
+- Empty state cards: `p-4 md:p-6`
+- Action dropdown button: `h-9 w-9 md:h-8 md:w-8` (bigger touch target on mobile)
+
+#### 5. `src/components/crm/employees-page.tsx` — Cards & Actions
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Summary stat cards grid: `gap-3 md:gap-4`
+- Employee cards grid: `gap-3 md:gap-4`
+- Loading/error states: `p-4 md:p-6`
+
+#### 6. `src/components/crm/jobs/jobs-page.tsx` — Tables & Actions
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Jobs table: added `mobile-table-scroll` class for horizontal scroll
+- Action dropdown button: `h-9 w-9 md:h-7 md:w-7`
+- Empty/loading states: `p-4 md:p-6`
+
+#### 7. `src/components/crm/interviews-page.tsx` — Tables & Actions
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Interviews table: added `mobile-table-scroll` class
+- Action dropdown button: `h-9 w-9 md:h-8 md:w-8`
+- Schedule dialog: `max-w-[calc(100vw-1.5rem)]` (full-width with margin on mobile)
+- Empty/loading states: `p-4 md:p-6`
+
+#### 8. `src/components/crm/placements-page.tsx` — Tables & Revenue Cards
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Revenue overview cards: `gap-3 md:gap-4` with `grid-cols-2 lg:grid-cols-4`
+- Date range filter bar: `p-2 md:p-3`
+- Placements table: added `mobile-table-scroll` class
+- Add placement dialog: `max-w-[calc(100vw-1.5rem)]`
+- Empty/loading states: `p-4 md:p-6`
+
+#### 9. `src/components/crm/clients/clients-page.tsx` — Cards Grid
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Date range filter bar: `p-2 md:p-3`
+- Client cards grid: `gap-3 md:gap-4` with `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+- Empty/loading states: `p-4 md:p-6`
+
+#### 10. `src/components/crm/settings-page.tsx` — Forms
+- Main container: `gap-4 md:gap-6 p-3 md:p-6`
+- Profile form grid: `gap-3 md:gap-4`
+- Theme picker grid: `gap-3 md:gap-4`
+- Theme picker cards: `p-4 md:p-6`
+- Data stats grid: `gap-3 md:gap-4`
+- About section grid: `gap-3 md:gap-4`
+
+#### 11. Additional Files (bonus improvements)
+- **`src/components/crm/analytics-page.tsx`**: Container `gap-4 md:gap-6 p-3 md:p-6`, stat grid `gap-3 md:gap-4`
+- **`src/components/crm/attendance/attendance-page.tsx`**: Container `gap-4 md:gap-6 p-3 md:p-6`, table `mobile-table-scroll`
+- **`src/components/crm/leave/leave-page.tsx`**: Container `gap-4 md:gap-6 p-3 md:p-6`, table `mobile-table-scroll`
+- **All Dialog components** (9 files): Added `max-w-[calc(100vw-1.5rem)]` to all `DialogContent` elements so dialogs don't overflow screen on mobile:
+  - `clients/add-client-dialog.tsx`
+  - `candidates/add-candidate-dialog.tsx`
+  - `candidates/csv-import-dialog.tsx`
+  - `employees-page.tsx`
+  - `interviews/interview-calendar.tsx`
+  - `interviews/interview-feedback-dialog.tsx`
+  - `jobs/add-job-dialog.tsx`
+  - `leave/leave-page.tsx`
+  - `leave/add-leave-dialog.tsx`
+  - `placements-page.tsx` (already had it)
+  - `interviews-page.tsx` (already had it)
+
+### Design Principles Applied
+1. **Smaller padding on mobile**: `p-3 md:p-6` across all pages (was `p-4 md:p-6`)
+2. **Tighter gaps on mobile**: `gap-3 md:gap-4` or `gap-4 md:gap-6`
+3. **2-column stat cards on mobile**: `grid-cols-2 md:grid-cols-4` (already had this in most places)
+4. **Horizontal table scroll on mobile**: `mobile-table-scroll` utility class on all table containers
+5. **Larger touch targets on mobile**: Button `h-9 w-9 md:h-8 md:w-8`, nav items `h-11 md:h-9`
+6. **Smaller chart heights on mobile**: `h-[220px] md:h-[300px]`
+7. **Full-width dialogs on mobile**: `max-w-[calc(100vw-1.5rem)]` on all DialogContent
+8. **No transforms on mobile**: Disabled hover translate effects that cause layout jitter
+9. **Hidden desktop-only elements on mobile**: Support button, keyboard shortcuts button, separator, decorative SVG
+10. **Always-visible page title**: Removed `hidden md:flex` from header title, added `truncate`
+- **Version**: v3.1.0
+
+---
+Task ID: 12
+Agent: main
+Task: MySQL migration, remove all demo data, production-ready cleanup, mobile responsiveness
+
+Work Log:
+- **Switched Prisma from SQLite to MySQL**: Updated schema.prisma (provider=mysql, relationMode=prisma, explicit onDelete/onUpdate actions on all relations), installed mysql2 package, generated Prisma client
+- **Updated .env**: DATABASE_URL now uses mysql:// format with placeholder credentials for InfinityFree
+- **Removed demo accounts from login page**: Deleted demoAccounts array and the entire demo accounts card section from auth-page.tsx
+- **Removed auto-seed from page.tsx**: Removed seedIfEmpty useEffect that auto-seeded database on first load
+- **Updated welcome page features**: Replaced [Attendance Tracking, Leave Management, Role-Based Access, Hierarchical Approvals] with [Candidate Management, Client & Job Tracking, Interview Scheduling, Placements & Analytics]
+- **Updated copyright to 2026**: Changed © 2025 → © 2026 in 3 files (crm-layout.tsx, auth-page.tsx, settings-page.tsx)
+- **Updated version**: v2.1.0 → v3.0.0 in crm-layout.tsx footer
+- **Fixed hardcoded dashboard numbers**: totalCandidates fallback 12→0, offers "3"→ placementsThisMonth from API
+- **Enhanced dashboard API**: Added recentActivities, upcomingInterviews, priorityDistribution, and change percentage calculations to /api/dashboard
+- **Cleaned up unused imports**: Removed ROLE_COLORS, ROLE_LABELS, Badge imports from auth-page.tsx
+
+Stage Summary:
+- Database is now MySQL-ready (requires InfinityFree MySQL credentials to connect)
+- Zero hardcoded demo data visible to users
+- Product is ready for real employee self-registration and usage
+- All copyright notices updated to 2026
+- Lint: 0 errors, 1 warning (pre-existing react-hook-form)
+
+---
+Task ID: 6 (Sub-agent: frontend-styling-expert)
+Agent: frontend-styling-expert
+Task: Comprehensive mobile responsiveness improvements
+
+Work Log:
+- Added global CSS: 44px touch targets, mobile-table-scroll utility, disabled hover transforms on mobile, thinner scrollbars, iOS font scaling fix
+- crm-layout.tsx: Sidebar nav items h-11 md:h-9, header h-12 md:h-14, hamburger h-11 w-11 md:h-8 md:w-8, page title always visible, content p-3 md:p-6
+- dashboard-page.tsx: Responsive padding, chart heights, stat card sizes, hidden decorative SVG on mobile
+- candidates-page.tsx, jobs-page.tsx, interviews-page.tsx, placements-page.tsx, attendance-page.tsx, leave-page.tsx, analytics-page.tsx: All tables use mobile-table-scroll, responsive padding and gaps
+- employees-page.tsx, clients-page.tsx: Responsive card grids and padding
+- settings-page.tsx: Responsive form grids and theme picker
+- All dialog components: Added max-w-[calc(100vw-1.5rem)] to prevent overflow
+
+Stage Summary:
+- 20+ files modified with mobile-first responsive improvements
+- All tables horizontally scrollable on mobile
+- Touch targets minimum 44px on mobile
+- Consistent responsive padding (p-3 md:p-6) across all pages
+- Zero business logic changes

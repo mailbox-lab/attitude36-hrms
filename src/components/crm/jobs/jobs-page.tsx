@@ -452,7 +452,7 @@ export function JobsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6">
       {/* Header */}
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -542,7 +542,7 @@ export function JobsPage() {
         <TabsContent value="table" className="mt-4">
           {isLoading ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   <p className="text-sm text-muted-foreground">Loading jobs...</p>
@@ -551,7 +551,7 @@ export function JobsPage() {
             </Card>
           ) : error ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <p className="text-center text-sm text-destructive">
                   Failed to load jobs. Please try again.
                 </p>
@@ -576,7 +576,7 @@ export function JobsPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <div className="max-h-[500px] overflow-y-auto">
+                <div className="max-h-[500px] overflow-y-auto mobile-table-scroll">
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
@@ -681,7 +681,7 @@ export function JobsPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7"
+                                    className="h-9 w-9 md:h-7 md:w-7"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <MoreHorizontal className="h-3.5 w-3.5" />
@@ -724,7 +724,7 @@ export function JobsPage() {
         <TabsContent value="kanban" className="mt-4">
           {isLoading ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   <p className="text-sm text-muted-foreground">Loading board...</p>
@@ -733,7 +733,7 @@ export function JobsPage() {
             </Card>
           ) : error ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <p className="text-center text-sm text-destructive">
                   Failed to load jobs. Please try again.
                 </p>

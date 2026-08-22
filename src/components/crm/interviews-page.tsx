@@ -281,7 +281,7 @@ function ScheduleInterviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg max-w-[calc(100vw-1.5rem)]">
         <DialogHeader>
           <DialogTitle>Schedule Interview</DialogTitle>
           <DialogDescription>
@@ -517,7 +517,7 @@ export function InterviewsPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6"
     >
       {/* Header */}
       <div className="space-y-3">
@@ -648,7 +648,7 @@ export function InterviewsPage() {
       {/* Table */}
       {viewMode === 'list' && (isLoading ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">Loading interviews...</p>
@@ -657,7 +657,7 @@ export function InterviewsPage() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <p className="text-center text-sm text-destructive">
               Failed to load interviews. Please try again.
             </p>
@@ -681,7 +681,7 @@ export function InterviewsPage() {
         </Card>
       ) : (
         <Card>
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto mobile-table-scroll">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -802,7 +802,7 @@ export function InterviewsPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-9 w-9 md:h-8 md:w-8">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

@@ -139,7 +139,7 @@ export function AddLeaveDialog({ open, onOpenChange }: AddLeaveDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-w-[calc(100vw-1.5rem)]">
         <EnhancedDialogHeader
           icon={CalendarOff}
           title="Apply for Leave"

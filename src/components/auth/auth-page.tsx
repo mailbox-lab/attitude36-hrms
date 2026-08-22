@@ -8,8 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
-import { ROLE_COLORS, ROLE_LABELS, type UserRole } from '@/lib/auth-utils'
 import {
   LogIn,
   UserPlus,
@@ -25,12 +23,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 
-const demoAccounts = [
-  { role: 'FOUNDER' as UserRole, email: 'arjun@attitude360.com', password: 'founder123' },
-  { role: 'COFOUNDER' as UserRole, email: 'priya@attitude360.com', password: 'founder123' },
-  { role: 'HR' as UserRole, email: 'rahul@attitude360.com', password: 'hr123' },
-  { role: 'EMPLOYEE' as UserRole, email: 'vikram@attitude360.com', password: 'emp123' },
-]
+
 
 const departments = ['Engineering', 'HR', 'Sales', 'Marketing', 'Finance', 'Operations', 'Design', 'Other']
 
@@ -53,7 +46,7 @@ function LeftPanel() {
         </div>
 
         <div className="space-y-4 mt-12">
-          {['Attendance Tracking', 'Leave Management', 'Role-Based Access', 'Hierarchical Approvals'].map((feature) => (
+          {['Candidate Management', 'Client & Job Tracking', 'Interview Scheduling', 'Placements & Analytics'].map((feature) => (
             <div key={feature} className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
                 <Check className="h-4 w-4" />
@@ -64,7 +57,7 @@ function LeftPanel() {
         </div>
       </div>
 
-      <p className="text-white/50 text-sm">© 2025 Attitude360</p>
+      <p className="text-white/50 text-sm">© 2026 Attitude360</p>
     </div>
   )
 }
@@ -329,29 +322,7 @@ export function AuthPage() {
                       </button>
                     </p>
 
-                    {/* Demo accounts */}
-                    <div className="pt-2">
-                      <Card className="bg-muted/50 border-dashed rounded-xl">
-                        <CardContent className="p-4">
-                          <p className="text-xs font-semibold text-muted-foreground mb-3">Demo Accounts</p>
-                          <div className="space-y-2.5">
-                            {demoAccounts.map((account) => (
-                              <div key={account.role} className="flex items-center gap-2 text-xs">
-                                <Badge className={ROLE_COLORS[account.role]} variant="secondary">
-                                  {ROLE_LABELS[account.role]}
-                                </Badge>
-                                <code className="font-mono text-foreground/80 flex-1 truncate">
-                                  {account.email}
-                                </code>
-                                <span className="text-muted-foreground">
-                                  {account.password}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+
                   </motion.form>
                 ) : (
                   <motion.form

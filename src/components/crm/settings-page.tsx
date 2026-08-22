@@ -126,7 +126,7 @@ function ProfileTab() {
             </div>
 
             {/* Form Fields */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
@@ -241,7 +241,7 @@ function AppearanceTab() {
           <CardDescription>Select your preferred color theme for the application.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             {themeOptions.map((option) => {
               const Icon = option.icon
               const isActive = theme === option.value
@@ -250,7 +250,7 @@ function AppearanceTab() {
                   key={option.value}
                   onClick={() => setTheme(option.value)}
                   className={cn(
-                    'card-glass relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 hover:bg-accent/50 hover:-translate-y-1 hover:shadow-md cursor-pointer',
+                    'card-glass relative flex flex-col items-center gap-3 rounded-xl border-2 p-4 md:p-6 transition-all duration-200 hover:bg-accent/50 hover:-translate-y-1 hover:shadow-md cursor-pointer',
                     isActive
                       ? 'border-primary bg-primary/5 shadow-sm'
                       : 'border-muted hover:border-muted-foreground/30'
@@ -547,13 +547,13 @@ function DataManagementTab() {
         </CardHeader>
         <CardContent>
           {statsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <div className="rounded-lg border bg-card p-4 text-center">
                 <p className="text-2xl font-bold text-primary">{stats.totalCandidates}</p>
                 <p className="text-xs text-muted-foreground mt-1">Total Candidates</p>
@@ -680,7 +680,7 @@ function AboutTab() {
         </div>
         <Separator />
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Version</p>
               <p className="text-sm font-medium">1.0.0</p>
@@ -724,7 +724,7 @@ function AboutTab() {
 
       {/* Copyright */}
       <p className="text-center text-xs text-muted-foreground">
-        © 2025 Attitude360 HRMS. All rights reserved.
+        © 2026 Attitude360 HRMS. All rights reserved.
       </p>
     </div>
   )
@@ -737,7 +737,7 @@ export function SettingsPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6"
     >
       <div className="space-y-3">
         <div className="flex items-center gap-3">

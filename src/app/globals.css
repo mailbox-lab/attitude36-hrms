@@ -122,6 +122,83 @@
   }
 }
 
+/* ===== Mobile responsiveness improvements ===== */
+@layer base {
+  /* Ensure minimum 44px touch targets on mobile for interactive elements */
+  @media (max-width: 767px) {
+    button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] {
+      min-height: 44px;
+    }
+    button[size="icon"], .h-7, .h-8 {
+      min-height: 36px;
+      min-width: 36px;
+    }
+  }
+
+  /* Readable font size on mobile - prevent text below 12px from becoming illegible */
+  @media (max-width: 767px) {
+    body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+  }
+}
+
+@layer utilities {
+  /* Horizontally scrollable table container for mobile */
+  .mobile-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width: 768px) {
+    .mobile-table-scroll {
+      overflow-x: visible;
+    }
+  }
+}
+
+/* Disable table-row-hover translateX on mobile (can cause jitter on narrow screens) */
+@media (max-width: 767px) {
+  .table-row-hover:hover {
+    transform: none;
+    box-shadow: none;
+    background-color: hsl(var(--muted) / 0.4);
+  }
+}
+
+/* Disable stat-card-hover translate on mobile */
+@media (max-width: 767px) {
+  .stat-card-hover:hover {
+    transform: none;
+    box-shadow: 0 4px 12px -2px hsl(var(--primary) / 0.1);
+  }
+  .stat-card-hover::before {
+    display: none;
+  }
+}
+
+/* Card hover - disable translate on mobile */
+@media (max-width: 767px) {
+  .card-hover:hover {
+    transform: none;
+    box-shadow: 0 4px 12px -2px hsl(var(--border) / 0.3);
+  }
+}
+
+/* Filter bar - no animation on mobile for snappier feel */
+@media (max-width: 767px) {
+  .filter-bar {
+    animation: none;
+  }
+}
+
+/* Disable ripple on mobile (interferes with touch) */
+@media (max-width: 767px) {
+  .ripple::after {
+    display: none;
+  }
+}
+
 /* Custom Scrollbar */
 @layer base {
   ::-webkit-scrollbar {
@@ -143,6 +220,13 @@
   }
   .dark ::-webkit-scrollbar-thumb:hover {
     background: oklch(0.5 0 0 / 60%);
+  }
+  /* Thinner scrollbar on mobile */
+  @media (max-width: 767px) {
+    ::-webkit-scrollbar {
+      width: 3px;
+      height: 3px;
+    }
   }
 }
 

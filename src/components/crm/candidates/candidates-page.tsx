@@ -583,7 +583,7 @@ export function CandidatesPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6">
       {/* Header */}
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -603,7 +603,7 @@ export function CandidatesPage() {
               </p>
             </div>
           </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -712,7 +712,7 @@ export function CandidatesPage() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="filter-bar rounded-lg bg-muted/50 p-3">
+      <div className="filter-bar rounded-lg bg-muted/50 p-2 md:p-3">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
@@ -805,7 +805,7 @@ export function CandidatesPage() {
         <TabsContent value="list" className="mt-4">
           {isLoading ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   <p className="text-sm text-muted-foreground">Loading candidates...</p>
@@ -814,7 +814,7 @@ export function CandidatesPage() {
             </Card>
           ) : error ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <p className="text-center text-sm text-destructive">
                   Failed to load candidates. Please try again.
                 </p>
@@ -836,7 +836,7 @@ export function CandidatesPage() {
             </Card>
           ) : (
             <Card>
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-96 overflow-y-auto mobile-table-scroll">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -970,7 +970,7 @@ export function CandidatesPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8"
+                                  className="h-9 w-9 md:h-8 md:w-8"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
@@ -1022,7 +1022,7 @@ export function CandidatesPage() {
         <TabsContent value="pipeline" className="mt-4">
           {isLoading ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   <p className="text-sm text-muted-foreground">Loading pipeline...</p>

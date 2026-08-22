@@ -61,25 +61,6 @@ function CRMApp() {
   const { data: session, status } = useSession()
   const { currentView, selectedId, navigate } = useCRMStore()
 
-  // Auto-seed on first load and set default view for employee role
-  useEffect(() => {
-    async function seedIfEmpty() {
-      try {
-        const res = await fetch('/api/dashboard')
-        if (!res.ok) {
-          await fetch('/api/seed', { method: 'POST' })
-        }
-      } catch {
-        try {
-          await fetch('/api/seed', { method: 'POST' })
-        } catch {
-          // Ignore
-        }
-      }
-    }
-    seedIfEmpty()
-  }, [])
-
   // Set default view for employee role
   useEffect(() => {
     if (session && session.user.role === 'EMPLOYEE' && currentView === 'dashboard') {

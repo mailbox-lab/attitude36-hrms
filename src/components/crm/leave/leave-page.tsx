@@ -339,7 +339,7 @@ function LeaveTable({
 
   return (
     <Card className="rounded-xl shadow-md card-glass">
-      <div className="max-h-96 overflow-y-auto">
+      <div className="max-h-96 overflow-y-auto mobile-table-scroll">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -654,7 +654,7 @@ export function LeavePage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6"
     >
       {/* Header */}
       <div className="space-y-3">
@@ -821,7 +821,7 @@ export function LeavePage() {
 
       {/* Remark Dialog (for approve/reject) */}
       <Dialog open={remarkDialogOpen} onOpenChange={setRemarkDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-1.5rem)]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {remarkAction === 'approve' ? (

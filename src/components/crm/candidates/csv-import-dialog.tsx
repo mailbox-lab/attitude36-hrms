@@ -370,7 +370,7 @@ export function CsvImportDialog({ open, onOpenChange }: { open: boolean; onOpenC
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col max-w-[calc(100vw-1.5rem)]">
         <EnhancedDialogHeader
           icon={Upload}
           title="Import Candidates"

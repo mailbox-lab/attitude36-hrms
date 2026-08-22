@@ -201,7 +201,7 @@ function EmployeeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md max-w-[calc(100vw-1.5rem)]">
         <EnhancedDialogHeader
           icon={isEdit ? Pencil : UserPlus}
           title={isEdit ? 'Edit Employee' : 'Add Employee'}
@@ -614,7 +614,7 @@ export function EmployeesPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6"
     >
       {/* Header */}
       <div className="space-y-3">
@@ -644,7 +644,7 @@ export function EmployeesPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
         <Card className="stat-card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -741,7 +741,7 @@ export function EmployeesPage() {
       {/* Cards Grid */}
       {isLoading ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">Loading employees...</p>
@@ -750,7 +750,7 @@ export function EmployeesPage() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <p className="text-center text-sm text-destructive">
               Failed to load employees. Please try again.
             </p>
@@ -769,7 +769,7 @@ export function EmployeesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredEmployees.map((employee) => (
             <EmployeeCard
               key={employee.id}

@@ -544,7 +544,7 @@ function AddPlacementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg max-w-[calc(100vw-1.5rem)]">
         <EnhancedDialogHeader
           icon={Award}
           title="Add Placement"
@@ -854,7 +854,7 @@ export function PlacementsPage() {
 
   return (
     <motion.div
-      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+      className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -898,7 +898,7 @@ export function PlacementsPage() {
 
       {/* Revenue Overview Cards */}
       <motion.div
-        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -961,7 +961,7 @@ export function PlacementsPage() {
       </motion.div>
 
       {/* Date Range Filter */}
-      <div className="filter-bar rounded-lg bg-muted/50 p-3">
+      <div className="filter-bar rounded-lg bg-muted/50 p-2 md:p-3">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
@@ -1032,7 +1032,7 @@ export function PlacementsPage() {
       {/* Table / Empty State */}
       {isLoading ? (
         <Card className="rounded-xl">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">Loading placements...</p>
@@ -1041,7 +1041,7 @@ export function PlacementsPage() {
         </Card>
       ) : error ? (
         <Card className="rounded-xl">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <p className="text-center text-sm text-destructive">
               Failed to load placements. Please try again.
             </p>
@@ -1056,7 +1056,7 @@ export function PlacementsPage() {
           transition={{ delay: 0.35, duration: 0.35 }}
         >
           <Card className="rounded-xl">
-            <div className="max-h-[28rem] overflow-y-auto">
+            <div className="max-h-[28rem] overflow-y-auto mobile-table-scroll">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">

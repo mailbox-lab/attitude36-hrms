@@ -379,11 +379,11 @@ function StatCard({
   if (isLoading || !stats) {
     return (
       <Card className="rounded-xl shadow-sm">
-        <CardContent className="flex items-center gap-4 p-4">
-          <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+        <CardContent className="flex items-center gap-3 md:gap-4 p-3 md:p-4">
+          <Skeleton className="h-10 w-10 md:h-12 md:w-12 shrink-0 rounded-xl" />
           <div className="flex flex-col gap-2">
             <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-16" />
+            <Skeleton className="h-6 md:h-7 w-16" />
             <Skeleton className="h-3 w-14" />
           </div>
         </CardContent>
@@ -404,17 +404,17 @@ function StatCard({
       <Card
         className={`stat-card-hover relative overflow-hidden rounded-xl border-l-2 border-b-0 ${config.accentColor} ${config.hoverAccentColor} bg-gradient-to-r ${config.gradientFrom} ${config.gradientTo} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
       >
-        <CardContent className="relative flex flex-col gap-1 p-4">
-          <div className="flex items-center gap-4">
+        <CardContent className="relative flex flex-col gap-1 p-3 md:p-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
+              className={`flex h-10 w-10 md:h-12 md:w-12 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}
             >
-              <Icon className={`h-6 w-6 ${config.iconColor}`} />
+              <Icon className={`h-5 w-5 md:h-6 md:w-6 ${config.iconColor}`} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-muted-foreground">{config.label}</p>
               <div className="flex items-center gap-2">
-                <p className="text-2xl font-bold tracking-tight">{displayValue}</p>
+                <p className="text-xl md:text-2xl font-bold tracking-tight">{displayValue}</p>
               </div>
               <ChangeIndicator value={change} />
             </div>
@@ -473,7 +473,7 @@ function CandidatePipelineChart({
           </div>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[220px] md:h-[300px] w-full" />
         </CardContent>
       </Card>
     )
@@ -495,7 +495,7 @@ function CandidatePipelineChart({
           </button>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[300px] items-center justify-center">
+          <div className="flex h-[220px] md:h-[300px] items-center justify-center">
             <div className="text-center">
               <BarChart3 className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">No pipeline data yet</p>
@@ -527,7 +527,7 @@ function CandidatePipelineChart({
         </button>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full">
+        <div className="h-[220px] md:h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
@@ -584,7 +584,7 @@ function JobPriorityChart({
           </div>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[220px] md:h-[300px] w-full" />
         </CardContent>
       </Card>
     )
@@ -606,7 +606,7 @@ function JobPriorityChart({
           </button>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[300px] items-center justify-center">
+          <div className="flex h-[220px] md:h-[300px] items-center justify-center">
             <div className="text-center">
               <Activity className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">No priority data yet</p>
@@ -639,7 +639,7 @@ function JobPriorityChart({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center gap-4 lg:flex-row">
-          <div className="h-[280px] w-full max-w-[280px]">
+          <div className="h-[220px] md:h-[280px] w-full max-w-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -953,10 +953,10 @@ function QuickActionButton({
   return (
     <button
       onClick={onClick}
-      className={`card-glass group flex flex-col items-center gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-border/50`}
+      className={`card-glass group flex flex-col items-center gap-1.5 md:gap-2 rounded-xl border border-transparent bg-gradient-to-b ${bgClass} p-3 md:p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-border/50`}
     >
       <div
-        className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(16,185,129,0.2)] ${colorClass}`}
+        className={`flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(16,185,129,0.2)] ${colorClass}`}
       >
         <Icon className="h-5 w-5" />
       </div>
@@ -1133,7 +1133,7 @@ export function DashboardPage() {
     }))
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6">
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes gradient {
           0% { background-position: 0% 50%; }
@@ -1155,19 +1155,19 @@ export function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <div className="card-glass relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 backdrop-blur-xl border border-white/20 dark:border-white/10 p-5 shadow-sm">
+        <div className="card-glass relative overflow-hidden rounded-xl bg-[length:200%_200%] animate-[gradient_8s_ease_infinite] bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 backdrop-blur-xl border border-white/20 dark:border-white/10 p-4 md:p-5 shadow-sm">
           {/* Floating decorative circles */}
           <div className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-400/10 animate-bounce [animation-delay:0s] [animation-duration:3s]" />
           <div className="pointer-events-none absolute right-1/4 top-2 h-16 w-16 rounded-full bg-teal-400/8 animate-bounce [animation-delay:1s] [animation-duration:4s]" />
           <div className="pointer-events-none absolute -bottom-4 right-8 h-20 w-20 rounded-full bg-cyan-400/10 animate-bounce [animation-delay:2s] [animation-duration:3.5s]" />
           <div className="relative z-10">
-            <h1 className="gradient-text text-2xl font-bold tracking-tight md:text-3xl bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.15)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.12)_50%,transparent_75%)]">
+            <h1 className="gradient-text text-xl font-bold tracking-tight md:text-3xl bg-[linear-gradient(110deg,transparent_25%,rgba(16,185,129,0.15)_50%,transparent_75%)] bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] dark:bg-[linear-gradient(110deg,transparent_25%,rgba(52,211,153,0.12)_50%,transparent_75%)]">
               {getGreeting()}, {displayName}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{formattedDate}</p>
           </div>
           {/* Decorative chart pattern on right */}
-          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.12] dark:opacity-[0.08]">
+          <div className="pointer-events-none hidden md:block absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.12] dark:opacity-[0.08]">
             <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="10" y="30" width="14" height="40" rx="4" fill="currentColor" className="text-emerald-600" />
               <rect x="30" y="20" width="14" height="50" rx="4" fill="currentColor" className="text-teal-600" />
@@ -1191,7 +1191,7 @@ export function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
       >
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 md:gap-3 md:grid-cols-4">
           <QuickActionButton
             icon={Users}
             label="Add Candidate"
@@ -1228,7 +1228,7 @@ export function DashboardPage() {
       </motion.div>
 
       {/* Stat Cards Grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
         {STAT_CARDS.map((config, index) => (
           <StatCard
             key={config.key}
@@ -1265,8 +1265,8 @@ export function DashboardPage() {
                   <UserPlus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold animate-count-up">{data?.stats?.totalCandidates ?? 12}</p>
-                  <p className="text-xs text-muted-foreground">New Candidates</p>
+                  <p className="text-lg font-bold animate-count-up">{data?.stats?.totalCandidates ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">Total Candidates</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 sm:after:content-[''] sm:after:absolute sm:after:right-0 sm:after:top-1/2 sm:after:h-8 sm:after:w-px sm:after:-translate-y-1/2 sm:after:bg-border relative card-section-divider">
@@ -1283,8 +1283,8 @@ export function DashboardPage() {
                   <Send className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold animate-count-up">3</p>
-                  <p className="text-xs text-muted-foreground">Offers Sent</p>
+                  <p className="text-lg font-bold animate-count-up">{data?.stats?.placementsThisMonth ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">Placements</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

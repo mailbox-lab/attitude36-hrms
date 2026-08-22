@@ -1,0 +1,1159 @@
+     1→'use client'
+     2→
+     3→import { useState, useMemo, useCallback } from 'react'
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     5→import { useForm, Controller } from 'react-hook-form'
+     6→import { z } from 'zod'
+     7→import { zodResolver } from '@hookform/resolvers/zod'
+     8→import { toast } from 'sonner'
+     9→import { motion, AnimatePresence } from 'framer-motion'
+    10→import { Card, CardContent } from '@/components/ui/card'
+    11→import { Button } from '@/components/ui/button'
+    12→import { Badge } from '@/components/ui/badge'
+    13→import { Input } from '@/components/ui/input'
+    14→import {
+    15→  Select,
+    16→  SelectContent,
+    17→  SelectItem,
+    18→  SelectTrigger,
+    19→  SelectValue,
+    20→} from '@/components/ui/select'
+    21→import {
+    22→  Table,
+    23→  TableBody,
+    24→  TableCell,
+    25→  TableHead,
+    26→  TableHeader,
+    27→  TableRow,
+    28→} from '@/components/ui/table'
+    29→import {
+    30→  Dialog,
+    31→  DialogContent,
+    32→  DialogFooter,
+    33→} from '@/components/ui/dialog'
+    34→import { EnhancedDialogHeader } from '@/components/crm/enhanced-dialog-header'
+    35→import {
+    36→  Form,
+    37→  FormField,
+    38→  FormItem,
+    39→  FormLabel,
+    40→  FormControl,
+    41→  FormMessage,
+    42→} from '@/components/ui/form'
+    43→import {
+    44→  Command,
+    45→  CommandEmpty,
+    46→  CommandGroup,
+    47→  CommandInput,
+    48→  CommandItem,
+    49→  CommandList,
+    50→} from '@/components/ui/command'
+    51→import {
+    52→  Popover,
+    53→  PopoverContent,
+    54→  PopoverTrigger,
+    55→} from '@/components/ui/popover'
+    56→import {
+    57→  DropdownMenu,
+    58→  DropdownMenuContent,
+    59→  DropdownMenuItem,
+    60→  DropdownMenuTrigger,
+    61→} from '@/components/ui/dropdown-menu'
+    62→import {
+    63→  Plus,
+    64→  Award,
+    65→  MoreHorizontal,
+    66→  Trash2,
+    67→  Loader2,
+    68→  IndianRupee,
+    69→  TrendingUp,
+    70→  DollarSign,
+    71→  CheckCircle2,
+    72→  Download,
+    73→  ChevronsUpDown,
+    74→  Search,
+    75→  CalendarDays,
+    76→  X,
+    77→} from 'lucide-react'
+    78→import { cn } from '@/lib/utils'
+    79→import { useCRMStore } from '@/stores/crm-store'
+    80→
+    81→// ===== Types =====
+    82→
+    83→type Placement = {
+    84→  id: string
+    85→  candidateId: string
+    86→  candidate: { id: string; firstName: string; lastName: string; email?: string; phone?: string }
+    87→  jobId: string | null
+    88→  job: { id: string; title: string } | null
+    89→  clientId: string | null
+    90→  client: { id: string; name: string; industry?: string } | null
+    91→  recruiterId: string | null
+    92→  recruiter: { id: string; name: string } | null
+    93→  offeredCTC: number | null
+    94→  joinedDate: string | null
+    95→  status: string
+    96→  commission: number | null
+    97→  createdAt: string
+    98→  updatedAt: string
+    99→}
+   100→
+   101→type CandidateOption = {
+   102→  id: string
+   103→  firstName: string
+   104→  lastName: string
+   105→}
+   106→
+   107→type JobOption = {
+   108→  id: string
+   109→  title: string
+   110→}
+   111→
+   112→type ClientOption = {
+   113→  id: string
+   114→  name: string
+   115→}
+   116→
+   117→type EmployeeOption = {
+   118→  id: string
+   119→  name: string
+   120→}
+   121→
+   122→// ===== Constants =====
+   123→
+   124→const STATUS_OPTIONS = ['All', 'Offered', 'Accepted', 'Joined', 'Backed-Out']
+   125→const PLACEMENT_STATUSES = ['Offered', 'Accepted', 'Joined', 'Backed-Out']
+   126→
+   127→const STATUS_COLORS: Record<string, string> = {
+   128→  Offered: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+   129→  Accepted: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400',
+   130→  Joined: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+   131→  'Backed-Out': 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+   132→}
+   133→
+   134→const STATUS_BORDER_COLORS: Record<string, string> = {
+   135→  Offered: 'border-l-amber-500',
+   136→  Accepted: 'border-l-cyan-500',
+   137→  Joined: 'border-l-emerald-500',
+   138→  'Backed-Out': 'border-l-red-500',
+   139→}
+   140→
+   141→const PIPELINE_COLORS: Record<string, string> = {
+   142→  Offered: 'bg-amber-500',
+   143→  Accepted: 'bg-cyan-500',
+   144→  Joined: 'bg-emerald-500',
+   145→  'Backed-Out': 'bg-red-500',
+   146→}
+   147→
+   148→const PIPELINE_TEXT_COLORS: Record<string, string> = {
+   149→  Offered: 'text-amber-700 dark:text-amber-400',
+   150→  Accepted: 'text-cyan-700 dark:text-cyan-400',
+   151→  Joined: 'text-emerald-700 dark:text-emerald-400',
+   152→  'Backed-Out': 'text-red-700 dark:text-red-400',
+   153→}
+   154→
+   155→const COMMISSION_RATE = 8.33
+   156→
+   157→// ===== Schema =====
+   158→
+   159→const placementSchema = z.object({
+   160→  candidateId: z.string().min(1, 'Candidate is required'),
+   161→  jobId: z.string().optional(),
+   162→  clientId: z.string().optional(),
+   163→  recruiterId: z.string().optional(),
+   164→  offeredCTC: z.coerce.number().min(0, 'CTC must be positive').optional(),
+   165→  joinedDate: z.string().optional(),
+   166→  status: z.string().min(1, 'Status is required'),
+   167→  commission: z.coerce.number().min(0, 'Commission must be positive').optional(),
+   168→})
+   169→
+   170→type PlacementFormData = z.infer<typeof placementSchema>
+   171→
+   172→// ===== Helpers =====
+   173→
+   174→function formatCurrency(amount: number | null | undefined) {
+   175→  if (amount == null) return '—'
+   176→  if (amount >= 100000) {
+   177→    return `₹${(amount / 100000).toFixed(2)} LPA`
+   178→  }
+   179→  return `₹${amount.toLocaleString('en-IN')}`
+   180→}
+   181→
+   182→function formatCompactCurrency(amount: number) {
+   183→  if (amount >= 10000000) {
+   184→    return `₹${(amount / 10000000).toFixed(2)} Cr`
+   185→  }
+   186→  if (amount >= 100000) {
+   187→    return `₹${(amount / 100000).toFixed(1)} L`
+   188→  }
+   189→  if (amount >= 1000) {
+   190→    return `₹${(amount / 1000).toFixed(1)}K`
+   191→  }
+   192→  return `₹${amount.toFixed(0)}`
+   193→}
+   194→
+   195→function formatDate(dateStr: string | null) {
+   196→  if (!dateStr) return '—'
+   197→  const date = new Date(dateStr)
+   198→  return date.toLocaleDateString('en-IN', {
+   199→    day: '2-digit',
+   200→    month: 'short',
+   201→    year: 'numeric',
+   202→  })
+   203→}
+   204→
+   205→function getInitials(firstName: string, lastName: string) {
+   206→  return `${(firstName?.[0] || '').toUpperCase()}${(lastName?.[0] || '').toUpperCase()}`
+   207→}
+   208→
+   209→function exportToCSV(placements: Placement[]) {
+   210→  const headers = ['Candidate', 'Client', 'Job Title', 'Recruiter', 'Offered CTC', 'Joined Date', 'Status', 'Commission']
+   211→  const rows = placements.map((p) => [
+   212→    `${p.candidate.firstName} ${p.candidate.lastName}`,
+   213→    p.client?.name || 'N/A',
+   214→    p.job?.title || 'N/A',
+   215→    p.recruiter?.name || 'N/A',
+   216→    p.offeredCTC ?? '',
+   217→    p.joinedDate ? formatDate(p.joinedDate) : '',
+   218→    p.status,
+   219→    p.commission ?? '',
+   220→  ])
+   221→  const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n')
+   222→  const blob = new Blob([csv], { type: 'text/csv' })
+   223→  const url = URL.createObjectURL(blob)
+   224→  const a = document.createElement('a')
+   225→  a.href = url
+   226→  a.download = `placements-${new Date().toISOString().split('T')[0]}.csv`
+   227→  a.click()
+   228→  URL.revokeObjectURL(url)
+   229→}
+   230→
+   231→// ===== Animation Variants =====
+   232→
+   233→const containerVariants = {
+   234→  hidden: { opacity: 0 },
+   235→  visible: {
+   236→    opacity: 1,
+   237→    transition: { staggerChildren: 0.08 },
+   238→  },
+   239→}
+   240→
+   241→const itemVariants = {
+   242→  hidden: { opacity: 0, y: 20 },
+   243→  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+   244→}
+   245→
+   246→// ===== Searchable Select Component =====
+   247→
+   248→function SearchableSelect({
+   249→  options,
+   250→  value,
+   251→  onChange,
+   252→  placeholder,
+   253→  emptyMessage = 'No results found.',
+   254→}: {
+   255→  options: { id: string; label: string }[]
+   256→  value: string
+   257→  onChange: (value: string) => void
+   258→  placeholder: string
+   259→  emptyMessage?: string
+   260→}) {
+   261→  const [open, setOpen] = useState(false)
+   262→  const selected = options.find((o) => o.id === value)
+   263→
+   264→  return (
+   265→    <Popover open={open} onOpenChange={setOpen}>
+   266→      <PopoverTrigger asChild>
+   267→        <Button
+   268→          variant="outline"
+   269→          role="combobox"
+   270→          aria-expanded={open}
+   271→          className="w-full justify-between text-left font-normal"
+   272→        >
+   273→          {selected ? selected.label : placeholder}
+   274→          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+   275→        </Button>
+   276→      </PopoverTrigger>
+   277→      <PopoverContent className="w-full p-0" align="start">
+   278→        <Command>
+   279→          <CommandInput placeholder={placeholder} />
+   280→          <CommandList>
+   281→            <CommandEmpty>{emptyMessage}</CommandEmpty>
+   282→            <CommandGroup>
+   283→              {options.map((option) => (
+   284→                <CommandItem
+   285→                  key={option.id}
+   286→                  value={option.label}
+   287→                  onSelect={() => {
+   288→                    onChange(option.id)
+   289→                    setOpen(false)
+   290→                  }}
+   291→                >
+   292→                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+   293→                  <span>{option.label}</span>
+   294→                </CommandItem>
+   295→              ))}
+   296→            </CommandGroup>
+   297→          </CommandList>
+   298→        </Command>
+   299→      </PopoverContent>
+   300→    </Popover>
+   301→  )
+   302→}
+   303→
+   304→// ===== Revenue Overview Card =====
+   305→
+   306→function RevenueCard({
+   307→  label,
+   308→  value,
+   309→  icon: Icon,
+   310→  gradient,
+   311→  index,
+   312→}: {
+   313→  label: string
+   314→  value: string
+   315→  icon: React.ElementType
+   316→  gradient: string
+   317→  index: number
+   318→}) {
+   319→  return (
+   320→    <motion.div variants={itemVariants}>
+   321→      <Card className={cn('stat-card-hover rounded-xl border-0 shadow-sm', gradient)}>
+   322→        <CardContent className="p-5">
+   323→          <div className="flex items-center gap-4">
+   324→            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20">
+   325→              <Icon className="h-5 w-5 text-white" />
+   326→            </div>
+   327→            <div className="min-w-0">
+   328→              <p className="truncate text-2xl font-bold text-white">{value}</p>
+   329→              <p className="text-sm font-medium text-white/80">{label}</p>
+   330→            </div>
+   331→          </div>
+   332→        </CardContent>
+   333→      </Card>
+   334→    </motion.div>
+   335→  )
+   336→}
+   337→
+   338→// ===== Status Pipeline =====
+   339→
+   340→function StatusPipeline({ placements }: { placements: Placement[] }) {
+   341→  const pipelineData = useMemo(() => {
+   342→    const total = placements.length || 1
+   343→    return ['Offered', 'Accepted', 'Joined', 'Backed-Out'].map((status) => {
+   344→      const count = placements.filter((p) => p.status === status).length
+   345→      return {
+   346→        status,
+   347→        count,
+   348→        percentage: Math.round((count / total) * 100),
+   349→      }
+   350→    })
+   351→  }, [placements])
+   352→
+   353→  const hasData = placements.length > 0
+   354→
+   355→  return (
+   356→    <motion.div variants={itemVariants}>
+   357→      <Card className="rounded-xl">
+   358→        <CardContent className="p-5">
+   359→          <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Status Pipeline</h3>
+   360→          {hasData ? (
+   361→            <>
+   362→              <div className="flex h-10 overflow-hidden rounded-lg">
+   363→                {pipelineData.map((item) => (
+   364→                  <motion.div
+   365→                    key={item.status}
+   366→                    initial={{ width: 0 }}
+   367→                    animate={{ width: `${item.percentage}%` }}
+   368→                    transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
+   369→                    className={cn(
+   370→                      'relative flex items-center justify-center overflow-hidden',
+   371→                      PIPELINE_COLORS[item.status],
+   372→                      item.percentage < 8 && 'min-w-[2rem]'
+   373→                    )}
+   374→                  >
+   375→                    {item.percentage >= 10 && (
+   376→                      <span className="text-xs font-bold text-white drop-shadow-sm">
+   377→                        {item.count}
+   378→                      </span>
+   379→                    )}
+   380→                  </motion.div>
+   381→                ))}
+   382→              </div>
+   383→              <div className="mt-2.5 flex">
+   384→                {pipelineData.map((item) => (
+   385→                  <div
+   386→                    key={item.status}
+   387→                    className="flex flex-col items-center"
+   388→                    style={{ width: `${item.percentage}%`, minWidth: item.percentage < 8 ? '2.5rem' : undefined }}
+   389→                  >
+   390→                    <span className={cn('text-xs font-semibold', PIPELINE_TEXT_COLORS[item.status])}>
+   391→                      {item.status}
+   392→                    </span>
+   393→                    <span className="text-[10px] text-muted-foreground">{item.percentage}%</span>
+   394→                  </div>
+   395→                ))}
+   396→              </div>
+   397→            </>
+   398→          ) : (
+   399→            <div className="flex h-10 items-center justify-center rounded-lg bg-muted/50">
+   400→              <span className="text-xs text-muted-foreground">No data yet</span>
+   401→            </div>
+   402→          )}
+   403→        </CardContent>
+   404→      </Card>
+   405→    </motion.div>
+   406→  )
+   407→}
+   408→
+   409→// ===== Empty State =====
+   410→
+   411→function EmptyState({ isFiltered }: { isFiltered: boolean }) {
+   412→  return (
+   413→    <motion.div
+   414→      initial={{ opacity: 0, scale: 0.95 }}
+   415→      animate={{ opacity: 1, scale: 1 }}
+   416→      transition={{ duration: 0.4 }}
+   417→    >
+   418→      <Card className="rounded-xl border-dashed">
+   419→        <CardContent className="flex flex-col items-center gap-4 py-16">
+   420→          <motion.div
+   421→            initial={{ scale: 0.5, opacity: 0 }}
+   422→            animate={{ scale: 1, opacity: 1 }}
+   423→            transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+   424→            className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/50"
+   425→          >
+   426→            <Award className="h-10 w-10 text-amber-500" />
+   427→          </motion.div>
+   428→          <div className="text-center">
+   429→            <h3 className="text-lg font-semibold text-foreground">No Placements Yet</h3>
+   430→            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+   431→              {isFiltered
+   432→                ? 'No placements match the selected filter. Try adjusting your criteria.'
+   433→                : 'Start tracking your successful placements here. Record candidate offers and commissions.'}
+   434→            </p>
+   435→          </div>
+   436→        </CardContent>
+   437→      </Card>
+   438→    </motion.div>
+   439→  )
+   440→}
+   441→
+   442→// ===== Add Placement Dialog =====
+   443→
+   444→function AddPlacementDialog({
+   445→  open,
+   446→  onOpenChange,
+   447→}: {
+   448→  open: boolean
+   449→  onOpenChange: (open: boolean) => void
+   450→}) {
+   451→  const queryClient = useQueryClient()
+   452→
+   453→  const form = useForm<PlacementFormData>({
+   454→    resolver: zodResolver(placementSchema),
+   455→    defaultValues: {
+   456→      candidateId: '',
+   457→      jobId: '',
+   458→      clientId: '',
+   459→      recruiterId: '',
+   460→      offeredCTC: undefined,
+   461→      joinedDate: '',
+   462→      status: 'Offered',
+   463→      commission: undefined,
+   464→    },
+   465→  })
+   466→
+   467→  const { data: candidates } = useQuery<{ data: CandidateOption[] }>({
+   468→    queryKey: ['candidates-hired'],
+   469→    queryFn: async () => {
+   470→      const res = await fetch('/api/candidates?status=Hired')
+   471→      if (!res.ok) throw new Error('Failed to fetch candidates')
+   472→      return res.json()
+   473→    },
+   474→    enabled: open,
+   475→  })
+   476→
+   477→  const { data: jobs } = useQuery<{ data: JobOption[] }>({
+   478→    queryKey: ['jobs-list'],
+   479→    queryFn: async () => {
+   480→      const res = await fetch('/api/jobs')
+   481→      if (!res.ok) throw new Error('Failed to fetch jobs')
+   482→      return res.json()
+   483→    },
+   484→    enabled: open,
+   485→  })
+   486→
+   487→  const { data: clients } = useQuery<{ data: ClientOption[] }>({
+   488→    queryKey: ['clients-list'],
+   489→    queryFn: async () => {
+   490→      const res = await fetch('/api/clients')
+   491→      if (!res.ok) throw new Error('Failed to fetch clients')
+   492→      return res.json()
+   493→    },
+   494→    enabled: open,
+   495→  })
+   496→
+   497→  const { data: employees } = useQuery<{ data: EmployeeOption[] }>({
+   498→    queryKey: ['employees-list'],
+   499→    queryFn: async () => {
+   500→      const res = await fetch('/api/employees')
+   501→      if (!res.ok) throw new Error('Failed to fetch employees')
+   502→      return res.json()
+   503→    },
+   504→    enabled: open,
+   505→  })
+   506→
+   507→  const mutation = useMutation({
+   508→    mutationFn: async (data: PlacementFormData) => {
+   509→      const res = await fetch('/api/placements', {
+   510→        method: 'POST',
+   511→        headers: { 'Content-Type': 'application/json' },
+   512→        body: JSON.stringify(data),
+   513→      })
+   514→      if (!res.ok) throw new Error('Failed to add placement')
+   515→      return res.json()
+   516→    },
+   517→    onSuccess: () => {
+   518→      queryClient.invalidateQueries({ queryKey: ['placements'] })
+   519→      toast.success('Placement added successfully')
+   520→      onOpenChange(false)
+   521→      form.reset()
+   522→    },
+   523→    onError: () => {
+   524→      toast.error('Failed to add placement')
+   525→    },
+   526→  })
+   527→
+   528→  const offeredCTC = form.watch('offeredCTC')
+   529→  const calculatedCommission = offeredCTC ? Math.round((offeredCTC * COMMISSION_RATE) / 100) : 0
+   530→
+   531→  function onSubmit(data: PlacementFormData) {
+   532→    mutation.mutate(data)
+   533→  }
+   534→
+   535→  const candidateOptions = (candidates?.data || []).map((c) => ({
+   536→    id: c.id,
+   537→    label: `${c.firstName} ${c.lastName}`,
+   538→  }))
+   539→
+   540→  const jobOptions = (jobs?.data || []).map((j) => ({
+   541→    id: j.id,
+   542→    label: j.title,
+   543→  }))
+   544→
+   545→  return (
+   546→    <Dialog open={open} onOpenChange={onOpenChange}>
+   547→      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+   548→        <EnhancedDialogHeader
+   549→          icon={Award}
+   550→          title="Add Placement"
+   551→          description="Record a new placement for a hired candidate."
+   552→          iconColor="text-rose-600 dark:text-rose-400"
+   553→        />
+   554→        <Form {...form}>
+   555→          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+   556→            <FormField
+   557→              control={form.control}
+   558→              name="candidateId"
+   559→              render={({ field }) => (
+   560→                <FormItem>
+   561→                  <FormLabel>Candidate *</FormLabel>
+   562→                  <SearchableSelect
+   563→                    options={candidateOptions}
+   564→                    value={field.value}
+   565→                    onChange={field.onChange}
+   566→                    placeholder="Search and select candidate..."
+   567→                    emptyMessage="No hired candidates found."
+   568→                  />
+   569→                  <FormMessage />
+   570→                </FormItem>
+   571→              )}
+   572→            />
+   573→
+   574→            <div className="grid grid-cols-2 gap-4">
+   575→              <FormField
+   576→                control={form.control}
+   577→                name="jobId"
+   578→                render={({ field }) => (
+   579→                  <FormItem>
+   580→                    <FormLabel>Job Opening</FormLabel>
+   581→                    <SearchableSelect
+   582→                      options={jobOptions}
+   583→                      value={field.value || ''}
+   584→                      onChange={field.onChange}
+   585→                      placeholder="Search job..."
+   586→                      emptyMessage="No jobs found."
+   587→                    />
+   588→                    <FormMessage />
+   589→                  </FormItem>
+   590→                )}
+   591→              />
+   592→
+   593→              <FormField
+   594→                control={form.control}
+   595→                name="clientId"
+   596→                render={({ field }) => (
+   597→                  <FormItem>
+   598→                    <FormLabel>Client</FormLabel>
+   599→                    <Select onValueChange={field.onChange} value={field.value || ''}>
+   600→                      <FormControl>
+   601→                        <SelectTrigger>
+   602→                          <SelectValue placeholder="Select client" />
+   603→                        </SelectTrigger>
+   604→                      </FormControl>
+   605→                      <SelectContent>
+   606→                        {(clients?.data || []).map((c) => (
+   607→                          <SelectItem key={c.id} value={c.id}>
+   608→                            {c.name}
+   609→                          </SelectItem>
+   610→                        ))}
+   611→                      </SelectContent>
+   612→                    </Select>
+   613→                    <FormMessage />
+   614→                  </FormItem>
+   615→                )}
+   616→              />
+   617→            </div>
+   618→
+   619→            <FormField
+   620→              control={form.control}
+   621→              name="recruiterId"
+   622→              render={({ field }) => (
+   623→                <FormItem>
+   624→                  <FormLabel>Recruiter</FormLabel>
+   625→                  <Select onValueChange={field.onChange} value={field.value || ''}>
+   626→                    <FormControl>
+   627→                      <SelectTrigger>
+   628→                        <SelectValue placeholder="Select recruiter" />
+   629→                      </SelectTrigger>
+   630→                    </FormControl>
+   631→                    <SelectContent>
+   632→                      {(employees?.data || []).map((e) => (
+   633→                        <SelectItem key={e.id} value={e.id}>
+   634→                          {e.name}
+   635→                        </SelectItem>
+   636→                      ))}
+   637→                    </SelectContent>
+   638→                  </Select>
+   639→                  <FormMessage />
+   640→                </FormItem>
+   641→              )}
+   642→            />
+   643→
+   644→            <FormField
+   645→              control={form.control}
+   646→              name="status"
+   647→              render={({ field }) => (
+   648→                <FormItem>
+   649→                  <FormLabel>Status *</FormLabel>
+   650→                  <Select onValueChange={field.onChange} value={field.value}>
+   651→                    <FormControl>
+   652→                      <SelectTrigger>
+   653→                        <SelectValue placeholder="Select status" />
+   654→                      </SelectTrigger>
+   655→                    </FormControl>
+   656→                    <SelectContent>
+   657→                      {PLACEMENT_STATUSES.map((s) => (
+   658→                        <SelectItem key={s} value={s}>
+   659→                          {s}
+   660→                        </SelectItem>
+   661→                      ))}
+   662→                    </SelectContent>
+   663→                  </Select>
+   664→                  <FormMessage />
+   665→                </FormItem>
+   666→              )}
+   667→            />
+   668→
+   669→            <div className="grid grid-cols-2 gap-4">
+   670→              <FormField
+   671→                control={form.control}
+   672→                name="offeredCTC"
+   673→                render={({ field }) => (
+   674→                  <FormItem>
+   675→                    <FormLabel>Offered CTC (₹)</FormLabel>
+   676→                    <FormControl>
+   677→                      <Input
+   678→                        type="number"
+   679→                        min={0}
+   680→                        placeholder="e.g. 1200000"
+   681→                        {...field}
+   682→                        value={field.value ?? ''}
+   683→                      />
+   684→                    </FormControl>
+   685→                    <FormMessage />
+   686→                  </FormItem>
+   687→                )}
+   688→              />
+   689→
+   690→              <FormField
+   691→                control={form.control}
+   692→                name="joinedDate"
+   693→                render={({ field }) => (
+   694→                  <FormItem>
+   695→                    <FormLabel>Joined Date</FormLabel>
+   696→                    <FormControl>
+   697→                      <Input type="date" {...field} value={field.value || ''} />
+   698→                    </FormControl>
+   699→                    <FormMessage />
+   700→                  </FormItem>
+   701→                )}
+   702→              />
+   703→            </div>
+   704→
+   705→            <FormField
+   706→              control={form.control}
+   707→              name="commission"
+   708→              render={({ field }) => (
+   709→                <FormItem>
+   710→                  <FormLabel>Commission (₹)</FormLabel>
+   711→                  <FormControl>
+   712→                    <div className="relative">
+   713→                      <Input
+   714→                        type="number"
+   715→                        min={0}
+   716→                        placeholder="e.g. 50000"
+   717→                        {...field}
+   718→                        value={field.value ?? ''}
+   719→                      />
+   720→                      {offeredCTC && offeredCTC > 0 && (
+   721→                        <button
+   722→                          type="button"
+   723→                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-400 dark:hover:bg-emerald-900/70"
+   724→                          onClick={() => field.onChange(calculatedCommission)}
+   725→                          title={`Auto-calculate: ${COMMISSION_RATE}% of CTC (1 month salary)`}
+   726→                        >
+   727→                          {formatCompactCurrency(calculatedCommission)}
+   728→                        </button>
+   729→                      )}
+   730→                    </div>
+   731→                  </FormControl>
+   732→                  <p className="text-[10px] text-muted-foreground">
+   733→                    Tip: Click the badge to auto-fill {COMMISSION_RATE}% of CTC (≈ 1 month salary)
+   734→                  </p>
+   735→                  <FormMessage />
+   736→                </FormItem>
+   737→              )}
+   738→            />
+   739→
+   740→            <DialogFooter className="pt-2">
+   741→              <Button
+   742→                type="button"
+   743→                variant="outline"
+   744→                onClick={() => onOpenChange(false)}
+   745→              >
+   746→                Cancel
+   747→              </Button>
+   748→              <Button type="submit" disabled={mutation.isPending}>
+   749→                {mutation.isPending && (
+   750→                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   751→                )}
+   752→                Add Placement
+   753→              </Button>
+   754→            </DialogFooter>
+   755→          </form>
+   756→        </Form>
+   757→      </DialogContent>
+   758→    </Dialog>
+   759→  )
+   760→}
+   761→
+   762→// ===== Main Component =====
+   763→
+   764→export function PlacementsPage() {
+   765→  const queryClient = useQueryClient()
+   766→  const placementFilter = useCRMStore((s) => s.placementFilter)
+   767→  const setPlacementFilter = useCRMStore((s) => s.setPlacementFilter)
+   768→  const [addDialogOpen, setAddDialogOpen] = useState(false)
+   769→
+   770→  // Date range helpers
+   771→  const todayStr = new Date().toISOString().split('T')[0]
+   772→  const getTodayRange = useCallback(() => ({ fromDate: todayStr, toDate: todayStr }), [todayStr])
+   773→  const getThisWeekRange = useCallback(() => {
+   774→    const now = new Date()
+   775→    const dayOfWeek = now.getDay()
+   776→    const monday = new Date(now)
+   777→    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+   778→    const sunday = new Date(monday)
+   779→    sunday.setDate(monday.getDate() + 6)
+   780→    return { fromDate: monday.toISOString().split('T')[0], toDate: sunday.toISOString().split('T')[0] }
+   781→  }, [])
+   782→  const getThisMonthRange = useCallback(() => {
+   783→    const now = new Date()
+   784→    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+   785→    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+   786→    return { fromDate: firstDay.toISOString().split('T')[0], toDate: lastDay.toISOString().split('T')[0] }
+   787→  }, [])
+   788→  const hasDateFilter = !!(placementFilter.fromDate && placementFilter.toDate)
+   789→
+   790→  const { data, isLoading, error } = useQuery<{ data: Placement[] }>({
+   791→    queryKey: ['placements', placementFilter],
+   792→    queryFn: async () => {
+   793→      const params = new URLSearchParams()
+   794→      if (placementFilter.status !== 'All') params.set('status', placementFilter.status)
+   795→      if (placementFilter.search) params.set('search', placementFilter.search)
+   796→      if (placementFilter.fromDate) params.set('fromDate', placementFilter.fromDate)
+   797→      if (placementFilter.toDate) params.set('toDate', placementFilter.toDate)
+   798→      const res = await fetch(`/api/placements?${params.toString()}`)
+   799→      if (!res.ok) throw new Error('Failed to fetch placements')
+   800→      return res.json()
+   801→    },
+   802→  })
+   803→
+   804→  const placements = data?.data || []
+   805→
+   806→  const deleteMutation = useMutation({
+   807→    mutationFn: async (id: string) => {
+   808→      const res = await fetch(`/api/placements/${id}`, { method: 'DELETE' })
+   809→      if (!res.ok) throw new Error('Failed to delete placement')
+   810→      return res.json()
+   811→    },
+   812→    onSuccess: () => {
+   813→      queryClient.invalidateQueries({ queryKey: ['placements'] })
+   814→      toast.success('Placement deleted successfully')
+   815→    },
+   816→    onError: () => {
+   817→      toast.error('Failed to delete placement')
+   818→    },
+   819→  })
+   820→
+   821→  // ===== Computed Revenue Stats =====
+   822→  const totalRevenue = useMemo(
+   823→    () => placements.reduce((sum, p) => sum + (p.commission || 0), 0),
+   824→    [placements]
+   825→  )
+   826→
+   827→  const thisMonthRevenue = useMemo(() => {
+   828→    const now = new Date()
+   829→    const thisMonth = now.getMonth()
+   830→    const thisYear = now.getFullYear()
+   831→    return placements.reduce((sum, p) => {
+   832→      const date = new Date(p.createdAt)
+   833→      if (date.getMonth() === thisMonth && date.getFullYear() === thisYear) {
+   834→        return sum + (p.commission || 0)
+   835→      }
+   836→      return sum
+   837→    }, 0)
+   838→  }, [placements])
+   839→
+   840→  const averagePackage = useMemo(() => {
+   841→    const withCTC = placements.filter((p) => p.offeredCTC != null && p.offeredCTC > 0)
+   842→    if (withCTC.length === 0) return 0
+   843→    return withCTC.reduce((sum, p) => sum + (p.offeredCTC || 0), 0) / withCTC.length
+   844→  }, [placements])
+   845→
+   846→  const completionRate = useMemo(() => {
+   847→    if (placements.length === 0) return 0
+   848→    const joined = placements.filter((p) => p.status === 'Joined').length
+   849→    return Math.round((joined / placements.length) * 100)
+   850→  }, [placements])
+   851→
+   852→  // All placements (unfiltered) for pipeline - we use current view data
+   853→  const pipelinePlacements = placements
+   854→
+   855→  return (
+   856→    <motion.div
+   857→      className="flex flex-1 flex-col gap-6 p-4 md:p-6"
+   858→      initial={{ opacity: 0, y: 12 }}
+   859→      animate={{ opacity: 1, y: 0 }}
+   860→      transition={{ duration: 0.35, ease: 'easeOut' }}
+   861→    >
+   862→      {/* Header */}
+   863→      <div className="space-y-3">
+   864→        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   865→          <div className="flex items-center gap-3">
+   866→            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+   867→              <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+   868→            </div>
+   869→            <div>
+   870→              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Placements</h1>
+   871→              <p className="mt-1 text-sm text-muted-foreground">Track candidate placements and commissions</p>
+   872→            </div>
+   873→          </div>
+   874→          <div className="flex gap-2">
+   875→            {placements.length > 0 && (
+   876→              <Button
+   877→                variant="outline"
+   878→                size="sm"
+   879→                onClick={() => exportToCSV(placements)}
+   880→              >
+   881→                <Download className="mr-2 h-4 w-4" />
+   882→                Export CSV
+   883→              </Button>
+   884→            )}
+   885→            <Button onClick={() => setAddDialogOpen(true)}>
+   886→              <Plus className="mr-2 h-4 w-4" />
+   887→              Add Placement
+   888→            </Button>
+   889→          </div>
+   890→        </div>
+   891→        <div className="h-1 w-16 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400" />
+   892→        {data && (
+   893→          <p className="text-sm text-muted-foreground">
+   894→            {placements.length} total
+   895→          </p>
+   896→        )}
+   897→      </div>
+   898→
+   899→      {/* Revenue Overview Cards */}
+   900→      <motion.div
+   901→        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+   902→        variants={containerVariants}
+   903→        initial="hidden"
+   904→        animate="visible"
+   905→      >
+   906→        <RevenueCard
+   907→          label="Total Revenue"
+   908→          value={formatCompactCurrency(totalRevenue)}
+   909→          icon={IndianRupee}
+   910→          gradient="bg-gradient-to-br from-emerald-500 to-emerald-600"
+   911→          index={0}
+   912→        />
+   913→        <RevenueCard
+   914→          label="This Month Revenue"
+   915→          value={formatCompactCurrency(thisMonthRevenue)}
+   916→          icon={TrendingUp}
+   917→          gradient="bg-gradient-to-br from-amber-500 to-amber-600"
+   918→          index={1}
+   919→        />
+   920→        <RevenueCard
+   921→          label="Average Package"
+   922→          value={averagePackage > 0 ? formatCompactCurrency(averagePackage) : '—'}
+   923→          icon={DollarSign}
+   924→          gradient="bg-gradient-to-br from-violet-500 to-violet-600"
+   925→          index={2}
+   926→        />
+   927→        <RevenueCard
+   928→          label="Completion Rate"
+   929→          value={`${completionRate}%`}
+   930→          icon={CheckCircle2}
+   931→          gradient="bg-gradient-to-br from-rose-500 to-rose-600"
+   932→          index={3}
+   933→        />
+   934→      </motion.div>
+   935→
+   936→      {/* Status Pipeline */}
+   937→      <StatusPipeline placements={pipelinePlacements} />
+   938→
+   939→      {/* Filters */}
+   940→      <motion.div
+   941→        initial={{ opacity: 0, y: 10 }}
+   942→        animate={{ opacity: 1, y: 0 }}
+   943→        transition={{ delay: 0.3, duration: 0.3 }}
+   944→      >
+   945→        <div className="filter-bar rounded-lg bg-muted/50 p-2">
+   946→          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   947→            <Select value={placementFilter.status} onValueChange={(val) => setPlacementFilter({ status: val })}>
+   948→              <SelectTrigger className="w-full sm:w-[180px]">
+   949→                <SelectValue placeholder="Status" />
+   950→              </SelectTrigger>
+   951→              <SelectContent>
+   952→                {STATUS_OPTIONS.map((status) => (
+   953→                  <SelectItem key={status} value={status}>
+   954→                    {status}
+   955→                  </SelectItem>
+   956→                ))}
+   957→              </SelectContent>
+   958→            </Select>
+   959→          </div>
+   960→        </div>
+   961→      </motion.div>
+   962→
+   963→      {/* Date Range Filter */}
+   964→      <div className="filter-bar rounded-lg bg-muted/50 p-3">
+   965→        <div className="flex flex-col gap-3">
+   966→          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   967→            <div className="flex items-center gap-2">
+   968→              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+   969→              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Range</span>
+   970→            </div>
+   971→            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+   972→              <Input
+   973→                type="date"
+   974→                className="w-full sm:w-[160px]"
+   975→                value={placementFilter.fromDate || ''}
+   976→                placeholder="From"
+   977→                onChange={(e) => {
+   978→                  setPlacementFilter({ fromDate: e.target.value, toDate: placementFilter.toDate })
+   979→                }}
+   980→              />
+   981→              <Input
+   982→                type="date"
+   983→                className="w-full sm:w-[160px]"
+   984→                value={placementFilter.toDate || ''}
+   985→                placeholder="To"
+   986→                onChange={(e) => {
+   987→                  setPlacementFilter({ fromDate: placementFilter.fromDate, toDate: e.target.value })
+   988→                }}
+   989→              />
+   990→            </div>
+   991→            <div className="flex flex-wrap items-center gap-1.5">
+   992→              <Button
+   993→                variant={placementFilter.fromDate === todayStr && placementFilter.toDate === todayStr ? 'default' : 'outline'}
+   994→                size="sm"
+   995→                className="h-7 text-xs px-2.5 btn-press"
+   996→                onClick={() => setPlacementFilter(getTodayRange())}
+   997→              >
+   998→                Today
+   999→              </Button>
+  1000→              <Button
+  1001→                variant="outline"
+  1002→                size="sm"
+  1003→                className="h-7 text-xs px-2.5 btn-press"
+  1004→                onClick={() => setPlacementFilter(getThisWeekRange())}
+  1005→              >
+  1006→                This Week
+  1007→              </Button>
+  1008→              <Button
+  1009→                variant="outline"
+  1010→                size="sm"
+  1011→                className="h-7 text-xs px-2.5 btn-press"
+  1012→                onClick={() => setPlacementFilter(getThisMonthRange())}
+  1013→              >
+  1014→                This Month
+  1015→              </Button>
+  1016→              {hasDateFilter && (
+  1017→                <Button
+  1018→                  variant="ghost"
+  1019→                  size="sm"
+  1020→                  className="h-7 gap-1 text-xs px-2.5 text-muted-foreground hover:text-destructive btn-press"
+  1021→                  onClick={() => setPlacementFilter({ fromDate: '', toDate: '' })}
+  1022→                >
+  1023→                  <X className="h-3 w-3" />
+  1024→                  Clear
+  1025→                </Button>
+  1026→              )}
+  1027→            </div>
+  1028→          </div>
+  1029→        </div>
+  1030→      </div>
+  1031→
+  1032→      {/* Table / Empty State */}
+  1033→      {isLoading ? (
+  1034→        <Card className="rounded-xl">
+  1035→          <CardContent className="p-6">
+  1036→            <div className="flex items-center justify-center gap-3">
+  1037→              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  1038→              <p className="text-sm text-muted-foreground">Loading placements...</p>
+  1039→            </div>
+  1040→          </CardContent>
+  1041→        </Card>
+  1042→      ) : error ? (
+  1043→        <Card className="rounded-xl">
+  1044→          <CardContent className="p-6">
+  1045→            <p className="text-center text-sm text-destructive">
+  1046→              Failed to load placements. Please try again.
+  1047→            </p>
+  1048→          </CardContent>
+  1049→        </Card>
+  1050→      ) : placements.length === 0 ? (
+  1051→        <EmptyState isFiltered={placementFilter.status !== 'All' || hasDateFilter} />
+  1052→      ) : (
+  1053→        <motion.div
+  1054→          initial={{ opacity: 0, y: 10 }}
+  1055→          animate={{ opacity: 1, y: 0 }}
+  1056→          transition={{ delay: 0.35, duration: 0.35 }}
+  1057→        >
+  1058→          <Card className="rounded-xl">
+  1059→            <div className="max-h-[28rem] overflow-y-auto">
+  1060→              <Table>
+  1061→                <TableHeader>
+  1062→                  <TableRow className="hover:bg-transparent">
+  1063→                    <TableHead className="text-xs">Candidate</TableHead>
+  1064→                    <TableHead className="hidden text-xs sm:table-cell">Client / Company</TableHead>
+  1065→                    <TableHead className="hidden text-xs md:table-cell">Job Title</TableHead>
+  1066→                    <TableHead className="hidden text-xs lg:table-cell">Recruiter</TableHead>
+  1067→                    <TableHead className="text-xs">Offered CTC</TableHead>
+  1068→                    <TableHead className="hidden text-xs md:table-cell">Joined Date</TableHead>
+  1069→                    <TableHead className="text-xs">Status</TableHead>
+  1070→                    <TableHead className="hidden text-xs sm:table-cell">Commission</TableHead>
+  1071→                    <TableHead className="w-12 text-xs">Actions</TableHead>
+  1072→                  </TableRow>
+  1073→                </TableHeader>
+  1074→                <TableBody>
+  1075→                  <AnimatePresence>
+  1076→                    {placements.map((placement) => (
+  1077→                      <motion.tr
+  1078→                        key={placement.id}
+  1079→                        initial={{ opacity: 0, x: -8 }}
+  1080→                        animate={{ opacity: 1, x: 0 }}
+  1081→                        exit={{ opacity: 0, x: 8 }}
+  1082→                        transition={{ duration: 0.2 }}
+  1083→                        className={cn(
+  1084→                          'table-row-hover border-l-4',
+  1085→                          STATUS_BORDER_COLORS[placement.status] || 'border-l-gray-300'
+  1086→                        )}
+  1087→                      >
+  1088→                        <TableCell>
+  1089→                          <div className="flex items-center gap-2.5">
+  1090→                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-[11px] font-bold text-white">
+  1091→                              {getInitials(placement.candidate.firstName, placement.candidate.lastName)}
+  1092→                            </div>
+  1093→                            <span className="truncate text-sm font-medium">
+  1094→                              {placement.candidate.firstName} {placement.candidate.lastName}
+  1095→                            </span>
+  1096→                          </div>
+  1097→                        </TableCell>
+  1098→                        <TableCell className="hidden max-w-[150px] truncate text-xs sm:table-cell">
+  1099→                          {placement.client?.name || 'N/A'}
+  1100→                        </TableCell>
+  1101→                        <TableCell className="hidden max-w-[150px] truncate text-xs md:table-cell">
+  1102→                          {placement.job?.title || 'N/A'}
+  1103→                        </TableCell>
+  1104→                        <TableCell className="hidden text-xs lg:table-cell">
+  1105→                          {placement.recruiter?.name || 'N/A'}
+  1106→                        </TableCell>
+  1107→                        <TableCell className="text-xs font-medium">
+  1108→                          {formatCurrency(placement.offeredCTC)}
+  1109→                        </TableCell>
+  1110→                        <TableCell className="hidden text-xs md:table-cell">
+  1111→                          {formatDate(placement.joinedDate)}
+  1112→                        </TableCell>
+  1113→                        <TableCell>
+  1114→                          <Badge
+  1115→                            className={cn('text-[10px]', STATUS_COLORS[placement.status] || '')}
+  1116→                          >
+  1117→                            {placement.status}
+  1118→                          </Badge>
+  1119→                        </TableCell>
+  1120→                        <TableCell className="hidden text-xs font-semibold text-emerald-600 dark:text-emerald-400 sm:table-cell">
+  1121→                          {formatCurrency(placement.commission)}
+  1122→                        </TableCell>
+  1123→                        <TableCell>
+  1124→                          <DropdownMenu>
+  1125→                            <DropdownMenuTrigger asChild>
+  1126→                              <Button variant="ghost" size="icon" className="h-8 w-8">
+  1127→                                <MoreHorizontal className="h-4 w-4" />
+  1128→                              </Button>
+  1129→                            </DropdownMenuTrigger>
+  1130→                            <DropdownMenuContent align="end">
+  1131→                              <DropdownMenuItem
+  1132→                                className="text-destructive focus:text-destructive"
+  1133→                                onClick={() => deleteMutation.mutate(placement.id)}
+  1134→                              >
+  1135→                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+  1136→                                Delete
+  1137→                              </DropdownMenuItem>
+  1138→                            </DropdownMenuContent>
+  1139→                          </DropdownMenu>
+  1140→                        </TableCell>
+  1141→                      </motion.tr>
+  1142→                    ))}
+  1143→                  </AnimatePresence>
+  1144→                </TableBody>
+  1145→              </Table>
+  1146→            </div>
+  1147→          </Card>
+  1148→        </motion.div>
+  1149→      )}
+  1150→
+  1151→      {/* Add Dialog */}
+  1152→      <AddPlacementDialog
+  1153→        open={addDialogOpen}
+  1154→        onOpenChange={setAddDialogOpen}
+  1155→      />
+  1156→    </motion.div>
+  1157→  )
+  1158→}
+  1159→

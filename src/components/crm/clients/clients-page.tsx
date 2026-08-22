@@ -269,7 +269,7 @@ export function ClientsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col gap-4 md:gap-6 p-3 md:p-6">
       {/* Header */}
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -337,7 +337,7 @@ export function ClientsPage() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="filter-bar rounded-lg bg-muted/50 p-3">
+      <div className="filter-bar rounded-lg bg-muted/50 p-2 md:p-3">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
@@ -408,7 +408,7 @@ export function ClientsPage() {
       {/* Client Grid */}
       {isLoading ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">Loading clients...</p>
@@ -417,7 +417,7 @@ export function ClientsPage() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <p className="text-center text-sm text-destructive">
               Failed to load clients. Please try again.
             </p>
@@ -440,7 +440,7 @@ export function ClientsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-h-[600px] overflow-y-auto">
+        <div className="grid grid-cols-1 gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-h-[600px] overflow-y-auto">
           {clients.map((client) => (
             <ClientCard
               key={client.id}

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 // ===== EMPLOYEES (Users with auth) =====
@@ -13,14 +14,14 @@ model Employee {
   name          String
   email         String    @unique
   phone         String?
-  password      String?                          // bcrypt hash, null = no login yet
-  role          String    @default("EMPLOYEE")   // FOUNDER, COFOUNDER, HR, EMPLOYEE
+  password      String?
+  role          String    @default("EMPLOYEE")
   department    String?
   designation   String?
   avatar        String?
   isActive      Boolean   @default(true)
-  reportingToId String?                           // Hierarchy: direct manager/reporting line
-  reportingTo   Employee?  @relation("ReportingTo", fields: [reportingToId], references: [id])
+  reportingToId String?
+  reportingTo   Employee?  @relation("ReportingTo", fields: [reportingToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reportees     Employee[] @relation("ReportingTo")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -64,7 +65,7 @@ model JobOpening {
   clientId      String
   client        Client     @relation(fields: [clientId], references: [id])
   recruiterId   String?
-  recruiter     Employee?  @relation("JobRecruiter", fields: [recruiterId], references: [id])
+  recruiter     Employee?  @relation("JobRecruiter", fields: [recruiterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   department    String?
   location      String?
   employmentType String    @default("Full-Time")
@@ -104,7 +105,7 @@ model Candidate {
   skills        String
   status        String   @default("New")
   jobId         String?
-  job           JobOpening? @relation(fields: [jobId], references: [id])
+  job           JobOpening? @relation(fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   rating        Int      @default(0)
   notes         String?
   createdAt     DateTime @default(now())
@@ -120,7 +121,7 @@ model Interview {
   candidateId  String
   candidate    Candidate  @relation(fields: [candidateId], references: [id])
   jobId        String?
-  job          JobOpening? @relation("JobInterview", fields: [jobId], references: [id])
+  job          JobOpening? @relation("JobInterview", fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   type         String    @default("Technical")
   interviewer  String?
   date         DateTime
@@ -140,11 +141,11 @@ model Placement {
   candidateId  String
   candidate    Candidate  @relation("CandidatePlacement", fields: [candidateId], references: [id])
   jobId        String?
-  job          JobOpening? @relation("JobPlacement", fields: [jobId], references: [id])
+  job          JobOpening? @relation("JobPlacement", fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   clientId     String?
-  client       Client?    @relation("ClientPlacement", fields: [clientId], references: [id])
+  client       Client?    @relation("ClientPlacement", fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   recruiterId  String?
-  recruiter    Employee?  @relation("PlacementRecruiter", fields: [recruiterId], references: [id])
+  recruiter    Employee?  @relation("PlacementRecruiter", fields: [recruiterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   offeredCTC   Float?
   joinedDate   DateTime?
   status       String    @default("Offered")
@@ -157,7 +158,7 @@ model Placement {
 model Attendance {
   id         String   @id @default(cuid())
   employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date       DateTime @default(now())
   clockIn    DateTime?
   clockOut   DateTime?
@@ -174,7 +175,7 @@ model Attendance {
 model LeaveBalance {
   id         String  @id @default(cuid())
   employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   year       Int
   type       String
   total      Float
@@ -188,21 +189,21 @@ model LeaveBalance {
 model LeaveRequest {
   id                String    @id @default(cuid())
   employeeId        String
-  employee          Employee   @relation(fields: [employeeId], references: [id])
+  employee          Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type              String
   startDate         DateTime
   endDate           DateTime
   totalDays         Float
   reason            String?
-  status            String    @default("Pending")   // Pending, Approved, Rejected, Cancelled
-  approvalStep      Int?                                 // 1 = L1 pending, 2 = L2 pending, null = finalized
-  approverRole      String?                              // Who should approve next: HR or FOUNDER/COFOUNDER
+  status            String    @default("Pending")
+  approvalStep      Int?
+  approverRole      String?
   approvedByLevel1  String?
-  approvedByL1      Employee?  @relation("ApproverL1", fields: [approvedByLevel1], references: [id])
+  approvedByL1      Employee?  @relation("ApproverL1", fields: [approvedByLevel1], references: [id], onDelete: NoAction, onUpdate: NoAction)
   approvedAtLevel1  DateTime?
   remarkL1          String?
   approvedByLevel2  String?
-  approvedByL2      Employee?  @relation("ApproverL2", fields: [approvedByLevel2], references: [id])
+  approvedByL2      Employee?  @relation("ApproverL2", fields: [approvedByLevel2], references: [id], onDelete: NoAction, onUpdate: NoAction)
   approvedAtLevel2  DateTime?
   remarkL2          String?
   rejectionReason   String?
@@ -218,6 +219,6 @@ model ActivityLog {
   action     String
   details    String?
   employeeId String?
-  employee   Employee? @relation(fields: [employeeId], references: [id])
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt  DateTime @default(now())
 }

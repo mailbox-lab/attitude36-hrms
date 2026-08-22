@@ -253,7 +253,7 @@ export function AddJobDialog({ open, onOpenChange, editJob }: AddJobDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl max-w-[calc(100vw-1.5rem)]">
         <EnhancedDialogHeader
           icon={Briefcase}
           title={isEditing ? 'Edit Job Opening' : 'Add New Job Opening'}

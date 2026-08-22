@@ -119,6 +119,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           sidebarOpen ? 'w-64' : 'w-16',
           isMobile && !sidebarOpen && '-translate-x-full',
           isMobile && sidebarOpen && 'translate-x-0',
+          isMobile && 'shadow-2xl',
         )}
       >
         {/* Logo */}
@@ -161,7 +162,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                     key={item.view}
                     variant={isActive ? 'secondary' : 'ghost'}
                     className={cn(
-                      'w-full justify-start gap-3 h-9 text-sm font-normal border-l-2 border-l-transparent',
+                      'w-full justify-start gap-3 h-11 md:h-9 text-sm font-normal border-l-2 border-l-transparent',
                       isActive && 'font-medium bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary border-l-primary',
                       !sidebarOpen && 'justify-center px-2',
                     )}
@@ -237,7 +238,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 h-9 text-xs"
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 h-11 md:h-9 text-xs"
                 onClick={handleLogout}
                 disabled={loggingOut}
               >
@@ -302,27 +303,28 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4" style={{ borderBottom: '1px solid transparent', backgroundImage: 'linear-gradient(to right, hsl(var(--border) / 0.6), hsl(var(--primary) / 0.15), hsl(var(--border) / 0.6))', backgroundSize: '100% 1px', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom' }}>
+        <header className="sticky top-0 z-30 flex h-12 md:h-14 shrink-0 items-center gap-2 md:gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 md:px-4" style={{ borderBottom: '1px solid transparent', backgroundImage: 'linear-gradient(to right, hsl(var(--border) / 0.6), hsl(var(--primary) / 0.15), hsl(var(--border) / 0.6))', backgroundSize: '100% 1px', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom' }}>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-11 w-11 md:h-8 md:w-8"
             onClick={toggleSidebar}
           >
             {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="hidden sm:block h-6" />
           <GlobalSearch />
-          <div className="hidden md:flex flex-1">
-            <h2 className="text-sm font-semibold">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold truncate">
               {currentLabel}
             </h2>
           </div>
+          <div className="flex items-center gap-0.5 md:gap-1">
           <NotificationBell />
           <ThemeToggle />
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8">
                 <HeadphonesIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -330,29 +332,30 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
           </Tooltip>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={dispatchOpenShortcuts}>
+              <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8" onClick={dispatchOpenShortcuts}>
                 <Keyboard className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Keyboard Shortcuts (?)</TooltipContent>
           </Tooltip>
+          </div>
         </header>
 
         {/* Loading Progress Bar */}
         <LoadingProgress isLoading={isFetching} />
 
         {/* Page Content */}
-        <div ref={contentRef} className="flex-1 overflow-auto p-4 md:p-6">
+        <div ref={contentRef} className="flex-1 overflow-auto p-3 md:p-6">
           {children}
           <BackToTop scrollContainerRef={contentRef} />
         </div>
 
         {/* Footer */}
-        <footer className="shrink-0 bg-background px-4 py-2">
+        <footer className="shrink-0 bg-background px-3 md:px-4 py-2">
           <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <span>© 2025 Attitude360</span>
+              <span>© 2026 Attitude360</span>
               <span className="text-muted-foreground/40">·</span>
               <span>HR Management System</span>
             </div>
@@ -365,7 +368,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>System Online</span>
               </div>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground">
-                v2.1.0
+                v3.0.0
               </Badge>
             </div>
             <span className="hidden sm:inline">Made with <span className="animate-dot-pulse inline-block">♥</span> in India</span>
@@ -376,7 +379,7 @@ export function CRMLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
