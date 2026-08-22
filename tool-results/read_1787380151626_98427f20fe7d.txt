@@ -1,0 +1,636 @@
+     1→import { NextResponse } from 'next/server';
+     2→import { db } from '@/lib/db';
+     3→import { hashSync } from 'bcryptjs';
+     4→
+     5→export async function POST() {
+     6→  try {
+     7→    // Clear existing data in reverse dependency order
+     8→    await db.placement.deleteMany();
+     9→    await db.interview.deleteMany();
+    10→    await db.attendance.deleteMany();
+    11→    await db.leaveRequest.deleteMany();
+    12→    await db.leaveBalance.deleteMany();
+    13→    await db.candidate.deleteMany();
+    14→    await db.jobOpening.deleteMany();
+    15→    await db.employee.deleteMany();
+    16→    await db.client.deleteMany();
+    17→
+    18→    // ===== EMPLOYEES =====
+    19→    // Hierarchy: Founder/Co-Founder → HR → Employees
+    20→    const employees = await Promise.all([
+    21→      db.employee.create({
+    22→        data: {
+    23→          name: 'Arjun Mehta',
+    24→          email: 'arjun@attitude360.com',
+    25→          phone: '+91-9876543210',
+    26→          password: hashSync('founder123', 10),
+    27→          role: 'FOUNDER',
+    28→          designation: 'Founder & CEO',
+    29→          department: 'Leadership',
+    30→          isActive: true,
+    31→        },
+    32→      }),
+    33→      db.employee.create({
+    34→        data: {
+    35→          name: 'Priya Sharma',
+    36→          email: 'priya@attitude360.com',
+    37→          phone: '+91-9876543211',
+    38→          password: hashSync('founder123', 10),
+    39→          role: 'COFOUNDER',
+    40→          designation: 'Co-Founder & CTO',
+    41→          department: 'Leadership',
+    42→          isActive: true,
+    43→        },
+    44→      }),
+    45→      db.employee.create({
+    46→        data: {
+    47→          name: 'Rahul Verma',
+    48→          email: 'rahul@attitude360.com',
+    49→          phone: '+91-9876543212',
+    50→          password: hashSync('hr123', 10),
+    51→          role: 'HR',
+    52→          designation: 'HR Manager',
+    53→          department: 'Human Resources',
+    54→          reportingToId: undefined, // Will be set after founder creation
+    55→          isActive: true,
+    56→        },
+    57→      }),
+    58→      db.employee.create({
+    59→        data: {
+    60→          name: 'Sneha Patel',
+    61→          email: 'sneha@attitude360.com',
+    62→          phone: '+91-9876543213',
+    63→          password: hashSync('hr123', 10),
+    64→          role: 'HR',
+    65→          designation: 'Senior HR Executive',
+    66→          department: 'Human Resources',
+    67→          reportingToId: undefined, // Will be set after founder creation
+    68→          isActive: true,
+    69→        },
+    70→      }),
+    71→      db.employee.create({
+    72→        data: {
+    73→          name: 'Vikram Singh',
+    74→          email: 'vikram@attitude360.com',
+    75→          phone: '+91-9876543214',
+    76→          password: hashSync('emp123', 10),
+    77→          role: 'EMPLOYEE',
+    78→          designation: 'Recruiter',
+    79→          department: 'Recruitment',
+    80→          reportingToId: undefined, // Will be set after HR creation
+    81→          isActive: true,
+    82→        },
+    83→      }),
+    84→      db.employee.create({
+    85→        data: {
+    86→          name: 'Anita Desai',
+    87→          email: 'anita@attitude360.com',
+    88→          phone: '+91-9876543215',
+    89→          password: hashSync('emp123', 10),
+    90→          role: 'EMPLOYEE',
+    91→          designation: 'Senior Recruiter',
+    92→          department: 'Recruitment',
+    93→          reportingToId: undefined, // Will be set after HR creation
+    94→          isActive: true,
+    95→        },
+    96→      }),
+    97→      db.employee.create({
+    98→        data: {
+    99→          name: 'Kiran Rao',
+   100→          email: 'kiran@attitude360.com',
+   101→          phone: '+91-9876543216',
+   102→          password: hashSync('emp123', 10),
+   103→          role: 'EMPLOYEE',
+   104→          designation: 'Marketing Associate',
+   105→          department: 'Marketing',
+   106→          reportingToId: undefined,
+   107→          isActive: true,
+   108→        },
+   109→      }),
+   110→      db.employee.create({
+   111→        data: {
+   112→          name: 'Deepak Joshi',
+   113→          email: 'deepak@attitude360.com',
+   114→          phone: '+91-9876543217',
+   115→          password: hashSync('emp123', 10),
+   116→          role: 'EMPLOYEE',
+   117→          designation: 'Finance Analyst',
+   118→          department: 'Finance',
+   119→          reportingToId: undefined,
+   120→          isActive: true,
+   121→        },
+   122→      }),
+   123→    ]);
+   124→
+   125→    // Set up reporting hierarchy
+   126→    // HR reports to Founder
+   127→    await db.employee.update({ where: { id: employees[2].id }, data: { reportingToId: employees[0].id } });
+   128→    await db.employee.update({ where: { id: employees[3].id }, data: { reportingToId: employees[0].id } });
+   129→    // Employees report to HR
+   130→    await db.employee.update({ where: { id: employees[4].id }, data: { reportingToId: employees[2].id } });
+   131→    await db.employee.update({ where: { id: employees[5].id }, data: { reportingToId: employees[2].id } });
+   132→    await db.employee.update({ where: { id: employees[6].id }, data: { reportingToId: employees[3].id } });
+   133→    await db.employee.update({ where: { id: employees[7].id }, data: { reportingToId: employees[3].id } });
+   134→
+   135→    // ===== CLIENTS =====
+   136→    const clients = await Promise.all([
+   137→      db.client.create({
+   138→        data: {
+   139→          name: 'TechNova Solutions',
+   140→          industry: 'Information Technology',
+   141→          website: 'https://technova.com',
+   142→          address: '42, MG Road, Indiranagar',
+   143→          city: 'Bangalore',
+   144→          state: 'Karnataka',
+   145→          country: 'India',
+   146→          description: 'Leading software development company specializing in cloud-native solutions and enterprise applications.',
+   147→          contactName: 'Karthik Rajan',
+   148→          contactEmail: 'karthik@technova.com',
+   149→          contactPhone: '+91-80-4567-8901',
+   150→          status: 'Active',
+   151→        },
+   152→      }),
+   153→      db.client.create({
+   154→        data: {
+   155→          name: 'FinEdge Analytics',
+   156→          industry: 'Financial Services',
+   157→          website: 'https://finedge.co.in',
+   158→          address: '15, BKC, Bandra Kurla Complex',
+   159→          city: 'Mumbai',
+   160→          state: 'Maharashtra',
+   161→          country: 'India',
+   162→          description: 'Fintech startup providing AI-powered analytics and risk management solutions to banks.',
+   163→          contactName: 'Meera Krishnan',
+   164→          contactEmail: 'meera@finedge.co.in',
+   165→          contactPhone: '+91-22-3456-7890',
+   166→          status: 'Active',
+   167→        },
+   168→      }),
+   169→      db.client.create({
+   170→        data: {
+   171→          name: 'HealthPulse Technologies',
+   172→          industry: 'Healthcare',
+   173→          website: 'https://healthpulse.in',
+   174→          address: 'Plot 7, HITEC City',
+   175→          city: 'Hyderabad',
+   176→          state: 'Telangana',
+   177→          country: 'India',
+   178→          description: 'Healthcare technology company building digital health records and telemedicine platforms.',
+   179→          contactName: 'Dr. Suresh Babu',
+   180→          contactEmail: 'suresh@healthpulse.in',
+   181→          contactPhone: '+91-40-5678-9012',
+   182→          status: 'Active',
+   183→        },
+   184→      }),
+   185→      db.client.create({
+   186→        data: {
+   187→          name: 'GreenLogix Manufacturing',
+   188→          industry: 'Manufacturing',
+   189→          website: 'https://greenlogix.com',
+   190→          address: '23, Industrial Area Phase 2',
+   191→          city: 'Chennai',
+   192→          state: 'Tamil Nadu',
+   193→          country: 'India',
+   194→          description: 'Sustainable manufacturing company producing eco-friendly packaging and industrial materials.',
+   195→          contactName: 'Rajesh Nair',
+   196→          contactEmail: 'rajesh@greenlogix.com',
+   197→          contactPhone: '+91-44-6789-0123',
+   198→          status: 'Active',
+   199→        },
+   200→      }),
+   201→      db.client.create({
+   202→        data: {
+   203→          name: 'EduSpark Learning',
+   204→          industry: 'Education Technology',
+   205→          website: 'https://eduspark.io',
+   206→          address: '88, Connaught Place',
+   207→          city: 'New Delhi',
+   208→          state: 'Delhi',
+   209→          country: 'India',
+   210→          description: 'EdTech platform offering personalized learning solutions and corporate training programs.',
+   211→          contactName: 'Amit Verma',
+   212→          contactEmail: 'amit@eduspark.io',
+   213→          contactPhone: '+91-11-7890-1234',
+   214→          status: 'Active',
+   215→        },
+   216→      }),
+   217→    ]);
+   218→
+   219→    // ===== JOB OPENINGS =====
+   220→    const jobs = await Promise.all([
+   221→      db.jobOpening.create({
+   222→        data: {
+   223→          title: 'Senior React Developer',
+   224→          clientId: clients[0].id,
+   225→          recruiterId: employees[1].id,
+   226→          department: 'Engineering',
+   227→          location: 'Bangalore',
+   228→          employmentType: 'Full-Time',
+   229→          salaryMin: 1800000,
+   230→          salaryMax: 2800000,
+   231→          currency: 'INR',
+   232→          description: 'We are looking for an experienced React developer to join our front-end team.',
+   233→          requirements: 'React, TypeScript, Redux, REST APIs, 5+ years experience',
+   234→          status: 'Open',
+   235→          priority: 'High',
+   236→          openings: 2,
+   237→        },
+   238→      }),
+   239→      db.jobOpening.create({
+   240→        data: {
+   241→          title: 'Backend Engineer - Python',
+   242→          clientId: clients[0].id,
+   243→          recruiterId: employees[1].id,
+   244→          department: 'Engineering',
+   245→          location: 'Bangalore',
+   246→          employmentType: 'Full-Time',
+   247→          salaryMin: 1500000,
+   248→          salaryMax: 2500000,
+   249→          currency: 'INR',
+   250→          description: 'Build scalable backend services using Python and microservices architecture.',
+   251→          requirements: 'Python, Django/FastAPI, PostgreSQL, Docker, 3+ years experience',
+   252→          status: 'Open',
+   253→          priority: 'High',
+   254→          openings: 1,
+   255→        },
+   256→      }),
+   257→      db.jobOpening.create({
+   258→        data: {
+   259→          title: 'Data Scientist',
+   260→          clientId: clients[1].id,
+   261→          recruiterId: employees[3].id,
+   262→          department: 'Analytics',
+   263→          location: 'Mumbai',
+   264→          employmentType: 'Full-Time',
+   265→          salaryMin: 2000000,
+   266→          salaryMax: 3500000,
+   267→          currency: 'INR',
+   268→          description: 'Develop ML models for credit risk assessment and fraud detection.',
+   269→          requirements: 'Python, TensorFlow/PyTorch, SQL, Statistics, 4+ years experience',
+   270→          status: 'Open',
+   271→          priority: 'Critical',
+   272→          openings: 1,
+   273→        },
+   274→      }),
+   275→      db.jobOpening.create({
+   276→        data: {
+   277→          title: 'Full Stack Developer',
+   278→          clientId: clients[1].id,
+   279→          recruiterId: employees[3].id,
+   280→          department: 'Engineering',
+   281→          location: 'Mumbai',
+   282→          employmentType: 'Full-Time',
+   283→          salaryMin: 1600000,
+   284→          salaryMax: 2400000,
+   285→          currency: 'INR',
+   286→          description: 'Build full-stack features for our fintech platform.',
+   287→          requirements: 'React, Node.js, MongoDB, AWS, 3+ years experience',
+   288→          status: 'Open',
+   289→          priority: 'Medium',
+   290→          openings: 2,
+   291→        },
+   292→      }),
+   293→      db.jobOpening.create({
+   294→        data: {
+   295→          title: 'DevOps Engineer',
+   296→          clientId: clients[2].id,
+   297→          recruiterId: employees[2].id,
+   298→          department: 'Infrastructure',
+   299→          location: 'Hyderabad',
+   300→          employmentType: 'Full-Time',
+   301→          salaryMin: 1800000,
+   302→          salaryMax: 3000000,
+   303→          currency: 'INR',
+   304→          description: 'Manage cloud infrastructure and CI/CD pipelines for healthcare platform.',
+   305→          requirements: 'AWS/GCP, Kubernetes, Terraform, Jenkins, 4+ years experience',
+   306→          status: 'Open',
+   307→          priority: 'Medium',
+   308→          openings: 1,
+   309→        },
+   310→      }),
+   311→      db.jobOpening.create({
+   312→        data: {
+   313→          title: 'QA Lead',
+   314→          clientId: clients[3].id,
+   315→          recruiterId: employees[4].id,
+   316→          department: 'Quality',
+   317→          location: 'Chennai',
+   318→          employmentType: 'Full-Time',
+   319→          salaryMin: 1200000,
+   320→          salaryMax: 2000000,
+   321→          currency: 'INR',
+   322→          description: 'Lead the quality assurance team and establish testing frameworks.',
+   323→          requirements: 'Selenium, Cypress, API Testing, Team Management, 6+ years experience',
+   324→          status: 'On Hold',
+   325→          priority: 'Low',
+   326→          openings: 1,
+   327→        },
+   328→      }),
+   329→      db.jobOpening.create({
+   330→        data: {
+   331→          title: 'Product Manager',
+   332→          clientId: clients[4].id,
+   333→          recruiterId: employees[2].id,
+   334→          department: 'Product',
+   335→          location: 'New Delhi',
+   336→          employmentType: 'Full-Time',
+   337→          salaryMin: 2200000,
+   338→          salaryMax: 3800000,
+   339→          currency: 'INR',
+   340→          description: 'Define product roadmap and drive strategy for our learning platform.',
+   341→          requirements: 'Product Management, EdTech experience, Data-driven, 5+ years experience',
+   342→          status: 'Open',
+   343→          priority: 'High',
+   344→          openings: 1,
+   345→        },
+   346→      }),
+   347→      db.jobOpening.create({
+   348→        data: {
+   349→          title: 'UI/UX Designer',
+   350→          clientId: clients[4].id,
+   351→          recruiterId: employees[4].id,
+   352→          department: 'Design',
+   353→          location: 'New Delhi',
+   354→          employmentType: 'Full-Time',
+   355→          salaryMin: 1000000,
+   356→          salaryMax: 1800000,
+   357→          currency: 'INR',
+   358→          description: 'Design intuitive user interfaces for educational products.',
+   359→          requirements: 'Figma, Adobe XD, User Research, Prototyping, 3+ years experience',
+   360→          status: 'Open',
+   361→          priority: 'Medium',
+   362→          openings: 1,
+   363→        },
+   364→      }),
+   365→    ]);
+   366→
+   367→    // ===== CANDIDATES =====
+   368→    const candidateData = [
+   369→      { firstName: 'Amit', lastName: 'Kumar', email: 'amit.kumar@gmail.com', phone: '+91-9988776655', title: 'Senior Frontend Developer', location: 'Bangalore', experience: 6, currentCompany: 'Infosys', currentCTC: 1600000, expectedCTC: 2400000, source: 'Naukri', skills: 'React, TypeScript, Redux, Next.js, GraphQL', status: 'Interview', jobId: jobs[0].id, rating: 4, noticePeriod: 30 },
+   370→      { firstName: 'Deepa', lastName: 'Nair', email: 'deepa.nair@yahoo.com', phone: '+91-9988776656', title: 'React Developer', location: 'Bangalore', experience: 4, currentCompany: 'Wipro', currentCTC: 1200000, expectedCTC: 1800000, source: 'LinkedIn', skills: 'React, JavaScript, CSS, HTML, Bootstrap', status: 'Screening', jobId: jobs[0].id, rating: 3, noticePeriod: 60 },
+   371→      { firstName: 'Suresh', lastName: 'Gupta', email: 'suresh.gupta@gmail.com', phone: '+91-9988776657', title: 'Python Developer', location: 'Pune', experience: 5, currentCompany: 'TCS', currentCTC: 1400000, expectedCTC: 2200000, source: 'Referral', skills: 'Python, Django, Flask, PostgreSQL, Docker', status: 'Interview', jobId: jobs[1].id, rating: 4, noticePeriod: 30 },
+   372→      { firstName: 'Kavitha', lastName: 'Raman', email: 'kavitha.r@gmail.com', phone: '+91-9988776658', title: 'Data Scientist', location: 'Mumbai', experience: 7, currentCompany: 'Accenture', currentCTC: 2800000, expectedCTC: 3500000, source: 'LinkedIn', skills: 'Python, Machine Learning, TensorFlow, SQL, Statistics, NLP', status: 'Offer', jobId: jobs[2].id, rating: 5, noticePeriod: 15 },
+   373→      { firstName: 'Rohit', lastName: 'Joshi', email: 'rohit.j@gmail.com', phone: '+91-9988776659', title: 'Full Stack Developer', location: 'Mumbai', experience: 4, currentCompany: 'Capgemini', currentCTC: 1300000, expectedCTC: 2000000, source: 'Naukri', skills: 'React, Node.js, Express, MongoDB, AWS', status: 'New', jobId: jobs[3].id, rating: 3, noticePeriod: 45 },
+   374→      { firstName: 'Lakshmi', lastName: 'Iyer', email: 'lakshmi.iyer@gmail.com', phone: '+91-9988776660', title: 'DevOps Engineer', location: 'Hyderabad', experience: 5, currentCompany: 'Amazon', currentCTC: 3000000, expectedCTC: 3800000, source: 'LinkedIn', skills: 'AWS, Kubernetes, Docker, Terraform, CI/CD, Linux', status: 'Interview', jobId: jobs[4].id, rating: 5, noticePeriod: 60 },
+   375→      { firstName: 'Nikhil', lastName: 'Patil', email: 'nikhil.p@gmail.com', phone: '+91-9988776661', title: 'QA Engineer', location: 'Chennai', experience: 3, currentCompany: 'Cognizant', currentCTC: 800000, expectedCTC: 1200000, source: 'Naukri', skills: 'Selenium, Java, TestNG, API Testing, SQL', status: 'New', jobId: jobs[5].id, rating: 2, noticePeriod: 30 },
+   376→      { firstName: 'Priti', lastName: 'Das', email: 'pritidas@gmail.com', phone: '+91-9988776662', title: 'Product Manager', location: 'New Delhi', experience: 8, currentCompany: 'Paytm', currentCTC: 3500000, expectedCTC: 4200000, source: 'Referral', skills: 'Product Strategy, Agile, Data Analytics, User Research, Roadmapping', status: 'Interview', jobId: jobs[6].id, rating: 5, noticePeriod: 30 },
+   377→      { firstName: 'Sanjay', lastName: 'Verma', email: 'sanjay.v@gmail.com', phone: '+91-9988776663', title: 'Senior React Developer', location: 'Bangalore', experience: 8, currentCompany: 'Flipkart', currentCTC: 3200000, expectedCTC: 4000000, source: 'LinkedIn', skills: 'React, TypeScript, Next.js, Node.js, System Design', status: 'Offer', jobId: jobs[0].id, rating: 5, noticePeriod: 15 },
+   378→      { firstName: 'Ritu', lastName: 'Sharma', email: 'ritu.sharma@gmail.com', phone: '+91-9988776664', title: 'UI/UX Designer', location: 'New Delhi', experience: 5, currentCompany: 'Swiggy', currentCTC: 1500000, expectedCTC: 2200000, source: 'Naukri', skills: 'Figma, Adobe XD, Sketch, User Research, Wireframing, Prototyping', status: 'Screening', jobId: jobs[7].id, rating: 4, noticePeriod: 30 },
+   379→      { firstName: 'Aravind', lastName: 'Krishnan', email: 'aravind.k@gmail.com', phone: '+91-9988776665', title: 'Backend Developer', location: 'Bangalore', experience: 3, currentCompany: 'Freshworks', currentCTC: 1100000, expectedCTC: 1600000, source: 'Campus', skills: 'Node.js, Express, MongoDB, Redis, AWS', status: 'New', jobId: jobs[1].id, rating: 3, noticePeriod: 0 },
+   380→      { firstName: 'Meena', lastName: 'Kumari', email: 'meena.k@gmail.com', phone: '+91-9988776666', title: 'Data Analyst', location: 'Mumbai', experience: 2, currentCompany: null, currentCTC: null, expectedCTC: 900000, source: 'Naukri', skills: 'SQL, Python, Tableau, Excel, Statistics', status: 'New', jobId: jobs[2].id, rating: 2, noticePeriod: 0 },
+   381→      { firstName: 'Vishal', lastName: 'Pandey', email: 'vishal.p@gmail.com', phone: '+91-9988776667', title: 'Cloud Engineer', location: 'Hyderabad', experience: 6, currentCompany: 'Microsoft', currentCTC: 3500000, expectedCTC: 4200000, source: 'LinkedIn', skills: 'Azure, AWS, Kubernetes, Terraform, Python, Go', status: 'Interview', jobId: jobs[4].id, rating: 5, noticePeriod: 90 },
+   382→      { firstName: 'Anjali', lastName: 'Mishra', email: 'anjali.m@gmail.com', phone: '+91-9988776668', title: 'Full Stack Developer', location: 'Mumbai', experience: 5, currentCompany: 'Razorpay', currentCTC: 2200000, expectedCTC: 2800000, source: 'Referral', skills: 'React, Node.js, TypeScript, PostgreSQL, AWS', status: 'Offer', jobId: jobs[3].id, rating: 4, noticePeriod: 30 },
+   383→      { firstName: 'Karthik', lastName: 'Menon', email: 'karthik.m@gmail.com', phone: '+91-9988776669', title: 'React Native Developer', location: 'Bangalore', experience: 4, currentCompany: 'Ola', currentCTC: 1800000, expectedCTC: 2500000, source: 'Naukri', skills: 'React Native, JavaScript, Redux, iOS, Android', status: 'Screening', jobId: jobs[0].id, rating: 3, noticePeriod: 30 },
+   384→      { firstName: 'Divya', lastName: 'Reddy', email: 'divya.r@gmail.com', phone: '+91-9988776670', title: 'ML Engineer', location: 'Hyderabad', experience: 3, currentCompany: 'ServiceNow', currentCTC: 2000000, expectedCTC: 2800000, source: 'LinkedIn', skills: 'Python, TensorFlow, PyTorch, MLOps, Docker, Kubernetes', status: 'Interview', jobId: jobs[2].id, rating: 4, noticePeriod: 30 },
+   385→      { firstName: 'Manish', lastName: 'Agarwal', email: 'manish.a@gmail.com', phone: '+91-9988776671', title: 'Senior Python Developer', location: 'Bangalore', experience: 7, currentCompany: 'Google', currentCTC: 4000000, expectedCTC: 5000000, source: 'Referral', skills: 'Python, Go, System Design, Microservices, gRPC, PostgreSQL', status: 'Offer', jobId: jobs[1].id, rating: 5, noticePeriod: 60 },
+   386→      { firstName: 'Swati', lastName: 'Jain', email: 'swati.j@gmail.com', phone: '+91-9988776672', title: 'QA Lead', location: 'Chennai', experience: 8, currentCompany: 'Zoho', currentCTC: 1800000, expectedCTC: 2500000, source: 'Naukri', skills: 'Selenium, Cypress, API Testing, Performance Testing, Team Management', status: 'Interview', jobId: jobs[5].id, rating: 4, noticePeriod: 30 },
+   387→    ];
+   388→
+   389→    const candidates = await Promise.all(
+   390→      candidateData.map((c) =>
+   391→        db.candidate.create({ data: c })
+   392→      )
+   393→    );
+   394→
+   395→    // ===== INTERVIEWS =====
+   396→    const now = new Date();
+   397→    const interviewData = [
+   398→      { candidateId: candidates[0].id, jobId: jobs[0].id, type: 'Technical', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/abc-defg-hij', status: 'Completed', feedback: 'Strong React skills, good system design understanding. Recommended for next round.', rating: 4 },
+   399→      { candidateId: candidates[0].id, jobId: jobs[0].id, type: 'HR', interviewer: 'Rahul Verma', date: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/klm-nopq-rst', status: 'Completed', feedback: 'Good communication skills. Culture fit looks positive.', rating: 4 },
+   400→      { candidateId: candidates[2].id, jobId: jobs[1].id, type: 'Technical', interviewer: 'Priya Sharma', date: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/uvw-xyza-bcd', status: 'Scheduled', feedback: null, rating: null },
+   401→      { candidateId: candidates[3].id, jobId: jobs[2].id, type: 'Technical', interviewer: 'Sneha Patel', date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), duration: 90, meetingLink: 'https://meet.google.com/efg-hijk-lmn', status: 'Completed', feedback: 'Excellent ML knowledge. Solved all coding challenges. Strong hire recommendation.', rating: 5 },
+   402→      { candidateId: candidates[3].id, jobId: jobs[2].id, type: 'HR', interviewer: 'Rahul Verma', date: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/opq-rstu-vwx', status: 'Completed', feedback: 'Great fit for the team. Salary expectations are within range.', rating: 5 },
+   403→      { candidateId: candidates[5].id, jobId: jobs[4].id, type: 'Technical', interviewer: 'Anita Desai', date: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/yza-bcde-fgh', status: 'Scheduled', feedback: null, rating: null },
+   404→      { candidateId: candidates[7].id, jobId: jobs[6].id, type: 'Case Study', interviewer: 'Arjun Mehta', date: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), duration: 90, meetingLink: 'https://meet.google.com/ijk-lmno-pqr', status: 'Scheduled', feedback: null, rating: null },
+   405→      { candidateId: candidates[8].id, jobId: jobs[0].id, type: 'Technical', interviewer: 'Priya Sharma', date: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000), duration: 75, meetingLink: 'https://meet.google.com/stu-vwxy-zab', status: 'Completed', feedback: 'Outstanding frontend skills. Deep understanding of React internals.', rating: 5 },
+   406→      { candidateId: candidates[8].id, jobId: jobs[0].id, type: 'HR', interviewer: 'Rahul Verma', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), duration: 45, meetingLink: 'https://meet.google.com/cde-fghi-jkl', status: 'Completed', feedback: 'Strong candidate. Discussed compensation expectations.', rating: 5 },
+   407→      { candidateId: candidates[12].id, jobId: jobs[4].id, type: 'Technical', interviewer: 'Anita Desai', date: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), duration: 60, meetingLink: 'https://meet.google.com/mno-pqrs-tuv', status: 'Completed', feedback: 'Very strong cloud background. Could be a great asset for infrastructure team.', rating: 4 },
+   408→    ];
+   409→
+   410→    await Promise.all(
+   411→      interviewData.map((i) => db.interview.create({ data: i }))
+   412→    );
+   413→
+   414→    // ===== PLACEMENTS =====
+   415→    const placementData = [
+   416→      { candidateId: candidates[3].id, jobId: jobs[2].id, clientId: clients[1].id, recruiterId: employees[3].id, offeredCTC: 3400000, joinedDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), status: 'Joined', commission: 340000 },
+   417→      { candidateId: candidates[8].id, jobId: jobs[0].id, clientId: clients[0].id, recruiterId: employees[1].id, offeredCTC: 3800000, joinedDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), status: 'Joined', commission: 380000 },
+   418→      { candidateId: candidates[13].id, jobId: jobs[3].id, clientId: clients[1].id, recruiterId: employees[3].id, offeredCTC: 2700000, joinedDate: null, status: 'Offered', commission: null },
+   419→      { candidateId: candidates[16].id, jobId: jobs[1].id, clientId: clients[0].id, recruiterId: employees[1].id, offeredCTC: 4500000, joinedDate: null, status: 'Offered', commission: null },
+   420→    ];
+   421→
+   422→    await Promise.all(
+   423→      placementData.map((p) => db.placement.create({ data: p }))
+   424→    );
+   425→
+   426→    // ===== ATTENDANCE (30 days for all employees) =====
+   427→    const attendanceRecords: Array<{
+   428→      employeeId: string;
+   429→      date: Date;
+   430→      clockIn: Date;
+   431→      clockOut: Date;
+   432→      status: string;
+   433→      totalHours: number;
+   434→      notes?: string;
+   435→    }> = [];
+   436→
+   437→    for (let dayOffset = 30; dayOffset >= 1; dayOffset--) {
+   438→      const date = new Date(now);
+   439→      date.setDate(date.getDate() - dayOffset);
+   440→      const dayOfWeek = date.getDay();
+   441→
+   442→      // Skip weekends
+   443→      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+   444→
+   445→      for (const emp of employees) {
+   446→        // Randomize some absences and half-days
+   447→        const rand = Math.random();
+   448→        if (rand < 0.05) {
+   449→          // 5% chance of leave
+   450→          attendanceRecords.push({
+   451→            employeeId: emp.id,
+   452→            date: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+   453→            clockIn: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0),
+   454→            clockOut: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0),
+   455→            status: 'Leave',
+   456→            totalHours: 0,
+   457→            notes: 'Planned leave',
+   458→          });
+   459→        } else if (rand < 0.1) {
+   460→          // 5% chance of work from home
+   461→          const clockIn = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9 + Math.random(), Math.floor(Math.random() * 30), 0);
+   462→          const clockOut = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 17 + Math.random(), Math.floor(Math.random() * 60), 0);
+   463→          const totalHours = parseFloat(((clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60)).toFixed(2));
+   464→          attendanceRecords.push({
+   465→            employeeId: emp.id,
+   466→            date: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+   467→            clockIn,
+   468→            clockOut,
+   469→            status: 'WFH',
+   470→            totalHours,
+   471→          });
+   472→        } else if (rand < 0.15) {
+   473→          // 5% chance of half-day
+   474→          const clockIn = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0, 0);
+   475→          const clockOut = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 13, 30, 0);
+   476→          attendanceRecords.push({
+   477→            employeeId: emp.id,
+   478→            date: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+   479→            clockIn,
+   480→            clockOut,
+   481→            status: 'Half Day',
+   482→            totalHours: 4.5,
+   483→          });
+   484→        } else {
+   485→          // Normal day
+   486→          const clockInHour = 8 + Math.floor(Math.random() * 2); // 8 or 9
+   487→          const clockInMin = Math.floor(Math.random() * 30);
+   488→          const clockOutHour = 17 + Math.floor(Math.random() * 2); // 17 or 18
+   489→          const clockOutMin = Math.floor(Math.random() * 60);
+   490→          const clockIn = new Date(date.getFullYear(), date.getMonth(), date.getDate(), clockInHour, clockInMin, 0);
+   491→          const clockOut = new Date(date.getFullYear(), date.getMonth(), date.getDate(), clockOutHour, clockOutMin, 0);
+   492→          const totalHours = parseFloat(((clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60)).toFixed(2));
+   493→          attendanceRecords.push({
+   494→            employeeId: emp.id,
+   495→            date: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+   496→            clockIn,
+   497→            clockOut,
+   498→            status: 'Present',
+   499→            totalHours,
+   500→          });
+   501→        }
+   502→      }
+   503→    }
+   504→
+   505→    // Insert attendance in batches
+   506→    const batchSize = 50;
+   507→    for (let i = 0; i < attendanceRecords.length; i += batchSize) {
+   508→      await Promise.all(
+   509→        attendanceRecords.slice(i, i + batchSize).map((a) =>
+   510→          db.attendance.create({ data: a })
+   511→        )
+   512→      );
+   513→    }
+   514→
+   515→    // ===== LEAVE BALANCES (current year) =====
+   516→    const currentYear = now.getFullYear();
+   517→    const leaveBalanceData: Array<{
+   518→      employeeId: string;
+   519→      year: number;
+   520→      type: string;
+   521→      total: number;
+   522→      used: number;
+   523→      remaining: number;
+   524→    }> = [];
+   525→
+   526→    for (const emp of employees) {
+   527→      leaveBalanceData.push(
+   528→        { employeeId: emp.id, year: currentYear, type: 'Casual Leave', total: 12, used: 0, remaining: 12 },
+   529→        { employeeId: emp.id, year: currentYear, type: 'Sick Leave', total: 10, used: 0, remaining: 10 },
+   530→        { employeeId: emp.id, year: currentYear, type: 'Earned Leave', total: 15, used: 0, remaining: 15 },
+   531→        { employeeId: emp.id, year: currentYear, type: 'Compensatory Off', total: 2, used: 0, remaining: 2 },
+   532→      );
+   533→    }
+   534→
+   535→    await Promise.all(
+   536→      leaveBalanceData.map((lb) => db.leaveBalance.create({ data: lb }))
+   537→    );
+   538→
+   539→    // ===== LEAVE REQUESTS =====
+   540→    // Hierarchy-based: Employee leave → needs HR approval, HR leave → needs Founder approval
+   541→    // Founder/Co-Founder leave → auto-approved
+   542→    const leaveRequestData = [
+   543→      // Founder (auto-approved)
+   544→      {
+   545→        employeeId: employees[0].id, type: 'Casual Leave',
+   546→        startDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+   547→        endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+   548→        totalDays: 3, reason: 'Family function',
+   549→        status: 'Approved', approvalStep: null, approverRole: null,
+   550→      },
+   551→      // Co-Founder (auto-approved)
+   552→      {
+   553→        employeeId: employees[1].id, type: 'Sick Leave',
+   554→        startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+   555→        endDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+   556→        totalDays: 1, reason: 'Not feeling well, doctor appointment',
+   557→        status: 'Approved', approvalStep: null, approverRole: null,
+   558→      },
+   559→      // HR (needs Founder approval) - Pending
+   560→      {
+   561→        employeeId: employees[2].id, type: 'Casual Leave',
+   562→        startDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+   563→        endDate: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
+   564→        totalDays: 3, reason: 'Travel plans',
+   565→        status: 'Pending', approvalStep: 1, approverRole: 'FOUNDER_OR_COFOUNDER',
+   566→      },
+   567→      // HR (needs Founder approval) - Pending
+   568→      {
+   569→        employeeId: employees[3].id, type: 'Earned Leave',
+   570→        startDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+   571→        endDate: new Date(now.getTime() + 19 * 24 * 60 * 60 * 1000),
+   572→        totalDays: 5, reason: 'Vacation with family',
+   573→        status: 'Pending', approvalStep: 1, approverRole: 'FOUNDER_OR_COFOUNDER',
+   574→      },
+   575→      // Employee (needs HR approval) - Rejected by HR
+   576→      {
+   577→        employeeId: employees[4].id, type: 'Casual Leave',
+   578→        startDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+   579→        endDate: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+   580→        totalDays: 1, reason: 'Personal work',
+   581→        status: 'Rejected', approvalStep: null, approverRole: null,
+   582→        approvedByLevel1: employees[2].id, approvedAtLevel1: new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000),
+   583→        remarkL1: 'Critical project deadline, cannot approve.', rejectionReason: 'Critical project deadline, cannot approve.',
+   584→      },
+   585→      // Employee (needs HR approval) - Pending
+   586→      {
+   587→        employeeId: employees[5].id, type: 'Earned Leave',
+   588→        startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+   589→        endDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+   590→        totalDays: 8, reason: 'International travel',
+   591→        status: 'Pending', approvalStep: 1, approverRole: 'HR',
+   592→      },
+   593→      // Employee (needs HR approval) - Pending
+   594→      {
+   595→        employeeId: employees[6].id, type: 'Sick Leave',
+   596→        startDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+   597→        endDate: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
+   598→        totalDays: 2, reason: 'Fever and cold, need rest',
+   599→        status: 'Pending', approvalStep: 1, approverRole: 'HR',
+   600→      },
+   601→      // Employee (needs HR approval) - Approved
+   602→      {
+   603→        employeeId: employees[7].id, type: 'Casual Leave',
+   604→        startDate: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+   605→        endDate: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+   606→        totalDays: 2, reason: 'Family event',
+   607→        status: 'Approved', approvalStep: null, approverRole: null,
+   608→        approvedByLevel1: employees[3].id, approvedAtLevel1: new Date(now.getTime() - 16 * 24 * 60 * 60 * 1000),
+   609→        remarkL1: 'Approved. Have a good time!',
+   610→      },
+   611→    ];
+   612→
+   613→    await Promise.all(
+   614→      leaveRequestData.map((lr) => db.leaveRequest.create({ data: lr }))
+   615→    );
+   616→
+   617→    return NextResponse.json({
+   618→      message: 'Seed data created successfully',
+   619→      counts: {
+   620→        employees: employees.length,
+   621→        clients: clients.length,
+   622→        jobs: jobs.length,
+   623→        candidates: candidates.length,
+   624→        interviews: interviewData.length,
+   625→        placements: placementData.length,
+   626→        attendanceRecords: attendanceRecords.length,
+   627→        leaveBalances: leaveBalanceData.length,
+   628→        leaveRequests: leaveRequestData.length,
+   629→      },
+   630→    });
+   631→  } catch (error) {
+   632→    console.error('Error seeding data:', error);
+   633→    return NextResponse.json({ error: 'Failed to seed data' }, { status: 500 });
+   634→  }
+   635→}
+   636→
